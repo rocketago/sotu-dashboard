@@ -1,10 +1,10 @@
 name: Auto-update political data
 
 on:
-  schedule:
-    # Run every 5 minutes
-    - cron: '*/5 * * * *'
-  # Allow manual trigger from GitHub UI
+  # Schedule disabled — uncomment to re-enable
+  # schedule:
+  #   - cron: '*/5 * * * *'
+  # Manual trigger from GitHub UI always available
   workflow_dispatch:
 
 jobs:
@@ -26,8 +26,6 @@ jobs:
 
       - name: Install Claude CLI
         run: npm install -g @anthropic-ai/claude-code
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Run fetch_data.py
         env:
