@@ -1,0 +1,48 @@
+name: Auto-update political data
+
+on:
+  schedule:
+    # Run every 5 minutes
+    - cron: '*/5 * * * *'
+  # Allow manual trigger from GitHub UI
+  workflow_dispatch:
+
+jobs:
+  fetch-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Claude CLI
+        run: npm install -g @anthropic-ai/claude-code
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run fetch_data.py
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python3 fetch_data.py
+
+      - name: Commit and push updated data
+        run: |
+          git config user.name  "Claude Auto-Update"
+          git config user.email "noreply@anthropic.com"
+          git add political_data.json
+          # Only commit if something changed
+          if git diff --cached --quiet; then
+            echo "No changes to political_data.json — skipping commit."
+          else
+            git commit -m "chore: auto-update political_data.json [$(date -u '+%Y-%m-%dT%H:%M:%SZ')]"
+            git push
+          fi
