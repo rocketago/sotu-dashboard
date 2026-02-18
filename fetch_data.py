@@ -18,7 +18,8 @@ import datetime
 import re
 from pathlib import Path
 
-OUTPUT_FILE = Path(__file__).parent / "political_data.json"
+OUTPUT_FILE    = Path(__file__).parent / "political_data.json"
+LIVE_FEED_FILE = Path(__file__).parent / "live_feed.json"
 
 # ── Category metadata (icons, ids) ──────────────────────────────────────────
 CATEGORY_META = {
@@ -123,6 +124,42 @@ def fetch_search_queries() -> list[dict]:
         "Elections & Political Figures, Healthcare Policy, Education Policy). "
         "Respond only with a JSON array of objects with keys: "
         "query, topic, count, source, subreddit, category, trend (up/down/stable)."
+    )
+    raw = run_verb_ai_query(prompt)
+    if not raw:
+        return []
+
+    try:
+        if isinstance(raw, list):
+            return raw
+        content = raw.get("content", raw)
+        if isinstance(content, str):
+            match = re.search(r"\[.*\]", content, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+        if isinstance(content, list):
+            return content
+    except (json.JSONDecodeError, AttributeError):
+        pass
+    return []
+
+
+def fetch_live_events() -> list[dict]:
+    """
+    Query VerbAI for the 50 most recent individual search/reddit events by 18-29
+    year-olds today, ordered by recency. Powers the dashboard live feed panel.
+    Returns list of dicts with keys: time, query, source, subreddit, category.
+    """
+    prompt = (
+        "Show the 50 most recent individual political events from VerbAI users aged 18-29 "
+        "from TODAY ONLY (event_time >= CURRENT_DATE), ordered by event_time DESC. "
+        "Combine search events from SEARCH_EVENTS_FLAT_DYM and Reddit events from "
+        "REDDIT_EVENTS_FLAT_DYM. For each event include: event_time in ISO 8601 format, "
+        "the exact search query or Reddit post title, source (search or reddit), "
+        "subreddit name if Reddit (else null), and broad political category "
+        "(e.g. Presidential Politics, Immigration Policy, Economic Policy, Foreign Policy, etc.). "
+        "Respond only with a JSON array of objects with keys: "
+        "time, query, source, subreddit, category."
     )
     raw = run_verb_ai_query(prompt)
     if not raw:
@@ -266,19 +303,26 @@ def main():
 
     categories_raw = fetch_category_counts()
     queries_raw    = fetch_search_queries()
+    events_raw     = fetch_live_events()
 
     if not categories_raw and not queries_raw:
-        print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
-        return
+        print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")
+    else:
+        data = merge_into_structure(categories_raw, queries_raw)
+        with open(OUTPUT_FILE, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"[OK] Wrote {OUTPUT_FILE.name} — "
+              f"{data['summary']['total_engagements']} engagements across "
+              f"{data['summary']['categories_tracked']} categories.")
 
-    data = merge_into_structure(categories_raw, queries_raw)
-
-    with open(OUTPUT_FILE, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-
-    print(f"[OK] Wrote {OUTPUT_FILE.name} — "
-          f"{data['summary']['total_engagements']} engagements across "
-          f"{data['summary']['categories_tracked']} categories.")
+    if events_raw:
+        now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+        feed = {"generated_at": now_iso, "events": events_raw[:50]}
+        with open(LIVE_FEED_FILE, "w") as f:
+            json.dump(feed, f, indent=2, ensure_ascii=False)
+        print(f"[OK] Wrote {LIVE_FEED_FILE.name} — {len(events_raw)} events.")
+    else:
+        print("[WARN] No live events returned — keeping existing live_feed.json.")
 
 
 if __name__ == "__main__":
