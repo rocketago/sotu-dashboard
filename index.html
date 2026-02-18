@@ -6,19 +6,19 @@
   <title>SOTU Rapid Response — Gen Z Political Tracker (Live)</title>
   <style>
     :root {
-      --bg:        #0b0e17;
-      --surface:   #131724;
-      --surface2:  #1c2235;
-      --border:    #2a3050;
-      --accent:    #4f7ef8;
-      --accent2:   #7c5cf8;
-      --warn:      #f5a623;
-      --up:        #34c97e;
-      --down:      #f25c5c;
-      --stable:    #8892aa;
-      --text:      #e8ecf8;
-      --muted:     #6b7494;
-      --radius:    10px;
+      --bg:        #000F1D;
+      --surface:   #051628;
+      --surface2:  #072243;
+      --border:    #0d3060;
+      --accent:    #0DA2E6;
+      --accent2:   #B080C3;
+      --warn:      #F9495F;
+      --up:        #04B35D;
+      --down:      #F9495F;
+      --stable:    #7b9ab0;
+      --text:      #FFFFFF;
+      --muted:     #7b9ab0;
+      --radius:    5px;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,6 +29,7 @@
       font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
       font-size: 14px;
       min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ── TOP BAR ── */
@@ -45,12 +46,13 @@
     }
 
     .logo-badge {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border-radius: 8px;
+      background: var(--warn);
+      border-radius: 5px;
       padding: 6px 12px;
       font-weight: 800;
       font-size: 13px;
       letter-spacing: 0.5px;
+      color: #fff;
     }
 
     header h1 {
@@ -63,8 +65,8 @@
       display: flex;
       align-items: center;
       gap: 7px;
-      background: rgba(245, 166, 35, 0.12);
-      border: 1px solid rgba(245, 166, 35, 0.35);
+      background: rgba(249, 73, 95, 0.12);
+      border: 1px solid rgba(249, 73, 95, 0.4);
       border-radius: 20px;
       padding: 5px 12px;
       font-size: 12px;
@@ -85,6 +87,17 @@
       50%       { opacity: 0.4; transform: scale(0.7); }
     }
 
+    .live-pill.paused {
+      background: rgba(107, 116, 148, 0.12);
+      border-color: rgba(107, 116, 148, 0.3);
+      color: var(--muted);
+    }
+
+    .live-pill.paused .live-dot {
+      background: var(--muted);
+      animation: none;
+    }
+
     .refresh-info {
       font-size: 12px;
       color: var(--muted);
@@ -92,8 +105,8 @@
 
     /* ── WINDOW BANNER ── */
     .window-banner {
-      background: linear-gradient(90deg, rgba(79,126,248,0.12), rgba(124,92,248,0.08));
-      border-bottom: 1px solid rgba(79,126,248,0.25);
+      background: linear-gradient(90deg, rgba(13,162,230,0.10), rgba(176,128,195,0.06));
+      border-bottom: 1px solid rgba(13,162,230,0.2);
       padding: 8px 28px;
       display: flex;
       align-items: center;
@@ -135,15 +148,15 @@
     }
 
     .latency-live {
-      background: rgba(52, 201, 126, 0.15);
+      background: rgba(4, 179, 93, 0.15);
       color: var(--up);
-      border: 1px solid rgba(52, 201, 126, 0.3);
+      border: 1px solid rgba(4, 179, 93, 0.3);
     }
 
     .latency-delayed {
-      background: rgba(245, 166, 35, 0.15);
+      background: rgba(249, 73, 95, 0.12);
       color: var(--warn);
-      border: 1px solid rgba(245, 166, 35, 0.3);
+      border: 1px solid rgba(249, 73, 95, 0.3);
     }
 
     /* ── SUMMARY BAR ── */
@@ -206,8 +219,8 @@
     }
 
     .section-header .demo-tag {
-      background: rgba(79, 126, 248, 0.15);
-      border: 1px solid rgba(79, 126, 248, 0.35);
+      background: rgba(13, 162, 230, 0.12);
+      border: 1px solid rgba(13, 162, 230, 0.35);
       border-radius: 20px;
       padding: 2px 10px;
       font-size: 11px;
@@ -379,9 +392,9 @@
       flex-shrink: 0;
     }
 
-    .source-search  { background: rgba(79,126,248,0.15); color: #7ba3ff; border: 1px solid rgba(79,126,248,0.3); }
-    .source-news    { background: rgba(245,166,35,0.15);  color: #f5c06a; border: 1px solid rgba(245,166,35,0.3); }
-    .source-reddit  { background: rgba(255,86,0,0.13);   color: #ff8c55; border: 1px solid rgba(255,86,0,0.25); }
+    .source-search  { background: rgba(13,162,230,0.15);  color: #5dc8f5; border: 1px solid rgba(13,162,230,0.3); }
+    .source-news    { background: rgba(176,128,195,0.15); color: #c8a0d8; border: 1px solid rgba(176,128,195,0.3); }
+    .source-reddit  { background: rgba(249,73,95,0.13);   color: #f97888; border: 1px solid rgba(249,73,95,0.28); }
 
     .item-count {
       font-size: 12px;
@@ -551,9 +564,9 @@
 <header>
   <div class="logo-badge">VERB AI</div>
   <h1>State of the Union — Rapid Response Tracker</h1>
-  <div class="live-pill">
-    <div class="live-dot"></div>
-    LIVE
+  <div class="live-pill paused" id="live-pill">
+    <div class="live-dot" id="live-dot"></div>
+    <span id="live-label">PAUSED</span>
   </div>
   <div class="refresh-info">Search: 5 min · Reddit: 15 min</div>
 </header>
@@ -596,13 +609,14 @@
 <footer>
   Data source: VerbAI MCP &nbsp;|&nbsp; Demographic: Ages 18–29 &nbsp;|&nbsp;
   Sources: Google Search, News Articles, Reddit &nbsp;|&nbsp;
-  Refreshes every 5 minutes
+  <span id="auto-update-footer">Auto-update paused</span>
 </footer>
 
 <div id="status-bar"></div>
 
 <script>
-  const DATA_URL         = './political_data.json';
+  const DATA_URL          = './political_data.json';
+  const STATUS_URL        = './status.json';
   const SEARCH_REFRESH_MS = 5  * 60 * 1000; // 5 min — matches ~1 min search lag
   const REDDIT_REFRESH_MS = 15 * 60 * 1000; // 15 min — matches ~40 min Reddit lag
 
@@ -775,6 +789,27 @@
     setTimeout(() => { bar.className = ''; }, 3000);
   }
 
+  /* ── LOAD AUTO-UPDATE STATUS ── */
+  async function loadStatus() {
+    try {
+      const res = await fetch(STATUS_URL + '?_=' + Date.now());
+      if (!res.ok) return;
+      const status = await res.json();
+      const pill   = document.getElementById('live-pill');
+      const label  = document.getElementById('live-label');
+      const footer = document.getElementById('auto-update-footer');
+      if (status.auto_update_enabled) {
+        pill.classList.remove('paused');
+        if (label)  label.textContent  = 'LIVE';
+        if (footer) footer.textContent = 'Refreshes every 5 minutes';
+      } else {
+        pill.classList.add('paused');
+        if (label)  label.textContent  = 'PAUSED';
+        if (footer) footer.textContent = 'Auto-update paused';
+      }
+    } catch (_) { /* status.json missing or malformed — keep defaults */ }
+  }
+
   /* ── LOAD DATA ── */
   async function loadData() {
     try {
@@ -804,14 +839,11 @@
   });
 
   /* ── INIT + AUTO-REFRESH ── */
-  // Full reload on init
+  loadStatus();
   loadData();
-  // Search data: refresh every 5 min (pipeline lag ~1 min)
-  setInterval(loadData, SEARCH_REFRESH_MS);
-  // Reddit data: the JSON is the same file but fetch_data.py should be run
-  // on its own schedule; we just re-read the JSON every 15 min to pick up
-  // whatever was written since the last run
-  setInterval(loadData, REDDIT_REFRESH_MS);
+  setInterval(loadStatus, SEARCH_REFRESH_MS);
+  setInterval(loadData,   SEARCH_REFRESH_MS);
+  setInterval(loadData,   REDDIT_REFRESH_MS);
 </script>
 </body>
 </html>
