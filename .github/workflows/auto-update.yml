@@ -36,11 +36,11 @@ jobs:
         run: |
           git config user.name  "Claude Auto-Update"
           git config user.email "noreply@anthropic.com"
-          git add political_data.json
+          git add political_data.json live_feed.json
           # Only commit if something changed
           if git diff --cached --quiet; then
-            echo "No changes to political_data.json — skipping commit."
+            echo "No changes — skipping commit."
           else
-            git commit -m "chore: auto-update political_data.json [$(date -u '+%Y-%m-%dT%H:%M:%SZ')]"
+            git commit -m "chore: auto-update data [$(date -u '+%Y-%m-%dT%H:%M:%SZ')]"
             git push
           fi
