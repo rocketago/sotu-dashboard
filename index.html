@@ -199,10 +199,126 @@
     }
 
     /* ── MAIN LAYOUT ── */
-    main {
-      padding: 24px 28px;
-      max-width: 1400px;
+    .content-layout {
+      display: flex;
+      align-items: flex-start;
+      max-width: 1600px;
       margin: 0 auto;
+    }
+
+    main {
+      flex: 1;
+      padding: 24px 28px;
+      min-width: 0;
+    }
+
+    /* ── LIVE FEED PANEL ── */
+    .live-feed-panel {
+      width: 300px;
+      flex-shrink: 0;
+      border-left: 1px solid var(--border);
+      background: var(--surface);
+      position: sticky;
+      top: 60px;
+      max-height: calc(100vh - 60px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .feed-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .feed-header .feed-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+      flex-shrink: 0;
+    }
+
+    .feed-count {
+      margin-left: auto;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+    }
+
+    .feed-list {
+      flex: 1;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+
+    .feed-item {
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      transition: background 0.12s;
+      animation: feed-in 0.25s ease;
+    }
+
+    .feed-item:hover { background: var(--surface2); }
+
+    @keyframes feed-in {
+      from { opacity: 0; transform: translateY(-6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .feed-time {
+      font-size: 10px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+
+    .feed-query {
+      font-size: 12px;
+      color: var(--text);
+      margin-bottom: 5px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .feed-meta {
+      display: flex;
+      gap: 5px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .feed-category {
+      font-size: 10px;
+      color: var(--muted);
+      background: var(--surface2);
+      border-radius: 3px;
+      padding: 1px 5px;
+    }
+
+    .feed-empty {
+      padding: 32px 16px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    @media (max-width: 900px) {
+      .content-layout { flex-direction: column; }
+      .live-feed-panel {
+        width: 100%;
+        position: static;
+        max-height: 320px;
+        border-left: none;
+        border-top: 1px solid var(--border);
+      }
     }
 
     .section-header {
@@ -581,6 +697,7 @@
   <!-- populated by JS -->
 </div>
 
+<div class="content-layout">
 <main>
   <div class="section-header">
     <h2>Today's Topics by Policy Category</h2>
@@ -606,6 +723,18 @@
   </div>
 </main>
 
+<aside class="live-feed-panel">
+  <div class="feed-header">
+    <div class="feed-dot"></div>
+    Live Events
+    <span class="feed-count" id="feed-count"></span>
+  </div>
+  <div class="feed-list" id="feed-list">
+    <div class="feed-empty">Waiting for live data…</div>
+  </div>
+</aside>
+</div>
+
 <footer>
   Data source: VerbAI MCP &nbsp;|&nbsp; Demographic: Ages 18–29 &nbsp;|&nbsp;
   Sources: Google Search, News Articles, Reddit &nbsp;|&nbsp;
@@ -617,11 +746,14 @@
 <script>
   const DATA_URL          = './political_data.json';
   const STATUS_URL        = './status.json';
-  const SEARCH_REFRESH_MS = 5  * 60 * 1000; // 5 min — matches ~1 min search lag
-  const REDDIT_REFRESH_MS = 15 * 60 * 1000; // 15 min — matches ~40 min Reddit lag
+  const FEED_URL          = './live_feed.json';
+  const SEARCH_REFRESH_MS = 5  * 60 * 1000;
+  const REDDIT_REFRESH_MS = 15 * 60 * 1000;
+  const FEED_REFRESH_MS   = 2  * 60 * 1000; // feed polls every 2 min
 
-  let allExpanded = false;
-  let currentData = null;
+  let allExpanded    = false;
+  let currentData    = null;
+  let lastFeedStamp  = null;
 
   /* ── TREND DISPLAY ── */
   function trendIcon(t) {
@@ -789,6 +921,50 @@
     setTimeout(() => { bar.className = ''; }, 3000);
   }
 
+  /* ── HELPERS ── */
+  function escHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  function timeAgo(iso) {
+    const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+    if (m < 1)  return 'just now';
+    if (m < 60) return `${m}m ago`;
+    const h = Math.floor(m / 60);
+    if (h < 24) return `${h}h ago`;
+    return `${Math.floor(h / 24)}d ago`;
+  }
+
+  /* ── LIVE FEED ── */
+  async function loadFeed() {
+    try {
+      const res = await fetch(FEED_URL + '?_=' + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.events || data.events.length === 0) return;
+      if (data.generated_at === lastFeedStamp) return; // unchanged
+      lastFeedStamp = data.generated_at;
+
+      const list = document.getElementById('feed-list');
+      const count = document.getElementById('feed-count');
+      if (!list) return;
+
+      if (count) count.textContent = `${data.events.length} events`;
+
+      list.innerHTML = data.events.map(ev => `
+        <div class="feed-item">
+          <div class="feed-time">${timeAgo(ev.time)}</div>
+          <div class="feed-query">${escHtml(ev.query)}</div>
+          <div class="feed-meta">
+            ${sourceBadge(ev.source)}
+            ${ev.subreddit ? `<span class="subreddit-tag">r/${escHtml(ev.subreddit)}</span>` : ''}
+            ${ev.category  ? `<span class="feed-category">${escHtml(ev.category)}</span>` : ''}
+          </div>
+        </div>
+      `).join('');
+    } catch (_) { /* live_feed.json not yet available — stay silent */ }
+  }
+
   /* ── LOAD AUTO-UPDATE STATUS ── */
   async function loadStatus() {
     try {
@@ -841,9 +1017,11 @@
   /* ── INIT + AUTO-REFRESH ── */
   loadStatus();
   loadData();
+  loadFeed();
   setInterval(loadStatus, SEARCH_REFRESH_MS);
   setInterval(loadData,   SEARCH_REFRESH_MS);
   setInterval(loadData,   REDDIT_REFRESH_MS);
+  setInterval(loadFeed,   FEED_REFRESH_MS);
 </script>
 </body>
 </html>
