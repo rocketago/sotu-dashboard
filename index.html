@@ -85,6 +85,17 @@
       50%       { opacity: 0.4; transform: scale(0.7); }
     }
 
+    .live-pill.paused {
+      background: rgba(107, 116, 148, 0.12);
+      border-color: rgba(107, 116, 148, 0.3);
+      color: var(--muted);
+    }
+
+    .live-pill.paused .live-dot {
+      background: var(--muted);
+      animation: none;
+    }
+
     .refresh-info {
       font-size: 12px;
       color: var(--muted);
@@ -551,9 +562,9 @@
 <header>
   <div class="logo-badge">VERB AI</div>
   <h1>State of the Union — Rapid Response Tracker</h1>
-  <div class="live-pill">
-    <div class="live-dot"></div>
-    LIVE
+  <div class="live-pill" id="live-pill">
+    <div class="live-dot" id="live-dot"></div>
+    <span id="live-label">LIVE</span>
   </div>
   <div class="refresh-info">Search: 5 min · Reddit: 15 min</div>
 </header>
@@ -596,13 +607,14 @@
 <footer>
   Data source: VerbAI MCP &nbsp;|&nbsp; Demographic: Ages 18–29 &nbsp;|&nbsp;
   Sources: Google Search, News Articles, Reddit &nbsp;|&nbsp;
-  Refreshes every 5 minutes
+  <span id="auto-update-footer">Auto-update paused</span>
 </footer>
 
 <div id="status-bar"></div>
 
 <script>
-  const DATA_URL         = './political_data.json';
+  const DATA_URL          = './political_data.json';
+  const STATUS_URL        = './status.json';
   const SEARCH_REFRESH_MS = 5  * 60 * 1000; // 5 min — matches ~1 min search lag
   const REDDIT_REFRESH_MS = 15 * 60 * 1000; // 15 min — matches ~40 min Reddit lag
 
@@ -775,6 +787,27 @@
     setTimeout(() => { bar.className = ''; }, 3000);
   }
 
+  /* ── LOAD AUTO-UPDATE STATUS ── */
+  async function loadStatus() {
+    try {
+      const res = await fetch(STATUS_URL + '?_=' + Date.now());
+      if (!res.ok) return;
+      const status = await res.json();
+      const pill   = document.getElementById('live-pill');
+      const label  = document.getElementById('live-label');
+      const footer = document.getElementById('auto-update-footer');
+      if (status.auto_update_enabled) {
+        pill.classList.remove('paused');
+        if (label)  label.textContent  = 'LIVE';
+        if (footer) footer.textContent = 'Refreshes every 5 minutes';
+      } else {
+        pill.classList.add('paused');
+        if (label)  label.textContent  = 'PAUSED';
+        if (footer) footer.textContent = 'Auto-update paused';
+      }
+    } catch (_) { /* status.json missing or malformed — keep defaults */ }
+  }
+
   /* ── LOAD DATA ── */
   async function loadData() {
     try {
@@ -804,14 +837,11 @@
   });
 
   /* ── INIT + AUTO-REFRESH ── */
-  // Full reload on init
+  loadStatus();
   loadData();
-  // Search data: refresh every 5 min (pipeline lag ~1 min)
-  setInterval(loadData, SEARCH_REFRESH_MS);
-  // Reddit data: the JSON is the same file but fetch_data.py should be run
-  // on its own schedule; we just re-read the JSON every 15 min to pick up
-  // whatever was written since the last run
-  setInterval(loadData, REDDIT_REFRESH_MS);
+  setInterval(loadStatus, SEARCH_REFRESH_MS);
+  setInterval(loadData,   SEARCH_REFRESH_MS);
+  setInterval(loadData,   REDDIT_REFRESH_MS);
 </script>
 </body>
 </html>
