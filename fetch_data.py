@@ -72,6 +72,7 @@ def _mcp_post(
     token: str,
     payload: dict,
     session_id: str | None = None,
+    timeout: int = 30,
 ) -> tuple[dict, str | None]:
     """
     POST a JSON-RPC message to the MCP endpoint.
@@ -89,7 +90,7 @@ def _mcp_post(
 
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
             ct = resp.headers.get("Content-Type", "")
             new_sid = resp.headers.get("Mcp-Session-Id") or session_id
             raw = resp.read().decode()
@@ -169,7 +170,7 @@ def _call_verbai_agent(
         resp, _ = _mcp_post(url, token, {
             "jsonrpc": "2.0", "id": 3, "method": "tools/call",
             "params": {"name": tool_name, "arguments": {param_key: prompt}},
-        }, session_id)
+        }, session_id, timeout=120)
 
         if resp.get("error"):
             err_msg = str(resp["error"])
