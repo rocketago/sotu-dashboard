@@ -81,7 +81,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
         if not text:
             print("[WARN] claude CLI returned empty output")
             return None
-        print(f"[DEBUG] response preview: {text[:300]}")
+        print(f"[DEBUG] full response ({len(text)}b):\n{text}")
         return text
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
         print(f"[WARN] VerbAI query failed: {e}")
@@ -95,15 +95,16 @@ def fetch_category_counts(since_iso: str) -> list[dict]:
     Returns list of dicts with keys: label, engagement_count, unique_users.
     """
     prompt = (
-        f"For users aged 18-29, what are the top political topics they are engaging with "
-        f"across news, search, and Reddit TODAY ONLY — filter event_time >= '{since_iso}' "
-        f"(that is Eastern-time midnight expressed as UTC, accumulate through now). "
-        "Group by policy category (Presidential Politics, "
-        "General Politics, Elections & Voting, Foreign Policy, Immigration Policy, "
-        "Legislative Politics, Economic Policy, Healthcare Policy, Education Policy, "
-        "Environmental Policy, Civil Rights). Return engagement_count and unique_users per category. "
-        "Respond only with a JSON array of objects with keys: "
-        "policy_category, engagement_count, unique_users."
+        f"Use the available Snowflake database tool to run SQL queries and return real data. "
+        f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
+        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'. "
+        f"Group the results by policy_category and count total engagements and distinct users per category. "
+        f"Map each category to the closest match from this list: Presidential Politics, "
+        f"General Politics, Elections & Voting, Foreign Policy, Immigration Policy, "
+        f"Legislative Politics, Economic Policy, Healthcare Policy, Education Policy, "
+        f"Environmental Policy, Civil Rights. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
+        f"policy_category, engagement_count, unique_users."
     )
     text = run_verb_ai_query(prompt)
     if not text:
@@ -125,19 +126,16 @@ def fetch_search_queries(since_iso: str) -> list[dict]:
     Returns list of dicts with keys: query, count, category, source, subreddit, trend.
     """
     prompt = (
-        f"For users aged 18-29, show the top 40 trending items from TODAY ONLY "
-        f"(event_time >= '{since_iso}', meaning from Eastern midnight expressed as UTC until now). "
-        "Combine: (1) top search queries from SEARCH_EVENTS_FLAT_DYM ordered by count, "
-        "and (2) top Reddit posts from REDDIT_EVENTS_FLAT_DYM ordered by score. "
-        "For each item include: the exact query or post title, count or score, "
-        "which source it came from (search or reddit), subreddit name if Reddit, "
-        "and which broad policy/topic category it belongs to "
-        "(e.g. Government & Accountability, Immigration & Civil Liberties, "
-        "Economic Inequality, Foreign Policy & World, Criminal Justice, "
-        "Corporate Power & Consumers, Culture & Media, Environment & Science, "
-        "Elections & Political Figures, Healthcare Policy, Education Policy). "
-        "Respond only with a JSON array of objects with keys: "
-        "query, topic, count, source, subreddit, category, trend (up/down/stable)."
+        f"Use the available Snowflake database tool to run SQL queries and return real data. "
+        f"Query both SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
+        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'. "
+        f"From SEARCH_EVENTS_FLAT_DYM return the top 20 search queries by count. "
+        f"From REDDIT_EVENTS_FLAT_DYM return the top 20 posts by score. "
+        f"For each item map it to a policy category from: Presidential Politics, General Politics, "
+        f"Elections & Voting, Foreign Policy, Immigration Policy, Legislative Politics, "
+        f"Economic Policy, Healthcare Policy, Education Policy, Environmental Policy, Civil Rights. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
+        f"query, topic, count, source (search or reddit), subreddit, category, trend (up/down/stable)."
     )
     text = run_verb_ai_query(prompt)
     if not text:
@@ -159,16 +157,14 @@ def fetch_live_events(since_iso: str) -> list[dict]:
     Returns list of dicts with keys: time, query, source, subreddit, category.
     """
     prompt = (
-        f"Show the 50 most recent individual political events from VerbAI users aged 18-29 "
-        f"from TODAY ONLY (event_time >= '{since_iso}', Eastern midnight expressed as UTC), ordered by event_time DESC. "
-        "Combine search events from SEARCH_EVENTS_FLAT_DYM and Reddit events from "
-        "REDDIT_EVENTS_FLAT_DYM. For each event include: event_time in ISO 8601 format, "
-        "the exact search query or Reddit post title, source (search or reddit), "
-        "subreddit name if Reddit (else null), broad political category "
-        "(e.g. Presidential Politics, Immigration Policy, Economic Policy, Foreign Policy, etc.), "
-        "the user's age (integer), gender (Male/Female/Non-binary), and US state abbreviation. "
-        "Respond only with a JSON array of objects with keys: "
-        "time, query, source, subreddit, category, age, gender, state."
+        f"Use the available Snowflake database tool to run SQL queries and return real data. "
+        f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for the 50 most recent rows where "
+        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}', ordered by event_time DESC. "
+        f"For each row return: event_time (ISO 8601), the search query or post title, "
+        f"source (search or reddit), subreddit (null if search), a broad political category, "
+        f"age (integer), gender, and US state abbreviation. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
+        f"time, query, source, subreddit, category, age, gender, state."
     )
     text = run_verb_ai_query(prompt)
     if not text:
