@@ -38,17 +38,17 @@ CATEGORY_META = {
 }
 
 
-def run_verb_ai_query(prompt: str) -> dict | None:
+def run_verb_ai_query(prompt: str) -> str | None:
     """
-    Call the VerbAI MCP tool via the Claude CLI and return parsed JSON.
+    Call the VerbAI MCP tool via the Claude CLI and return the text result.
     Requires 'claude' CLI to be installed and configured with the VerbAI MCP.
     """
     cmd = [
         "claude",
-        "--no-interactive",
+        "--print",
         "--output-format", "json",
+        "--allowedTools", "mcp__verb-ai-mcp__query_verbai",
         "--prompt", prompt,
-        "--mcp", "verb-ai-mcp",
     ]
     try:
         result = subprocess.run(
@@ -58,9 +58,15 @@ def run_verb_ai_query(prompt: str) -> dict | None:
             timeout=120,
         )
         if result.returncode != 0:
-            print(f"[WARN] claude CLI returned {result.returncode}: {result.stderr[:200]}")
+            print(f"[WARN] claude CLI returned {result.returncode}: {result.stderr[:400]}")
             return None
-        return json.loads(result.stdout)
+        raw = json.loads(result.stdout)
+        # --output-format json wraps the answer in a top-level "result" string
+        text = raw.get("result") or raw.get("content") or ""
+        if not text:
+            print(f"[WARN] Unexpected claude JSON shape: {list(raw.keys())}")
+            return None
+        return text
     except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
         print(f"[WARN] VerbAI query failed: {e}")
         return None
@@ -84,22 +90,14 @@ def fetch_category_counts() -> list[dict]:
         "Respond only with a JSON array of objects with keys: "
         "policy_category, engagement_count, unique_users."
     )
-    raw = run_verb_ai_query(prompt)
-    if not raw:
+    text = run_verb_ai_query(prompt)
+    if not text:
         return []
 
-    # Parse from Claude's structured response
     try:
-        if isinstance(raw, list):
-            return raw
-        # If wrapped in a message object, extract content
-        content = raw.get("content", raw)
-        if isinstance(content, str):
-            match = re.search(r"\[.*\]", content, re.DOTALL)
-            if match:
-                return json.loads(match.group())
-        if isinstance(content, list):
-            return content
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
     except (json.JSONDecodeError, AttributeError):
         pass
     return []
@@ -126,20 +124,14 @@ def fetch_search_queries() -> list[dict]:
         "Respond only with a JSON array of objects with keys: "
         "query, topic, count, source, subreddit, category, trend (up/down/stable)."
     )
-    raw = run_verb_ai_query(prompt)
-    if not raw:
+    text = run_verb_ai_query(prompt)
+    if not text:
         return []
 
     try:
-        if isinstance(raw, list):
-            return raw
-        content = raw.get("content", raw)
-        if isinstance(content, str):
-            match = re.search(r"\[.*\]", content, re.DOTALL)
-            if match:
-                return json.loads(match.group())
-        if isinstance(content, list):
-            return content
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
     except (json.JSONDecodeError, AttributeError):
         pass
     return []
@@ -163,20 +155,14 @@ def fetch_live_events() -> list[dict]:
         "Respond only with a JSON array of objects with keys: "
         "time, query, source, subreddit, category, age, gender, state."
     )
-    raw = run_verb_ai_query(prompt)
-    if not raw:
+    text = run_verb_ai_query(prompt)
+    if not text:
         return []
 
     try:
-        if isinstance(raw, list):
-            return raw
-        content = raw.get("content", raw)
-        if isinstance(content, str):
-            match = re.search(r"\[.*\]", content, re.DOTALL)
-            if match:
-                return json.loads(match.group())
-        if isinstance(content, list):
-            return content
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
     except (json.JSONDecodeError, AttributeError):
         pass
     return []
