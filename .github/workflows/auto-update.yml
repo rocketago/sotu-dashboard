@@ -27,6 +27,14 @@ jobs:
       - name: Install Claude CLI
         run: npm install -g @anthropic-ai/claude-code
 
+      - name: Configure VerbAI MCP
+        env:
+          VERBAI_TOKEN: ${{ secrets.VERBAI_TOKEN }}
+        run: |
+          claude mcp add --transport http verb-ai-mcp \
+            https://zknnynm-exc60781.snowflakecomputing.com/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS/mcp-servers/VERB_AI_MCP_SERVER \
+            --header "Authorization:Bearer $VERBAI_TOKEN"
+
       - name: Run fetch_data.py
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
