@@ -47,7 +47,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
         "claude",
         "--print",
         "--output-format", "json",
-        "--allowedTools", "mcp__verb-ai-mcp__query_verbai",
+        "--allowedTools", "mcp__verb-ai-mcp__*",
         "--prompt", prompt,
     ]
     try:
@@ -262,14 +262,19 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     search_today = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
     reddit_today = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
 
+    # Preserve last_mcp_pull: advance it only when real API data was used
+    got_mcp_data = bool(categories_raw)
+    last_mcp_pull = now_iso if got_mcp_data else existing.get("meta", {}).get("last_mcp_pull")
+
     return {
         "meta": {
-            "generated_at": now_iso,
-            "demographic":  "Ages 18-29",
-            "data_source":  "VerbAI MCP (Search, News, Reddit events)",
-            "window":       "today",
-            "window_label": f"Today ({today_label}) · Updated live",
-            "today_start":  f"{today}T00:00:00Z",
+            "generated_at":  now_iso,
+            "last_mcp_pull": last_mcp_pull,
+            "demographic":   "Ages 18-29",
+            "data_source":   "VerbAI MCP (Search, News, Reddit events)",
+            "window":        "today",
+            "window_label":  f"Today ({today_label}) · Updated live",
+            "today_start":   f"{today}T00:00:00Z",
             "refresh_interval_minutes": 5,
         },
         "summary": {
@@ -345,11 +350,13 @@ def main():
 
     if not categories_raw and not queries_raw:
         print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")
-        # Still update generated_at so the dashboard banner shows the actual last-run time.
+        # Update generated_at (= last action run) but leave last_mcp_pull untouched.
         if OUTPUT_FILE.exists():
             with open(OUTPUT_FILE) as f:
                 existing = json.load(f)
             existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            # Ensure last_mcp_pull key exists for older files that predate this field
+            existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(existing, f, indent=2, ensure_ascii=False)
     else:

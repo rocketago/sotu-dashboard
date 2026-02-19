@@ -708,11 +708,6 @@
       border-color: var(--accent);
     }
 
-    .last-updated {
-      margin-left: auto;
-      font-size: 11px;
-      color: var(--muted);
-    }
   </style>
 </head>
 <body>
@@ -755,7 +750,6 @@
     <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
       Expand All
     </button>
-    <span class="last-updated" id="last-updated-text">Loading...</span>
   </div>
 
   <div class="category-grid" id="category-grid">
@@ -829,18 +823,18 @@
     const todayStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     document.getElementById('window-label').textContent = `📅 ${todayStr} · Live from midnight`;
 
-    // Show EST timestamp of last fetch_data.py run
-    let fetchDesc = m.window_label || '';
-    if (m.generated_at) {
-      const estStr = new Date(m.generated_at).toLocaleString('en-US', {
+    // Show last action run + last MCP data pull timestamps
+    function fmtEST(iso) {
+      return new Date(iso).toLocaleString('en-US', {
         timeZone: 'America/New_York',
         month: 'short', day: 'numeric',
         hour: 'numeric', minute: '2-digit',
         timeZoneName: 'short',
       });
-      fetchDesc = `Last fetch: ${estStr}`;
     }
-    document.getElementById('window-desc').textContent = fetchDesc;
+    const runStr  = m.generated_at  ? `Action run: ${fmtEST(m.generated_at)}`  : '';
+    const pullStr = m.last_mcp_pull ? `MCP data: ${fmtEST(m.last_mcp_pull)}`   : '';
+    document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
       <span>💬 ${(s.reddit_events_today || 0).toLocaleString()} Reddit posts <span class="latency-pill latency-delayed">~40 min lag</span></span>
@@ -1061,8 +1055,6 @@
       const filterText = document.getElementById('topic-filter').value;
       renderCategories(data.categories, filterText);
 
-      const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      document.getElementById('last-updated-text').textContent = 'Last updated: ' + now;
       showStatus('Data refreshed ✓', 'success');
     } catch (err) {
       showStatus('Refresh failed: ' + err.message, 'error');
