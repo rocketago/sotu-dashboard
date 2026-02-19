@@ -184,11 +184,13 @@ def _call_verbai_agent(
         if content is None:
             return ""
 
-        for block in content:
-            text = block.get("text", "")
-            if text:
-                print(f"[MCP-DIRECT] agent response ({len(text)}b): {text[:300]}")
-                return text
+        # Collect ALL text blocks — the data may be in a later block,
+        # not the first (VerbAI may emit execution-trace blocks before the answer)
+        texts = [b.get("text", "") for b in content if b.get("text")]
+        if texts:
+            for i, t in enumerate(texts):
+                print(f"[MCP-DIRECT] block[{i}] ({len(t)}b): {t[:1000]}")
+            return "\n\x00\n".join(texts)  # NUL separator keeps JSON valid per-segment
         return ""  # Tool ran but returned empty content
 
     print(f"[MCP-DIRECT] could not find correct parameter for tool '{tool_name}'")
@@ -234,13 +236,76 @@ def run_verb_ai_query(prompt: str) -> str | None:
 
 
 def _parse_json_array(text: str) -> list:
-    """Extract first JSON array from a text response."""
-    try:
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except (json.JSONDecodeError, AttributeError):
-        pass
+    """
+    Extract a data array from text, searching recursively through nested JSON.
+    Handles: direct arrays, nested object paths, double-encoded strings, and
+    the VerbAI {"content":[{"tool_use":{...}}]} wrapper format.
+    Each segment separated by NUL (from _call_verbai_agent) is tried individually.
+    """
+    DATA_KEYS = frozenset({
+        "policy_category", "engagement_count", "unique_users",
+        "query", "count", "source", "category", "time", "subreddit", "trend",
+    })
+
+    def is_data(arr):
+        return (
+            isinstance(arr, list) and arr
+            and isinstance(arr[0], dict)
+            and DATA_KEYS.intersection(arr[0].keys())
+        )
+
+    def search(obj, depth=0):
+        if depth > 12:
+            return None
+        if is_data(obj):
+            return obj
+        if isinstance(obj, list):
+            for item in obj:
+                r = search(item, depth + 1)
+                if r is not None:
+                    return r
+        elif isinstance(obj, dict):
+            # Prioritise common result-payload field names first
+            for key in ("result", "rows", "data", "items", "records", "output", "content"):
+                if key in obj:
+                    r = search(obj[key], depth + 1)
+                    if r is not None:
+                        return r
+            for v in obj.values():
+                r = search(v, depth + 1)
+                if r is not None:
+                    return r
+        elif isinstance(obj, str) and len(obj) > 4 and obj.lstrip()[:1] in ("[", "{"):
+            # Double-serialised JSON embedded inside a string value
+            try:
+                return search(json.loads(obj), depth + 1)
+            except json.JSONDecodeError:
+                pass
+        return None
+
+    # Try each NUL-separated segment independently (multiple VerbAI blocks)
+    segments = text.split("\n\x00\n") if "\x00" in text else [text]
+    for seg in segments:
+        seg = seg.strip()
+        if not seg:
+            continue
+        # Try full JSON parse + recursive search
+        try:
+            result = search(json.loads(seg))
+            if result:
+                return result
+        except json.JSONDecodeError:
+            pass
+        # Fallback: regex extract first JSON array in this segment
+        try:
+            m = re.search(r"\[.*\]", seg, re.DOTALL)
+            if m:
+                arr = json.loads(m.group())
+                if is_data(arr):
+                    return arr
+        except (json.JSONDecodeError, AttributeError):
+            pass
+
     return []
 
 
