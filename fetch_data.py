@@ -481,7 +481,7 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
 
     # Sort by engagement desc, compute trending_score relative to max
     categories.sort(key=lambda c: -c["engagement_count"])
-    max_eng = max((c["engagement_count"] for c in categories), default=1)
+    max_eng = max((c["engagement_count"] for c in categories), default=0) or 1
     for c in categories:
         c["trending_score"] = round((c["engagement_count"] / max_eng) * 100)
 
