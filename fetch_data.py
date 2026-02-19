@@ -165,7 +165,7 @@ def _call_verbai_agent(
     Returns the raw text response on success, None on protocol/auth failure.
     Tries common parameter key names used by AI agent tools.
     """
-    for param_key in ("query", "question", "input", "prompt", "message"):
+    for param_key in ("text", "query", "question", "input", "prompt", "message"):
         resp, _ = _mcp_post(url, token, {
             "jsonrpc": "2.0", "id": 3, "method": "tools/call",
             "params": {"name": tool_name, "arguments": {param_key: prompt}},
