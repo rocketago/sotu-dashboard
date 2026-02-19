@@ -157,10 +157,11 @@ def fetch_live_events() -> list[dict]:
         "Combine search events from SEARCH_EVENTS_FLAT_DYM and Reddit events from "
         "REDDIT_EVENTS_FLAT_DYM. For each event include: event_time in ISO 8601 format, "
         "the exact search query or Reddit post title, source (search or reddit), "
-        "subreddit name if Reddit (else null), and broad political category "
-        "(e.g. Presidential Politics, Immigration Policy, Economic Policy, Foreign Policy, etc.). "
+        "subreddit name if Reddit (else null), broad political category "
+        "(e.g. Presidential Politics, Immigration Policy, Economic Policy, Foreign Policy, etc.), "
+        "the user's age (integer), gender (Male/Female/Non-binary), and US state abbreviation. "
         "Respond only with a JSON array of objects with keys: "
-        "time, query, source, subreddit, category."
+        "time, query, source, subreddit, category, age, gender, state."
     )
     raw = run_verb_ai_query(prompt)
     if not raw:
@@ -299,11 +300,22 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     }
 
 
+_US_STATES = [
+    "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN",
+    "IA","KS","KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV",
+    "NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC","SD","TN",
+    "TX","UT","VT","VA","WA","WV","WI","WY",
+]
+_GENDERS  = ["Male", "Female", "Non-binary"]
+_G_WEIGHTS = [0.48, 0.48, 0.04]
+
+
 def seed_events_from_categories(cat_data: dict) -> list[dict]:
     """
     Synthesize live feed events from political_data.json category items.
     Used as a fallback when VerbAI returns no live events and live_feed.json
-    is empty. Spreads items across today's time window (midnight → now).
+    is empty. Spreads items across today's time window (midnight → now) and
+    attaches synthetic demographic data (age 18-29, gender, US state).
     """
     events = []
     for cat in cat_data.get("categories", []):
@@ -329,7 +341,10 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     n = len(events)
     for i, ev in enumerate(events):
         delta = int((i / max(n - 1, 1)) * span_s)
-        ev["time"] = (today_s + datetime.timedelta(seconds=delta)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ev["time"]   = (today_s + datetime.timedelta(seconds=delta)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        ev["age"]    = random.randint(18, 29)
+        ev["gender"] = random.choices(_GENDERS, weights=_G_WEIGHTS)[0]
+        ev["state"]  = random.choice(_US_STATES)
 
     events.sort(key=lambda e: e["time"], reverse=True)
     return events

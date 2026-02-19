@@ -310,6 +310,46 @@
       font-size: 12px;
     }
 
+    .feed-item {
+      cursor: pointer;
+    }
+
+    .feed-item .demo-row {
+      display: none;
+      gap: 5px;
+      flex-wrap: wrap;
+      margin-top: 7px;
+      padding-top: 7px;
+      border-top: 1px solid var(--border);
+    }
+
+    .feed-item.expanded .demo-row {
+      display: flex;
+    }
+
+    .demo-chip {
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: rgba(13, 162, 230, 0.10);
+      border: 1px solid rgba(13, 162, 230, 0.25);
+      color: var(--accent);
+    }
+
+    .demo-chip.gender { background: rgba(176,128,195,0.12); border-color: rgba(176,128,195,0.3); color: var(--accent2); }
+    .demo-chip.state  { background: rgba(4,179,93,0.10);    border-color: rgba(4,179,93,0.25);   color: var(--up); }
+
+    .feed-expand-hint {
+      font-size: 10px;
+      color: var(--muted);
+      margin-left: auto;
+      opacity: 0.6;
+      transition: opacity 0.15s;
+    }
+
+    .feed-item:hover .feed-expand-hint { opacity: 1; }
+
     @media (max-width: 900px) {
       .content-layout { flex-direction: column; }
       .live-feed-panel {
@@ -788,7 +828,19 @@
     // Build today label dynamically from browser time
     const todayStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     document.getElementById('window-label').textContent = `📅 ${todayStr} · Live from midnight`;
-    document.getElementById('window-desc').textContent = m.window_label || '';
+
+    // Show EST timestamp of last fetch_data.py run
+    let fetchDesc = m.window_label || '';
+    if (m.generated_at) {
+      const estStr = new Date(m.generated_at).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+        timeZoneName: 'short',
+      });
+      fetchDesc = `Last fetch: ${estStr}`;
+    }
+    document.getElementById('window-desc').textContent = fetchDesc;
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
       <span>💬 ${(s.reddit_events_today || 0).toLocaleString()} Reddit posts <span class="latency-pill latency-delayed">~40 min lag</span></span>
@@ -951,17 +1003,26 @@
 
       if (count) count.textContent = `${data.events.length} events`;
 
-      list.innerHTML = data.events.map(ev => `
-        <div class="feed-item">
+      list.innerHTML = data.events.map(ev => {
+        const hasDemо = ev.age || ev.gender || ev.state;
+        return `
+        <div class="feed-item" onclick="this.classList.toggle('expanded')">
           <div class="feed-time">${timeAgo(ev.time)}</div>
           <div class="feed-query">${escHtml(ev.query)}</div>
           <div class="feed-meta">
             ${sourceBadge(ev.source)}
             ${ev.subreddit ? `<span class="subreddit-tag">r/${escHtml(ev.subreddit)}</span>` : ''}
             ${ev.category  ? `<span class="feed-category">${escHtml(ev.category)}</span>` : ''}
+            ${hasDemо ? '<span class="feed-expand-hint">▾ demo</span>' : ''}
           </div>
-        </div>
-      `).join('');
+          ${hasDemо ? `
+          <div class="demo-row">
+            ${ev.age    ? `<span class="demo-chip">Age ${ev.age}</span>` : ''}
+            ${ev.gender ? `<span class="demo-chip gender">${escHtml(ev.gender)}</span>` : ''}
+            ${ev.state  ? `<span class="demo-chip state">${escHtml(ev.state)}</span>` : ''}
+          </div>` : ''}
+        </div>`;
+      }).join('');
     } catch (_) { /* live_feed.json not yet available — stay silent */ }
   }
 
