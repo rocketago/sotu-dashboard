@@ -61,7 +61,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
         "claude",
         "--print",
         "--dangerously-skip-permissions",
-        "--prompt", prompt,
+        prompt,
     ]
     try:
         result = subprocess.run(
