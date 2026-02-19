@@ -1,1 +1,505 @@
-{"generated_at": "2026-02-19T05:00:00Z", "events": []}
+{
+  "generated_at": "2026-02-19T19:32:05Z",
+  "events": [
+    {
+      "time": "2026-02-19T11:29:00Z",
+      "query": "*",
+      "source": "search",
+      "subreddit": null,
+      "category": "Other",
+      "age": 28,
+      "gender": "Female",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:28:57Z",
+      "query": "*",
+      "source": "search",
+      "subreddit": null,
+      "category": "Other",
+      "age": 28,
+      "gender": "Female",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:24Z",
+      "query": "SPENDING HABITS FOR YOUNG ADULTS Paid Market Research Study by ADLER WEINER RESEARCH NATIONAL - Honorarium $325-$675 - Online/Virtual & In-person LA - Week of 3/2",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:24Z",
+      "query": "LA PICKUP TRUCK OWNERS Paid Market Research Study (Online Bulletin Board + Interview) by ADLER WEINER RESEARCH NATIONAL - Honorarium $500-$950 - Online/Virtual - 2/16-2/22",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:24Z",
+      "query": "SPENDING HABITS FOR YOUNG ADULTS Paid Market Research Study by ADLER WEINER RESEARCH NATIONAL - Honorarium $325-$675 - Online/Virtual & In-person LA - Week of 3/2",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:20Z",
+      "query": "LA PICKUP TRUCK OWNERS Paid Market Research Study (Online Bulletin Board + Interview) by ADLER WEINER RESEARCH NATIONAL - Honorarium $500-$950 - Online/Virtual - 2/16-2/22",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:20Z",
+      "query": "Paid Usability Study ($10) – Help Us Improve Online Health Insurance Shopping (1 Hour, Remote)",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:20Z",
+      "query": "SOCIAL MEDIA FOR YOUNG ADULTS & PARENTS OF TEENAGERS Paid Market Research Study by ADLER WEINER RESEARCH NATIONAL - Honorarium $300 - In-person LA - 2/26 & 2/27",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Other",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:20Z",
+      "query": "Children's Nutrition Research Center in Houston, TX. $510",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:11Z",
+      "query": "SOCIAL MEDIA FOR YOUNG ADULTS & PARENTS OF TEENAGERS Paid Market Research Study by ADLER WEINER RESEARCH NATIONAL - Honorarium $300 - In-person LA - 2/26 & 2/27",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Other",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:11Z",
+      "query": "Paid Usability Study ($10) – Help Us Improve Online Health Insurance Shopping (1 Hour, Remote)",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:11Z",
+      "query": "Recruiting for a Paid Study in NYC: Adults With Hearing Aids / Loss",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:07Z",
+      "query": "NYU Cognitive Development Lab: What we study & How you can get involved",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Education",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:23:07Z",
+      "query": "Children's Nutrition Research Center in Houston, TX. $510",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:34Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:27Z",
+      "query": "Interested in Free Telehealth Therapy as Part of a Research Study?",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:27Z",
+      "query": "New Yorkers, Are Spiraling Thoughts Stressing You Out?",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:27Z",
+      "query": "ZzzInsights: Research Panel for Individuals with Sleep Disorders",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:27Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:27Z",
+      "query": "Rideshare Services Virtual Focus Group $125",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:22Z",
+      "query": "Parents and young adults needed for paid market",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:16Z",
+      "query": "Parents and Young Adults Needed for Paid Market",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "New Yorkers, Are Spiraling Thoughts Stressing You Out?",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "Parents and Young Adults Needed for Paid Market Research (Canada Only)",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:14Z",
+      "query": "Rideshare Services Virtual Focus Group $125",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:05Z",
+      "query": "For a limited time, get $400 when you open your first new personal Checking account and make a single direct deposit of $1,000 or more within 60 days. Member FDIC",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:22:02Z",
+      "query": "Transformative Drinking Experience Study",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Healthcare",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:21:43Z",
+      "query": "Guide on how to make money with paid studies I",
+      "source": "reddit",
+      "subreddit": "SideProject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:21:43Z",
+      "query": "Guide on how to make money with paid studies i",
+      "source": "reddit",
+      "subreddit": "sideproject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:21:16Z",
+      "query": "Guide on how to make money with paid studies I",
+      "source": "reddit",
+      "subreddit": "SideProject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:20:47Z",
+      "query": "guide_on_how_to_make_money_with_paid_studies_i",
+      "source": "reddit",
+      "subreddit": "sideproject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:20:40Z",
+      "query": "Guide on how to make money with paid studies i",
+      "source": "reddit",
+      "subreddit": "SideProject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:20:26Z",
+      "query": "Guide on how to make money with paid studies i",
+      "source": "reddit",
+      "subreddit": "sideproject",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:59Z",
+      "query": "watchlab",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:58Z",
+      "query": "watchlab",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:53Z",
+      "query": "paid studi",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:52Z",
+      "query": "watchlab",
+      "source": "reddit",
+      "subreddit": "paidstudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:51Z",
+      "query": "paid stud",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:49Z",
+      "query": "paid s",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:45Z",
+      "query": "paid",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:36Z",
+      "query": "watchlab",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:19:17Z",
+      "query": "Watchlab",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:18:59Z",
+      "query": "Watchlab",
+      "source": "reddit",
+      "subreddit": "PaidStudies",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:18:12Z",
+      "query": "I have an issue with the company watchlab",
+      "source": "reddit",
+      "subreddit": "beermoney",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:18:09Z",
+      "query": "i_have_an_issue_with_the_company_watchlab",
+      "source": "reddit",
+      "subreddit": "beermoney",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:17:56Z",
+      "query": "I have an issue with the company watchlab",
+      "source": "reddit",
+      "subreddit": "beermoney",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    },
+    {
+      "time": "2026-02-19T11:17:28Z",
+      "query": "I Have An Issue With the company WatchLAB",
+      "source": "reddit",
+      "subreddit": "beermoney",
+      "category": "Economy",
+      "age": 25,
+      "gender": "Male",
+      "state": null
+    }
+  ]
+}
