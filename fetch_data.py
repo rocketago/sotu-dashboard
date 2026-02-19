@@ -38,6 +38,20 @@ CATEGORY_META = {
 }
 
 
+def et_midnight_utc() -> str:
+    """Return the ISO UTC timestamp for midnight Eastern Time today."""
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    # EDT Apr–Oct (UTC-4), EST Nov–Mar (UTC-5)
+    et_hours = 4 if 4 <= now_utc.month <= 10 else 5
+    et_tz = datetime.timezone(datetime.timedelta(hours=-et_hours))
+    midnight_et = datetime.datetime.combine(
+        now_utc.astimezone(et_tz).date(),
+        datetime.time.min,
+        tzinfo=et_tz,
+    )
+    return midnight_et.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def run_verb_ai_query(prompt: str) -> str | None:
     """
     Call the VerbAI MCP tool via the Claude CLI and return the text result.
@@ -47,7 +61,6 @@ def run_verb_ai_query(prompt: str) -> str | None:
         "claude",
         "--print",
         "--output-format", "json",
-        "--allowedTools", "mcp__verb-ai-mcp__*",
         "--prompt", prompt,
     ]
     try:
@@ -72,17 +85,16 @@ def run_verb_ai_query(prompt: str) -> str | None:
         return None
 
 
-def fetch_category_counts() -> list[dict]:
+def fetch_category_counts(since_iso: str) -> list[dict]:
     """
-    Query VerbAI for per-category engagement counts for 18-29 year-olds,
-    starting from the beginning of today (CURRENT_DATE / midnight).
+    Query VerbAI for per-category engagement counts for 18-29 year-olds
+    starting from Eastern midnight today (since_iso, expressed in UTC).
     Returns list of dicts with keys: label, engagement_count, unique_users.
-    Falls back to the baked-in data on failure.
     """
     prompt = (
-        "For users aged 18-29, what are the top political topics they are engaging with "
-        "across news, search, and Reddit TODAY ONLY — use event_time >= CURRENT_DATE to filter "
-        "so data starts from midnight of today and accumulates through now. "
+        f"For users aged 18-29, what are the top political topics they are engaging with "
+        f"across news, search, and Reddit TODAY ONLY — filter event_time >= '{since_iso}' "
+        f"(that is Eastern-time midnight expressed as UTC, accumulate through now). "
         "Group by policy category (Presidential Politics, "
         "General Politics, Elections & Voting, Foreign Policy, Immigration Policy, "
         "Legislative Politics, Economic Policy, Healthcare Policy, Education Policy, "
@@ -103,15 +115,15 @@ def fetch_category_counts() -> list[dict]:
     return []
 
 
-def fetch_search_queries() -> list[dict]:
+def fetch_search_queries(since_iso: str) -> list[dict]:
     """
-    Query VerbAI for specific search queries AND top Reddit posts by 18-29 year-olds,
-    starting from the beginning of today (event_time >= CURRENT_DATE).
+    Query VerbAI for specific search queries AND top Reddit posts by 18-29 year-olds
+    starting from Eastern midnight today (since_iso, expressed in UTC).
     Returns list of dicts with keys: query, count, category, source, subreddit, trend.
     """
     prompt = (
-        "For users aged 18-29, show the top 40 trending items from TODAY ONLY "
-        "(event_time >= CURRENT_DATE, meaning from midnight until now). "
+        f"For users aged 18-29, show the top 40 trending items from TODAY ONLY "
+        f"(event_time >= '{since_iso}', meaning from Eastern midnight expressed as UTC until now). "
         "Combine: (1) top search queries from SEARCH_EVENTS_FLAT_DYM ordered by count, "
         "and (2) top Reddit posts from REDDIT_EVENTS_FLAT_DYM ordered by score. "
         "For each item include: the exact query or post title, count or score, "
@@ -137,15 +149,15 @@ def fetch_search_queries() -> list[dict]:
     return []
 
 
-def fetch_live_events() -> list[dict]:
+def fetch_live_events(since_iso: str) -> list[dict]:
     """
     Query VerbAI for the 50 most recent individual search/reddit events by 18-29
     year-olds today, ordered by recency. Powers the dashboard live feed panel.
     Returns list of dicts with keys: time, query, source, subreddit, category.
     """
     prompt = (
-        "Show the 50 most recent individual political events from VerbAI users aged 18-29 "
-        "from TODAY ONLY (event_time >= CURRENT_DATE), ordered by event_time DESC. "
+        f"Show the 50 most recent individual political events from VerbAI users aged 18-29 "
+        f"from TODAY ONLY (event_time >= '{since_iso}', Eastern midnight expressed as UTC), ordered by event_time DESC. "
         "Combine search events from SEARCH_EVENTS_FLAT_DYM and Reddit events from "
         "REDDIT_EVENTS_FLAT_DYM. For each event include: event_time in ISO 8601 format, "
         "the exact search query or Reddit post title, source (search or reddit), "
@@ -274,7 +286,7 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
             "data_source":   "VerbAI MCP (Search, News, Reddit events)",
             "window":        "today",
             "window_label":  f"Today ({today_label}) · Updated live",
-            "today_start":   f"{today}T00:00:00Z",
+            "today_start":   et_midnight_utc(),
             "refresh_interval_minutes": 5,
         },
         "summary": {
@@ -344,9 +356,12 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    categories_raw = fetch_category_counts()
-    queries_raw    = fetch_search_queries()
-    events_raw     = fetch_live_events()
+    since_iso = et_midnight_utc()
+    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
+
+    categories_raw = fetch_category_counts(since_iso)
+    queries_raw    = fetch_search_queries(since_iso)
+    events_raw     = fetch_live_events(since_iso)
 
     if not categories_raw and not queries_raw:
         print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")

@@ -505,14 +505,12 @@
       transition: background 0.12s;
     }
 
-    a.item-row {
-      display: flex;
-      text-decoration: none;
-      color: inherit;
-    }
-
     .item-row:hover {
       background: var(--surface2);
+    }
+
+    .item-row.expandable {
+      cursor: pointer;
     }
 
     .item-rank {
@@ -597,26 +595,46 @@
       text-decoration: none;
     }
 
-    .item-row.has-link {
-      cursor: pointer;
-    }
-
-    .item-row.has-link:hover .item-topic {
+    .item-row.expandable:hover .item-topic {
       color: var(--accent);
-      text-decoration: underline;
-      text-underline-offset: 3px;
     }
 
-    .item-row .ext-icon {
+    .item-chevron {
       font-size: 10px;
       color: var(--muted);
       flex-shrink: 0;
-      opacity: 0;
-      transition: opacity 0.15s;
+      transition: transform 0.15s;
     }
 
-    .item-row.has-link:hover .ext-icon {
-      opacity: 1;
+    .item-row.expandable.open .item-chevron {
+      transform: rotate(90deg);
+    }
+
+    .item-detail {
+      display: none;
+      padding: 8px 16px 10px 46px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .detail-event {
+      padding: 4px 0;
+      color: var(--text);
+      line-height: 1.5;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .detail-event:last-child { border-bottom: none; }
+
+    .detail-event em {
+      color: var(--accent);
+      font-style: normal;
+    }
+
+    .detail-no-data {
+      color: var(--muted);
+      font-style: italic;
     }
 
     /* ── MINI SPARKLINE ── */
@@ -788,6 +806,7 @@
   let allExpanded    = false;
   let currentData    = null;
   let lastFeedStamp  = null;
+  let liveFeedEvents = [];
 
   /* ── TREND DISPLAY ── */
   function trendIcon(t) {
@@ -917,24 +936,24 @@
 
           <div class="cat-items">
             ${sparkline(cat.items)}
-            ${displayItems.map((item, i) => {
-              const hasLink = item.source === 'reddit' && item.url;
-              const inner = `
+            ${displayItems.map((item, i) => `
+              <div class="item-row expandable"
+                   data-item="${escHtml(JSON.stringify(item))}"
+                   data-cat="${escHtml(cat.label)}"
+                   onclick="toggleItemDetail(this)">
                 <div class="item-rank">${i + 1}</div>
                 <div class="item-topic">
-                  ${item.topic}
-                  <span class="item-query">"${item.query}"</span>
+                  ${escHtml(item.topic)}
+                  <span class="item-query">"${escHtml(item.query)}"</span>
                 </div>
-                ${item.subreddit ? `<span class="subreddit-tag">r/${item.subreddit}</span>` : ''}
+                ${item.subreddit ? `<span class="subreddit-tag">r/${escHtml(item.subreddit)}</span>` : ''}
                 ${sourceBadge(item.source)}
                 <div class="score-badge">${item.source === 'reddit' ? '▲ ' + Number(item.count).toLocaleString() : item.count + 'x'}</div>
-                <span class="ext-icon">${hasLink ? '↗' : ''}</span>
                 ${trendIcon(item.trend)}
-              `;
-              return hasLink
-                ? `<a class="item-row has-link" href="${item.url}" target="_blank" rel="noopener noreferrer">${inner}</a>`
-                : `<div class="item-row">${inner}</div>`;
-            }).join('')}
+                <span class="item-chevron">▶</span>
+              </div>
+              <div class="item-detail"></div>
+            `).join('')}
           </div>
         </div>
       `;
@@ -957,6 +976,51 @@
     });
     document.getElementById('expand-all-btn').textContent =
       allExpanded ? 'Collapse All' : 'Expand All';
+  }
+
+  /* ── ITEM DETAIL DROPDOWN ── */
+  function toggleItemDetail(el) {
+    const detail = el.nextElementSibling;
+    if (!detail || !detail.classList.contains('item-detail')) return;
+    const opening = !el.classList.contains('open');
+    el.classList.toggle('open', opening);
+    if (opening) {
+      if (!detail.dataset.loaded) {
+        const item     = JSON.parse(el.dataset.item);
+        const catLabel = el.dataset.cat;
+        detail.innerHTML = buildItemDetail(item, catLabel);
+        detail.dataset.loaded = '1';
+      }
+      detail.style.display = 'block';
+    } else {
+      detail.style.display = 'none';
+    }
+  }
+
+  function buildItemDetail(item, catLabel) {
+    const q = (item.query || '').toLowerCase().trim();
+    // Try to match by query prefix first, fall back to category
+    let matches = liveFeedEvents.filter(ev =>
+      q.length >= 8 && (ev.query || '').toLowerCase().includes(q.slice(0, 20))
+    );
+    if (matches.length < 2) {
+      matches = liveFeedEvents.filter(ev => ev.category === catLabel);
+    }
+    matches = matches.slice(0, 4);
+
+    if (matches.length === 0) {
+      return `<div class="detail-no-data">No individual events in live feed for this topic yet.</div>`;
+    }
+
+    return matches.map(ev => {
+      const action = ev.source === 'reddit'
+        ? `posted in r/${escHtml(ev.subreddit || 'reddit')} about`
+        : 'searched for';
+      const agePart    = ev.age    ? `${ev.age}-year-old ` : '';
+      const genderPart = ev.gender ? ev.gender.toLowerCase() + ' ' : 'user ';
+      const locPart    = ev.state  ? ` from ${escHtml(ev.state)}` : '';
+      return `<div class="detail-event">${agePart}${genderPart}${locPart} ${action} <em>"${escHtml(ev.query)}"</em></div>`;
+    }).join('');
   }
 
   /* ── SHOW STATUS ── */
@@ -989,7 +1053,8 @@
       const data = await res.json();
       if (!data.events || data.events.length === 0) return;
       if (data.generated_at === lastFeedStamp) return; // unchanged
-      lastFeedStamp = data.generated_at;
+      lastFeedStamp  = data.generated_at;
+      liveFeedEvents = data.events;
 
       const list = document.getElementById('feed-list');
       const count = document.getElementById('feed-count');
