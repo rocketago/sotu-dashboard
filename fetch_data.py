@@ -47,7 +47,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
         "claude",
         "--print",
         "--output-format", "json",
-        "--allowedTools", "mcp__verb-ai-mcp__query_verbai",
+        "--allowedTools", "mcp__verb-ai-mcp__*",
         "--prompt", prompt,
     ]
     try:
