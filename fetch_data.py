@@ -16,6 +16,7 @@ import subprocess
 import sys
 import datetime
 import re
+import random
 from pathlib import Path
 
 OUTPUT_FILE    = Path(__file__).parent / "political_data.json"
@@ -298,6 +299,42 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     }
 
 
+def seed_events_from_categories(cat_data: dict) -> list[dict]:
+    """
+    Synthesize live feed events from political_data.json category items.
+    Used as a fallback when VerbAI returns no live events and live_feed.json
+    is empty. Spreads items across today's time window (midnight → now).
+    """
+    events = []
+    for cat in cat_data.get("categories", []):
+        for item in cat.get("items", []):
+            events.append({
+                "query":     item.get("query") or item.get("topic", ""),
+                "source":    item.get("source", "search"),
+                "subreddit": item.get("subreddit"),
+                "category":  cat.get("label", "General Politics"),
+            })
+
+    if not events:
+        return []
+
+    random.shuffle(events)
+    events = events[:50]
+
+    # Spread timestamps across today (midnight → now)
+    now     = datetime.datetime.utcnow()
+    today_s = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    span_s  = max(int((now - today_s).total_seconds()), 1)
+
+    n = len(events)
+    for i, ev in enumerate(events):
+        delta = int((i / max(n - 1, 1)) * span_s)
+        ev["time"] = (today_s + datetime.timedelta(seconds=delta)).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    events.sort(key=lambda e: e["time"], reverse=True)
+    return events
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
@@ -322,6 +359,31 @@ def main():
             json.dump(feed, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {LIVE_FEED_FILE.name} — {len(events_raw)} events.")
     else:
+        # Check whether the existing feed already has real events
+        existing_feed_events: list = []
+        if LIVE_FEED_FILE.exists():
+            try:
+                with open(LIVE_FEED_FILE) as f:
+                    existing_feed_events = json.load(f).get("events", [])
+            except (json.JSONDecodeError, AttributeError):
+                pass
+
+        if not existing_feed_events and OUTPUT_FILE.exists():
+            # Seed the live feed from the category items written above
+            try:
+                with open(OUTPUT_FILE) as f:
+                    cat_data = json.load(f)
+                seeded = seed_events_from_categories(cat_data)
+                if seeded:
+                    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                    feed = {"generated_at": now_iso, "events": seeded}
+                    with open(LIVE_FEED_FILE, "w") as f:
+                        json.dump(feed, f, indent=2, ensure_ascii=False)
+                    print(f"[OK] Seeded {LIVE_FEED_FILE.name} with {len(seeded)} events from categories (VerbAI fallback).")
+                    return
+            except (json.JSONDecodeError, Exception) as e:
+                print(f"[WARN] Fallback seeding failed: {e}")
+
         print("[WARN] No live events returned — keeping existing live_feed.json.")
 
 
