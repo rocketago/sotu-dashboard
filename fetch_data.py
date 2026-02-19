@@ -9,18 +9,31 @@ Run manually:
 
 Or schedule with cron every 5 minutes:
     */5 * * * * cd /path/to/dashboard && python3 fetch_data.py >> fetch.log 2>&1
+
+Data path (fastest → cheapest):
+  1. Direct HTTP to VerbAI MCP endpoint (requires VERBAI_TOKEN, $0 Anthropic tokens, <15s)
+  2. Claude CLI subprocess fallback — run in parallel, timeout 300s each
 """
 
-import json
-import subprocess
-import sys
+import concurrent.futures
 import datetime
-import re
+import json
+import os
 import random
+import re
+import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 OUTPUT_FILE    = Path(__file__).parent / "political_data.json"
 LIVE_FEED_FILE = Path(__file__).parent / "live_feed.json"
+
+VERBAI_MCP_URL = (
+    "https://zknnynm-exc60781.snowflakecomputing.com"
+    "/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS"
+    "/mcp-servers/VERB_AI_MCP_SERVER"
+)
 
 # ── Category metadata (icons, ids) ──────────────────────────────────────────
 CATEGORY_META = {
@@ -52,10 +65,146 @@ def et_midnight_utc() -> str:
     return midnight_et.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+# ── Direct MCP HTTP path ─────────────────────────────────────────────────────
+
+def _mcp_post(
+    url: str,
+    token: str,
+    payload: dict,
+    session_id: str | None = None,
+) -> tuple[dict, str | None]:
+    """
+    POST a JSON-RPC message to the MCP endpoint.
+    Handles both application/json and text/event-stream (SSE) responses.
+    Returns (response_dict, session_id).
+    """
+    body = json.dumps(payload).encode()
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json, text/event-stream",
+        "Authorization": f"Bearer {token}",
+    }
+    if session_id:
+        headers["Mcp-Session-Id"] = session_id
+
+    req = urllib.request.Request(url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            ct = resp.headers.get("Content-Type", "")
+            new_sid = resp.headers.get("Mcp-Session-Id") or session_id
+            raw = resp.read().decode()
+
+            if "text/event-stream" in ct:
+                # Parse SSE: collect data lines, return last complete JSON object
+                result = None
+                for line in raw.splitlines():
+                    if line.startswith("data: "):
+                        data = line[6:].strip()
+                        if data and data != "[DONE]":
+                            try:
+                                result = json.loads(data)
+                            except json.JSONDecodeError:
+                                pass
+                return result or {}, new_sid
+
+            return (json.loads(raw) if raw.strip() else {}), new_sid
+
+    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
+        print(f"[MCP-DIRECT] HTTP error: {e}")
+        return {}, session_id
+
+
+def _init_mcp_session(url: str, token: str) -> tuple[str | None, str | None]:
+    """
+    Perform MCP initialize + tools/list handshake.
+    Returns (tool_name, session_id), or (None, None) on failure.
+    """
+    resp, sid = _mcp_post(url, token, {
+        "jsonrpc": "2.0", "id": 1, "method": "initialize",
+        "params": {
+            "protocolVersion": "2024-11-05",
+            "capabilities": {},
+            "clientInfo": {"name": "sotu-dashboard", "version": "1.0"},
+        },
+    })
+    if not resp.get("result"):
+        print(f"[MCP-DIRECT] initialize failed — will use Claude fallback. ({str(resp)[:200]})")
+        return None, None
+    print(f"[MCP-DIRECT] session established (id={sid})")
+
+    resp, sid = _mcp_post(url, token, {
+        "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
+    }, sid)
+    tools = resp.get("result", {}).get("tools", [])
+    if not tools:
+        print("[MCP-DIRECT] tools/list returned no tools — will use Claude fallback.")
+        return None, sid
+
+    sql_kw = ("sql", "query", "execute", "run", "search")
+    tool_name = next(
+        (t["name"] for t in tools if any(k in t["name"].lower() for k in sql_kw)),
+        tools[0]["name"],
+    )
+    print(f"[MCP-DIRECT] tool='{tool_name}'. All tools: {[t['name'] for t in tools]}")
+    return tool_name, sid
+
+
+def _call_sql(
+    sql: str,
+    tool_name: str,
+    session_id: str | None,
+    url: str,
+    token: str,
+) -> list[dict] | None:
+    """
+    Call the MCP SQL tool with the given query.
+    Returns list[dict] rows on success, [] on SQL/parse error, None on protocol failure.
+    Tries common parameter key names so we don't have to hardcode the schema.
+    """
+    for param_key in ("query", "sql", "statement", "input"):
+        resp, _ = _mcp_post(url, token, {
+            "jsonrpc": "2.0", "id": 3, "method": "tools/call",
+            "params": {"name": tool_name, "arguments": {param_key: sql}},
+        }, session_id)
+
+        if resp.get("error"):
+            err_msg = str(resp["error"])
+            # Wrong parameter name — try the next one
+            if any(k in err_msg.lower() for k in ("argument", "param", "required", "missing", "unknown")):
+                continue
+            print(f"[MCP-DIRECT] SQL error: {err_msg[:300]}")
+            return []
+
+        content = resp.get("result", {}).get("content", [])
+        if content is None:
+            return []
+
+        for block in content:
+            text = block.get("text", "")
+            if text:
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, list):
+                        return parsed
+                    if isinstance(parsed, dict):
+                        for k in ("rows", "data", "results", "records"):
+                            if k in parsed and isinstance(parsed[k], list):
+                                return parsed[k]
+                except json.JSONDecodeError:
+                    pass
+        return []
+
+    # All param_key attempts exhausted without a match
+    print(f"[MCP-DIRECT] could not find correct parameter name for tool '{tool_name}'")
+    return None
+
+
+# ── Claude subprocess fallback ────────────────────────────────────────────────
+
 def run_verb_ai_query(prompt: str) -> str | None:
     """
     Call the VerbAI MCP tool via the Claude CLI and return the text result.
-    Requires 'claude' CLI to be installed and configured with the VerbAI MCP.
+    Timeout raised to 300s to accommodate cold Snowflake query starts.
     """
     cmd = [
         "claude",
@@ -68,12 +217,12 @@ def run_verb_ai_query(prompt: str) -> str | None:
             cmd,
             capture_output=True,
             text=True,
-            timeout=120,
+            timeout=300,
         )
-        print(f"[DEBUG] claude exit={result.returncode} "
+        print(f"[CLAUDE] exit={result.returncode} "
               f"stdout={len(result.stdout)}b stderr={len(result.stderr)}b")
         if result.stderr:
-            print(f"[DEBUG] stderr: {result.stderr[:400]}")
+            print(f"[CLAUDE] stderr: {result.stderr[:400]}")
         if result.returncode != 0:
             print(f"[WARN] claude CLI returned {result.returncode}: {result.stdout[:400]}")
             return None
@@ -81,19 +230,52 @@ def run_verb_ai_query(prompt: str) -> str | None:
         if not text:
             print("[WARN] claude CLI returned empty output")
             return None
-        print(f"[DEBUG] full response ({len(text)}b):\n{text}")
+        print(f"[CLAUDE] response ({len(text)}b):\n{text}")
         return text
     except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-        print(f"[WARN] VerbAI query failed: {e}")
+        print(f"[WARN] Claude query failed: {e}")
         return None
 
 
-def fetch_category_counts(since_iso: str) -> list[dict]:
+def _parse_json_array(text: str) -> list:
+    """Extract first JSON array from a text response."""
+    try:
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if match:
+            return json.loads(match.group())
+    except (json.JSONDecodeError, AttributeError):
+        pass
+    return []
+
+
+# ── Data fetch functions (direct MCP preferred, Claude fallback) ─────────────
+
+def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query VerbAI for per-category engagement counts for 18-29 year-olds
-    starting from Eastern midnight today (since_iso, expressed in UTC).
-    Returns list of dicts with keys: label, engagement_count, unique_users.
+    Query per-category engagement counts for 18-29 year-olds.
+    Returns list of dicts with keys: policy_category, engagement_count, unique_users.
     """
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        sql = (
+            f"SELECT policy_category,"
+            f"       COUNT(*) AS engagement_count,"
+            f"       COUNT(DISTINCT user_id) AS unique_users"
+            f" FROM ("
+            f"   SELECT policy_category, user_id FROM SEARCH_EVENTS_FLAT_DYM"
+            f"     WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+            f"   UNION ALL"
+            f"   SELECT policy_category, user_id FROM REDDIT_EVENTS_FLAT_DYM"
+            f"     WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+            f" )"
+            f" GROUP BY policy_category ORDER BY engagement_count DESC"
+        )
+        rows = _call_sql(sql, tool_name, session_id, url, token)
+        if rows is not None:
+            print(f"[MCP-DIRECT] category_counts: {len(rows)} rows")
+            return rows
+        print("[MCP-DIRECT] category_counts protocol failure — falling back to Claude")
+
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
@@ -107,24 +289,50 @@ def fetch_category_counts(since_iso: str) -> list[dict]:
         f"policy_category, engagement_count, unique_users."
     )
     text = run_verb_ai_query(prompt)
-    if not text:
-        return []
-
-    try:
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except (json.JSONDecodeError, AttributeError):
-        pass
-    return []
+    return _parse_json_array(text) if text else []
 
 
-def fetch_search_queries(since_iso: str) -> list[dict]:
+def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query VerbAI for specific search queries AND top Reddit posts by 18-29 year-olds
-    starting from Eastern midnight today (since_iso, expressed in UTC).
-    Returns list of dicts with keys: query, count, category, source, subreddit, trend.
+    Query top search queries and Reddit posts for 18-29 year-olds.
+    Returns list of dicts with keys: query, topic, count, source, subreddit, category, trend.
     """
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        rows: list[dict] = []
+        protocol_ok = True
+
+        for sql in [
+            (
+                f"SELECT query AS query, NULL AS topic, COUNT(*) AS count,"
+                f" 'search' AS source, NULL AS subreddit,"
+                f" policy_category AS category, 'stable' AS trend"
+                f" FROM SEARCH_EVENTS_FLAT_DYM"
+                f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+                f" GROUP BY query, policy_category"
+                f" ORDER BY count DESC LIMIT 20"
+            ),
+            (
+                f"SELECT title AS query, NULL AS topic, COUNT(*) AS count,"
+                f" 'reddit' AS source, subreddit,"
+                f" policy_category AS category, 'stable' AS trend"
+                f" FROM REDDIT_EVENTS_FLAT_DYM"
+                f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+                f" GROUP BY title, subreddit, policy_category"
+                f" ORDER BY count DESC LIMIT 20"
+            ),
+        ]:
+            r = _call_sql(sql, tool_name, session_id, url, token)
+            if r is None:
+                protocol_ok = False
+                break
+            rows.extend(r)
+
+        if protocol_ok:
+            print(f"[MCP-DIRECT] search_queries: {len(rows)} rows")
+            return rows
+        print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
+
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query both SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
@@ -138,24 +346,34 @@ def fetch_search_queries(since_iso: str) -> list[dict]:
         f"query, topic, count, source (search or reddit), subreddit, category, trend (up/down/stable)."
     )
     text = run_verb_ai_query(prompt)
-    if not text:
-        return []
-
-    try:
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except (json.JSONDecodeError, AttributeError):
-        pass
-    return []
+    return _parse_json_array(text) if text else []
 
 
-def fetch_live_events(since_iso: str) -> list[dict]:
+def fetch_live_events(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query VerbAI for the 50 most recent individual search/reddit events by 18-29
-    year-olds today, ordered by recency. Powers the dashboard live feed panel.
+    Query the 50 most recent individual events for 18-29 year-olds.
     Returns list of dicts with keys: time, query, source, subreddit, category.
     """
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        sql = (
+            f"SELECT event_time AS time, query, 'search' AS source,"
+            f" NULL AS subreddit, policy_category AS category"
+            f" FROM SEARCH_EVENTS_FLAT_DYM"
+            f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+            f" UNION ALL"
+            f" SELECT event_time AS time, title AS query, 'reddit' AS source,"
+            f" subreddit, policy_category AS category"
+            f" FROM REDDIT_EVENTS_FLAT_DYM"
+            f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
+            f" ORDER BY time DESC LIMIT 50"
+        )
+        rows = _call_sql(sql, tool_name, session_id, url, token)
+        if rows is not None:
+            print(f"[MCP-DIRECT] live_events: {len(rows)} rows")
+            return rows
+        print("[MCP-DIRECT] live_events protocol failure — falling back to Claude")
+
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for the 50 most recent rows where "
@@ -167,16 +385,7 @@ def fetch_live_events(since_iso: str) -> list[dict]:
         f"time, query, source, subreddit, category, age, gender, state."
     )
     text = run_verb_ai_query(prompt)
-    if not text:
-        return []
-
-    try:
-        match = re.search(r"\[.*\]", text, re.DOTALL)
-        if match:
-            return json.loads(match.group())
-    except (json.JSONDecodeError, AttributeError):
-        pass
-    return []
+    return _parse_json_array(text) if text else []
 
 
 def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
@@ -239,7 +448,6 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     # Assemble final category list
     categories = []
     total_eng  = 0
-    total_users_set = set()
 
     for label, meta in CATEGORY_META.items():
         counts = cat_map.get(label, {"engagement_count": 0, "unique_users": 0})
@@ -266,7 +474,6 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     top_cat  = categories[0]["label"] if categories else "N/A"
     now_utc  = datetime.datetime.utcnow()
     now_iso  = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-    today    = datetime.date.today().isoformat()
     today_label = datetime.date.today().strftime("%b %-d")
 
     # Count today's events by source from items
@@ -358,10 +565,49 @@ def main():
     since_iso = et_midnight_utc()
     print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
 
-    categories_raw = fetch_category_counts(since_iso)
-    queries_raw    = fetch_search_queries(since_iso)
-    events_raw     = fetch_live_events(since_iso)
+    # ── Overnight gate: skip heavy fetch 11 PM – 6 AM ET ────────────────────
+    now_utc = datetime.datetime.now(datetime.timezone.utc)
+    et_hours = 4 if 4 <= now_utc.month <= 10 else 5
+    et_tz = datetime.timezone(datetime.timedelta(hours=-et_hours))
+    hour_et = now_utc.astimezone(et_tz).hour
+    if 23 <= hour_et or hour_et < 6:
+        print(f"[INFO] Overnight gate active (ET hour={hour_et}). Updating generated_at only.")
+        if OUTPUT_FILE.exists():
+            with open(OUTPUT_FILE) as f:
+                existing = json.load(f)
+            existing["meta"]["generated_at"] = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open(OUTPUT_FILE, "w") as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
+        return
 
+    # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
+    mcp_ctx = None
+    verbai_token = os.environ.get("VERBAI_TOKEN", "")
+    if verbai_token:
+        tool_name, session_id = _init_mcp_session(VERBAI_MCP_URL, verbai_token)
+        if tool_name:
+            mcp_ctx = (tool_name, session_id, VERBAI_MCP_URL, verbai_token)
+    else:
+        print("[INFO] VERBAI_TOKEN not set — using Claude CLI only")
+
+    # ── Fetch all 3 data sets ─────────────────────────────────────────────────
+    if mcp_ctx:
+        # Direct MCP: run sequentially (one MCP session, calls are fast)
+        categories_raw = fetch_category_counts(since_iso, mcp_ctx)
+        queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
+        events_raw     = fetch_live_events(since_iso, mcp_ctx)
+    else:
+        # Claude fallback: run 3 subprocesses in parallel (max time = slowest one, not sum)
+        print("[INFO] Running 3 Claude queries in parallel (timeout=300s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+            f_cats    = pool.submit(fetch_category_counts, since_iso, None)
+            f_queries = pool.submit(fetch_search_queries,  since_iso, None)
+            f_events  = pool.submit(fetch_live_events,     since_iso, None)
+            categories_raw = f_cats.result()
+            queries_raw    = f_queries.result()
+            events_raw     = f_events.result()
+
+    # ── Write outputs ─────────────────────────────────────────────────────────
     if not categories_raw and not queries_raw:
         print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")
         # Update generated_at (= last action run) but leave last_mcp_pull untouched.
