@@ -359,6 +359,13 @@ def main():
 
     if not categories_raw and not queries_raw:
         print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")
+        # Still update generated_at so the dashboard banner shows the actual last-run time.
+        if OUTPUT_FILE.exists():
+            with open(OUTPUT_FILE) as f:
+                existing = json.load(f)
+            existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open(OUTPUT_FILE, "w") as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
     else:
         data = merge_into_structure(categories_raw, queries_raw)
         with open(OUTPUT_FILE, "w") as f:
