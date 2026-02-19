@@ -1,12 +1,13 @@
 {
   "meta": {
-    "generated_at": "2026-02-19T18:09:55Z",
+    "generated_at": "2026-02-19T18:18:58Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
     "window_label": "Today (Feb 18) · Updated live",
     "today_start": "2026-02-18T00:00:00Z",
-    "refresh_interval_minutes": 5
+    "refresh_interval_minutes": 5,
+    "last_mcp_pull": "2026-02-19T18:18:58Z"
   },
   "summary": {
     "total_engagements": 98,
