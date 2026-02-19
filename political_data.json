@@ -1,11 +1,11 @@
 {
   "meta": {
-    "generated_at": "2026-02-19T05:00:00Z",
+    "generated_at": "2026-02-19T18:56:39Z",
     "last_mcp_pull": null,
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
-    "window_label": "Today (Feb 19) \u00b7 Updated live",
+    "window_label": "Today (Feb 19) · Updated live",
     "today_start": "2026-02-19T05:00:00Z",
     "refresh_interval_minutes": 5
   },
@@ -14,22 +14,110 @@
     "total_unique_users": 0,
     "top_category": "N/A",
     "categories_tracked": 11,
-    "data_window": "Today from midnight \u00b7 accumulates throughout the day",
+    "data_window": "Today from midnight · accumulates throughout the day",
     "search_events_today": 0,
     "reddit_events_today": 0,
     "news_events_today": 0
   },
   "categories": [
-    {"id": "presidential_politics",  "label": "Presidential Politics",  "icon": "\ud83c\udfd9\ufe0f", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "general_politics",       "label": "General Politics",       "icon": "\ud83d\uddfe\ufe0f", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "elections_voting",       "label": "Elections & Voting",     "icon": "\ud83d\uddfe\ufe0f", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "foreign_policy",         "label": "Foreign Policy",         "icon": "\ud83c\udf0d", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "immigration_policy",     "label": "Immigration Policy",     "icon": "\ud83d\udec2", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "legislative_politics",   "label": "Legislative Politics",   "icon": "\ud83d\udcdc", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "economic_policy",        "label": "Economic Policy",        "icon": "\ud83d\udcb0", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "healthcare_policy",      "label": "Healthcare Policy",      "icon": "\ud83c\udfe5", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "education_policy",       "label": "Education Policy",       "icon": "\ud83c\udf93", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "environmental_policy",   "label": "Environmental Policy",   "icon": "\ud83c\udf3f", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []},
-    {"id": "civil_rights",           "label": "Civil Rights",           "icon": "\u270a", "engagement_count": 0, "unique_users": 0, "trending_score": 0, "items": []}
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏙️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗾️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "elections_voting",
+      "label": "Elections & Voting",
+      "icon": "🗾️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil Rights",
+      "icon": "✊",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    }
   ]
 }
