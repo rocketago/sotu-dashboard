@@ -109,8 +109,12 @@ def _mcp_post(
 
             return (json.loads(raw) if raw.strip() else {}), new_sid
 
-    except (urllib.error.URLError, urllib.error.HTTPError, OSError) as e:
-        print(f"[MCP-DIRECT] HTTP error: {e}")
+    except urllib.error.HTTPError as e:
+        body = e.read().decode()[:300]
+        print(f"[MCP-DIRECT] HTTP {e.code} {e.reason}: {body}")
+        return {}, session_id
+    except (urllib.error.URLError, OSError) as e:
+        print(f"[MCP-DIRECT] connection error: {e}")
         return {}, session_id
 
 
