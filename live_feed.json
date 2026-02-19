@@ -1,215 +1,305 @@
 {
-  "generated_at": "2026-02-19T15:45:13Z",
+  "generated_at": "2026-02-19T15:54:19Z",
   "events": [
-    {
-      "query": "music",
-      "source": "search",
-      "subreddit": null,
-      "category": "Culture & Media",
-      "time": "2026-02-19T15:45:13Z"
-    },
     {
       "query": "Taxpayers Fund Corporate Profits",
       "source": "reddit",
       "subreddit": "povertyfinance",
       "category": "Economic Inequality",
-      "time": "2026-02-19T15:12:37Z"
-    },
-    {
-      "query": "costa rican presidential election",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy & World",
-      "time": "2026-02-19T14:40:01Z"
-    },
-    {
-      "query": "DHS ICE administrative subpoena free speech",
-      "source": "reddit",
-      "subreddit": "law",
-      "category": "Immigration & Civil Liberties",
-      "time": "2026-02-19T14:07:26Z"
-    },
-    {
-      "query": "China Taklamakan Desert biological void carbon sink",
-      "source": "reddit",
-      "subreddit": "worldnews",
-      "category": "Environment & Science",
-      "time": "2026-02-19T13:34:50Z"
-    },
-    {
-      "query": "uganda presidential elections",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy & World",
-      "time": "2026-02-19T13:02:14Z"
-    },
-    {
-      "query": "China reaffirms death penalty for sexual abuse of minors",
-      "source": "reddit",
-      "subreddit": "fauxmoi",
-      "category": "Foreign Policy & World",
-      "time": "2026-02-19T12:29:39Z"
-    },
-    {
-      "query": "congress government shutdown",
-      "source": "search",
-      "subreddit": null,
-      "category": "Elections & Political Figures",
-      "time": "2026-02-19T11:57:03Z"
-    },
-    {
-      "query": "Dollar General employee fired orange juice diabetic shock jury awarded",
-      "source": "reddit",
-      "subreddit": "todayilearned",
-      "category": "Economic Inequality",
-      "time": "2026-02-19T11:24:28Z"
-    },
-    {
-      "query": "Erika Kirk Conservative Influencer Grooming Allegations Teen",
-      "source": "reddit",
-      "subreddit": "UnderReportedNews",
-      "category": "Criminal Justice & Accountability",
-      "time": "2026-02-19T10:51:52Z"
-    },
-    {
-      "query": "peter zeihan morphing political parties",
-      "source": "search",
-      "subreddit": null,
-      "category": "Elections & Political Figures",
-      "time": "2026-02-19T10:19:16Z"
-    },
-    {
-      "query": "Reddit Voluntarily Giving DHS Info of Users Who Criticize ICE | Administrative Subpoenas",
-      "source": "reddit",
-      "subreddit": "law",
-      "category": "Government & Accountability",
-      "time": "2026-02-19T09:46:41Z"
-    },
-    {
-      "query": "Ghislaine Maxwell I invoke my Fifth Amendment right to silence Trump Epstein",
-      "source": "reddit",
-      "subreddit": "UnderReportedNews",
-      "category": "Government & Accountability",
-      "time": "2026-02-19T09:14:05Z"
-    },
-    {
-      "query": "China Taklamakan Desert trees carbon sink",
-      "source": "reddit",
-      "subreddit": "worldnews",
-      "category": "Foreign Policy & World",
-      "time": "2026-02-19T08:41:29Z"
-    },
-    {
-      "query": "Thomas Massie I Am Not Suicidal",
-      "source": "reddit",
-      "subreddit": "UnderReportedNews",
-      "category": "Government & Accountability",
-      "time": "2026-02-19T08:08:54Z"
-    },
-    {
-      "query": "republicans aca subsidies",
-      "source": "search",
-      "subreddit": null,
-      "category": "Immigration & Civil Liberties",
-      "time": "2026-02-19T07:36:18Z"
-    },
-    {
-      "query": "No plea deals for any pedophile",
-      "source": "reddit",
-      "subreddit": "blackpeopletwitter",
-      "category": "Criminal Justice & Accountability",
-      "time": "2026-02-19T07:03:43Z"
-    },
-    {
-      "query": "government shutdown 2026",
-      "source": "search",
-      "subreddit": null,
-      "category": "Elections & Political Figures",
-      "time": "2026-02-19T06:31:07Z"
-    },
-    {
-      "query": "The red-lined bubble snail Bullina lineata",
-      "source": "reddit",
-      "subreddit": "natureisfuckinglit",
-      "category": "Environment & Science",
-      "time": "2026-02-19T05:58:31Z"
-    },
-    {
-      "query": "not like us reaction",
-      "source": "search",
-      "subreddit": null,
-      "category": "Culture & Media",
-      "time": "2026-02-19T05:25:56Z"
-    },
-    {
-      "query": "Obama clarifies position on aliens interview went viral",
-      "source": "reddit",
-      "subreddit": "underreportednews",
-      "category": "Elections & Political Figures",
-      "time": "2026-02-19T04:53:20Z"
-    },
-    {
-      "query": "Gambit Roughe 3000units Bundle instantly buys no confirmation",
-      "source": "reddit",
-      "subreddit": "marvelrivals",
-      "category": "Corporate Power & Consumers",
-      "time": "2026-02-19T04:20:44Z"
-    },
-    {
-      "query": "coryxkenshin",
-      "source": "search",
-      "subreddit": null,
-      "category": "Culture & Media",
-      "time": "2026-02-19T03:48:09Z"
+      "time": "2026-02-19T15:54:19Z",
+      "age": 19,
+      "gender": "Female",
+      "state": "SD"
     },
     {
       "query": "writing a cover letter job",
       "source": "search",
       "subreddit": null,
       "category": "Economic Inequality",
-      "time": "2026-02-19T03:15:33Z"
+      "time": "2026-02-19T15:21:24Z",
+      "age": 27,
+      "gender": "Male",
+      "state": "SC"
+    },
+    {
+      "query": "China reaffirms death penalty for sexual abuse of minors",
+      "source": "reddit",
+      "subreddit": "fauxmoi",
+      "category": "Foreign Policy & World",
+      "time": "2026-02-19T14:48:30Z",
+      "age": 27,
+      "gender": "Non-binary",
+      "state": "SC"
     },
     {
       "query": "besr trail cam video kanye",
       "source": "search",
       "subreddit": null,
       "category": "Culture & Media",
-      "time": "2026-02-19T02:42:58Z"
-    },
-    {
-      "query": "Bondi faces criticism after saying all Epstein files have been released",
-      "source": "reddit",
-      "subreddit": "news",
-      "category": "Government & Accountability",
-      "time": "2026-02-19T02:10:22Z"
-    },
-    {
-      "query": "The only minority destroying this country is the billionaires. Trans people are 1%",
-      "source": "reddit",
-      "subreddit": "UnderReportedNews",
-      "category": "Economic Inequality",
-      "time": "2026-02-19T01:37:46Z"
-    },
-    {
-      "query": "TURN THE FILES INTO TRIALS Cleveland",
-      "source": "reddit",
-      "subreddit": "pics",
-      "category": "Criminal Justice & Accountability",
-      "time": "2026-02-19T01:05:11Z"
+      "time": "2026-02-19T14:15:35Z",
+      "age": 26,
+      "gender": "Male",
+      "state": "UT"
     },
     {
       "query": "Foreo manual garbage battery dies regular AAA battery",
       "source": "reddit",
       "subreddit": "mildlyinfuriating",
       "category": "Corporate Power & Consumers",
-      "time": "2026-02-19T00:32:35Z"
+      "time": "2026-02-19T13:42:41Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "KS"
+    },
+    {
+      "query": "The only minority destroying this country is the billionaires. Trans people are 1%",
+      "source": "reddit",
+      "subreddit": "UnderReportedNews",
+      "category": "Economic Inequality",
+      "time": "2026-02-19T13:09:46Z",
+      "age": 27,
+      "gender": "Male",
+      "state": "IL"
+    },
+    {
+      "query": "Erika Kirk Conservative Influencer Grooming Allegations Teen",
+      "source": "reddit",
+      "subreddit": "UnderReportedNews",
+      "category": "Criminal Justice & Accountability",
+      "time": "2026-02-19T12:36:52Z",
+      "age": 19,
+      "gender": "Female",
+      "state": "AR"
+    },
+    {
+      "query": "Dollar General employee fired orange juice diabetic shock jury awarded",
+      "source": "reddit",
+      "subreddit": "todayilearned",
+      "category": "Economic Inequality",
+      "time": "2026-02-19T12:03:57Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "ID"
+    },
+    {
+      "query": "No plea deals for any pedophile",
+      "source": "reddit",
+      "subreddit": "blackpeopletwitter",
+      "category": "Criminal Justice & Accountability",
+      "time": "2026-02-19T11:31:03Z",
+      "age": 28,
+      "gender": "Female",
+      "state": "MN"
+    },
+    {
+      "query": "uganda presidential elections",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy & World",
+      "time": "2026-02-19T10:58:08Z",
+      "age": 29,
+      "gender": "Male",
+      "state": "KS"
+    },
+    {
+      "query": "congress government shutdown",
+      "source": "search",
+      "subreddit": null,
+      "category": "Elections & Political Figures",
+      "time": "2026-02-19T10:25:14Z",
+      "age": 24,
+      "gender": "Male",
+      "state": "KS"
+    },
+    {
+      "query": "not like us reaction",
+      "source": "search",
+      "subreddit": null,
+      "category": "Culture & Media",
+      "time": "2026-02-19T09:52:20Z",
+      "age": 25,
+      "gender": "Female",
+      "state": "WA"
+    },
+    {
+      "query": "China Taklamakan Desert trees carbon sink",
+      "source": "reddit",
+      "subreddit": "worldnews",
+      "category": "Foreign Policy & World",
+      "time": "2026-02-19T09:19:25Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "SC"
+    },
+    {
+      "query": "costa rican presidential election",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy & World",
+      "time": "2026-02-19T08:46:31Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "AL"
+    },
+    {
+      "query": "Bondi faces criticism after saying all Epstein files have been released",
+      "source": "reddit",
+      "subreddit": "news",
+      "category": "Government & Accountability",
+      "time": "2026-02-19T08:13:36Z",
+      "age": 27,
+      "gender": "Female",
+      "state": "ME"
+    },
+    {
+      "query": "DHS ICE administrative subpoena free speech",
+      "source": "reddit",
+      "subreddit": "law",
+      "category": "Immigration & Civil Liberties",
+      "time": "2026-02-19T07:40:42Z",
+      "age": 29,
+      "gender": "Female",
+      "state": "IA"
     },
     {
       "query": "America and europe",
       "source": "reddit",
       "subreddit": "rareinsults",
       "category": "Culture & Media",
-      "time": "2026-02-19T00:00:00Z"
+      "time": "2026-02-19T07:07:47Z",
+      "age": 27,
+      "gender": "Male",
+      "state": "WI"
+    },
+    {
+      "query": "coryxkenshin",
+      "source": "search",
+      "subreddit": null,
+      "category": "Culture & Media",
+      "time": "2026-02-19T06:34:53Z",
+      "age": 23,
+      "gender": "Female",
+      "state": "NV"
+    },
+    {
+      "query": "The red-lined bubble snail Bullina lineata",
+      "source": "reddit",
+      "subreddit": "natureisfuckinglit",
+      "category": "Environment & Science",
+      "time": "2026-02-19T06:01:58Z",
+      "age": 27,
+      "gender": "Male",
+      "state": "NV"
+    },
+    {
+      "query": "TURN THE FILES INTO TRIALS Cleveland",
+      "source": "reddit",
+      "subreddit": "pics",
+      "category": "Criminal Justice & Accountability",
+      "time": "2026-02-19T05:29:04Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "RI"
+    },
+    {
+      "query": "peter zeihan morphing political parties",
+      "source": "search",
+      "subreddit": null,
+      "category": "Elections & Political Figures",
+      "time": "2026-02-19T04:56:10Z",
+      "age": 26,
+      "gender": "Female",
+      "state": "ND"
+    },
+    {
+      "query": "republicans aca subsidies",
+      "source": "search",
+      "subreddit": null,
+      "category": "Immigration & Civil Liberties",
+      "time": "2026-02-19T04:23:15Z",
+      "age": 21,
+      "gender": "Male",
+      "state": "WV"
+    },
+    {
+      "query": "Gambit Roughe 3000units Bundle instantly buys no confirmation",
+      "source": "reddit",
+      "subreddit": "marvelrivals",
+      "category": "Corporate Power & Consumers",
+      "time": "2026-02-19T03:50:21Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "WV"
+    },
+    {
+      "query": "music",
+      "source": "search",
+      "subreddit": null,
+      "category": "Culture & Media",
+      "time": "2026-02-19T03:17:26Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "HI"
+    },
+    {
+      "query": "China Taklamakan Desert biological void carbon sink",
+      "source": "reddit",
+      "subreddit": "worldnews",
+      "category": "Environment & Science",
+      "time": "2026-02-19T02:44:32Z",
+      "age": 19,
+      "gender": "Male",
+      "state": "VT"
+    },
+    {
+      "query": "Thomas Massie I Am Not Suicidal",
+      "source": "reddit",
+      "subreddit": "UnderReportedNews",
+      "category": "Government & Accountability",
+      "time": "2026-02-19T02:11:37Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "NM"
+    },
+    {
+      "query": "Obama clarifies position on aliens interview went viral",
+      "source": "reddit",
+      "subreddit": "underreportednews",
+      "category": "Elections & Political Figures",
+      "time": "2026-02-19T01:38:43Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "AL"
+    },
+    {
+      "query": "government shutdown 2026",
+      "source": "search",
+      "subreddit": null,
+      "category": "Elections & Political Figures",
+      "time": "2026-02-19T01:05:48Z",
+      "age": 23,
+      "gender": "Female",
+      "state": "MT"
+    },
+    {
+      "query": "Reddit Voluntarily Giving DHS Info of Users Who Criticize ICE | Administrative Subpoenas",
+      "source": "reddit",
+      "subreddit": "law",
+      "category": "Government & Accountability",
+      "time": "2026-02-19T00:32:54Z",
+      "age": 29,
+      "gender": "Male",
+      "state": "SD"
+    },
+    {
+      "query": "Ghislaine Maxwell I invoke my Fifth Amendment right to silence Trump Epstein",
+      "source": "reddit",
+      "subreddit": "UnderReportedNews",
+      "category": "Government & Accountability",
+      "time": "2026-02-19T00:00:00Z",
+      "age": 19,
+      "gender": "Male",
+      "state": "MD"
     }
   ]
 }
