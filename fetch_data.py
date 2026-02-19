@@ -61,7 +61,6 @@ def run_verb_ai_query(prompt: str) -> str | None:
         "claude",
         "--print",
         "--dangerously-skip-permissions",
-        "--output-format", "json",
         "--prompt", prompt,
     ]
     try:
@@ -71,17 +70,20 @@ def run_verb_ai_query(prompt: str) -> str | None:
             text=True,
             timeout=120,
         )
+        print(f"[DEBUG] claude exit={result.returncode} "
+              f"stdout={len(result.stdout)}b stderr={len(result.stderr)}b")
+        if result.stderr:
+            print(f"[DEBUG] stderr: {result.stderr[:400]}")
         if result.returncode != 0:
-            print(f"[WARN] claude CLI returned {result.returncode}: {result.stderr[:400]}")
+            print(f"[WARN] claude CLI returned {result.returncode}: {result.stdout[:400]}")
             return None
-        raw = json.loads(result.stdout)
-        # --output-format json wraps the answer in a top-level "result" string
-        text = raw.get("result") or raw.get("content") or ""
+        text = result.stdout.strip()
         if not text:
-            print(f"[WARN] Unexpected claude JSON shape: {list(raw.keys())}")
+            print("[WARN] claude CLI returned empty output")
             return None
+        print(f"[DEBUG] response preview: {text[:300]}")
         return text
-    except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError) as e:
+    except (subprocess.TimeoutExpired, FileNotFoundError) as e:
         print(f"[WARN] VerbAI query failed: {e}")
         return None
 
