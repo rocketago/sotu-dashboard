@@ -60,6 +60,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
     cmd = [
         "claude",
         "--print",
+        "--dangerously-skip-permissions",
         "--output-format", "json",
         "--prompt", prompt,
     ]
