@@ -153,22 +153,22 @@ def _init_mcp_session(url: str, token: str) -> tuple[str | None, str | None]:
     return tool_name, sid
 
 
-def _call_sql(
-    sql: str,
+def _call_verbai_agent(
+    prompt: str,
     tool_name: str,
     session_id: str | None,
     url: str,
     token: str,
-) -> list[dict] | None:
+) -> str | None:
     """
-    Call the MCP SQL tool with the given query.
-    Returns list[dict] rows on success, [] on SQL/parse error, None on protocol failure.
-    Tries common parameter key names so we don't have to hardcode the schema.
+    Call the VerbAI agent tool (verb_ai_agent) with a natural language prompt.
+    Returns the raw text response on success, None on protocol/auth failure.
+    Tries common parameter key names used by AI agent tools.
     """
-    for param_key in ("query", "sql", "statement", "input"):
+    for param_key in ("query", "question", "input", "prompt", "message"):
         resp, _ = _mcp_post(url, token, {
             "jsonrpc": "2.0", "id": 3, "method": "tools/call",
-            "params": {"name": tool_name, "arguments": {param_key: sql}},
+            "params": {"name": tool_name, "arguments": {param_key: prompt}},
         }, session_id)
 
         if resp.get("error"):
@@ -176,30 +176,21 @@ def _call_sql(
             # Wrong parameter name — try the next one
             if any(k in err_msg.lower() for k in ("argument", "param", "required", "missing", "unknown")):
                 continue
-            print(f"[MCP-DIRECT] SQL error: {err_msg[:300]}")
-            return []
+            print(f"[MCP-DIRECT] agent error: {err_msg[:300]}")
+            return None
 
         content = resp.get("result", {}).get("content", [])
         if content is None:
-            return []
+            return ""
 
         for block in content:
             text = block.get("text", "")
             if text:
-                try:
-                    parsed = json.loads(text)
-                    if isinstance(parsed, list):
-                        return parsed
-                    if isinstance(parsed, dict):
-                        for k in ("rows", "data", "results", "records"):
-                            if k in parsed and isinstance(parsed[k], list):
-                                return parsed[k]
-                except json.JSONDecodeError:
-                    pass
-        return []
+                print(f"[MCP-DIRECT] agent response ({len(text)}b): {text[:300]}")
+                return text
+        return ""  # Tool ran but returned empty content
 
-    # All param_key attempts exhausted without a match
-    print(f"[MCP-DIRECT] could not find correct parameter name for tool '{tool_name}'")
+    print(f"[MCP-DIRECT] could not find correct parameter for tool '{tool_name}'")
     return None
 
 
@@ -259,27 +250,6 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
     Query per-category engagement counts for 18-29 year-olds.
     Returns list of dicts with keys: policy_category, engagement_count, unique_users.
     """
-    if mcp_ctx:
-        tool_name, session_id, url, token = mcp_ctx
-        sql = (
-            f"SELECT policy_category,"
-            f"       COUNT(*) AS engagement_count,"
-            f"       COUNT(DISTINCT user_id) AS unique_users"
-            f" FROM ("
-            f"   SELECT policy_category, user_id FROM SEARCH_EVENTS_FLAT_DYM"
-            f"     WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-            f"   UNION ALL"
-            f"   SELECT policy_category, user_id FROM REDDIT_EVENTS_FLAT_DYM"
-            f"     WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-            f" )"
-            f" GROUP BY policy_category ORDER BY engagement_count DESC"
-        )
-        rows = _call_sql(sql, tool_name, session_id, url, token)
-        if rows is not None:
-            print(f"[MCP-DIRECT] category_counts: {len(rows)} rows")
-            return rows
-        print("[MCP-DIRECT] category_counts protocol failure — falling back to Claude")
-
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
@@ -292,6 +262,16 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
         f"policy_category, engagement_count, unique_users."
     )
+
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        if text is not None:
+            result = _parse_json_array(text)
+            print(f"[MCP-DIRECT] category_counts: {len(result)} rows")
+            return result
+        print("[MCP-DIRECT] category_counts protocol failure — falling back to Claude")
+
     text = run_verb_ai_query(prompt)
     return _parse_json_array(text) if text else []
 
@@ -301,42 +281,6 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     Query top search queries and Reddit posts for 18-29 year-olds.
     Returns list of dicts with keys: query, topic, count, source, subreddit, category, trend.
     """
-    if mcp_ctx:
-        tool_name, session_id, url, token = mcp_ctx
-        rows: list[dict] = []
-        protocol_ok = True
-
-        for sql in [
-            (
-                f"SELECT query AS query, NULL AS topic, COUNT(*) AS count,"
-                f" 'search' AS source, NULL AS subreddit,"
-                f" policy_category AS category, 'stable' AS trend"
-                f" FROM SEARCH_EVENTS_FLAT_DYM"
-                f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-                f" GROUP BY query, policy_category"
-                f" ORDER BY count DESC LIMIT 20"
-            ),
-            (
-                f"SELECT title AS query, NULL AS topic, COUNT(*) AS count,"
-                f" 'reddit' AS source, subreddit,"
-                f" policy_category AS category, 'stable' AS trend"
-                f" FROM REDDIT_EVENTS_FLAT_DYM"
-                f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-                f" GROUP BY title, subreddit, policy_category"
-                f" ORDER BY count DESC LIMIT 20"
-            ),
-        ]:
-            r = _call_sql(sql, tool_name, session_id, url, token)
-            if r is None:
-                protocol_ok = False
-                break
-            rows.extend(r)
-
-        if protocol_ok:
-            print(f"[MCP-DIRECT] search_queries: {len(rows)} rows")
-            return rows
-        print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
-
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query both SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
@@ -349,6 +293,16 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
         f"query, topic, count, source (search or reddit), subreddit, category, trend (up/down/stable)."
     )
+
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        if text is not None:
+            result = _parse_json_array(text)
+            print(f"[MCP-DIRECT] search_queries: {len(result)} rows")
+            return result
+        print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
+
     text = run_verb_ai_query(prompt)
     return _parse_json_array(text) if text else []
 
@@ -358,26 +312,6 @@ def fetch_live_events(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict
     Query the 50 most recent individual events for 18-29 year-olds.
     Returns list of dicts with keys: time, query, source, subreddit, category.
     """
-    if mcp_ctx:
-        tool_name, session_id, url, token = mcp_ctx
-        sql = (
-            f"SELECT event_time AS time, query, 'search' AS source,"
-            f" NULL AS subreddit, policy_category AS category"
-            f" FROM SEARCH_EVENTS_FLAT_DYM"
-            f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-            f" UNION ALL"
-            f" SELECT event_time AS time, title AS query, 'reddit' AS source,"
-            f" subreddit, policy_category AS category"
-            f" FROM REDDIT_EVENTS_FLAT_DYM"
-            f" WHERE age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'"
-            f" ORDER BY time DESC LIMIT 50"
-        )
-        rows = _call_sql(sql, tool_name, session_id, url, token)
-        if rows is not None:
-            print(f"[MCP-DIRECT] live_events: {len(rows)} rows")
-            return rows
-        print("[MCP-DIRECT] live_events protocol failure — falling back to Claude")
-
     prompt = (
         f"Use the available Snowflake database tool to run SQL queries and return real data. "
         f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for the 50 most recent rows where "
@@ -388,6 +322,16 @@ def fetch_live_events(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
         f"time, query, source, subreddit, category, age, gender, state."
     )
+
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        if text is not None:
+            result = _parse_json_array(text)
+            print(f"[MCP-DIRECT] live_events: {len(result)} rows")
+            return result
+        print("[MCP-DIRECT] live_events protocol failure — falling back to Claude")
+
     text = run_verb_ai_query(prompt)
     return _parse_json_array(text) if text else []
 
