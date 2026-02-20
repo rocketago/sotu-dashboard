@@ -404,6 +404,7 @@
     .source-search  { background: rgba(13,162,230,0.15);  color: #5dc8f5; border: 1px solid rgba(13,162,230,0.3); }
     .source-news    { background: rgba(176,128,195,0.15); color: #c8a0d8; border: 1px solid rgba(176,128,195,0.3); }
     .source-reddit  { background: rgba(249,73,95,0.13);   color: #f97888; border: 1px solid rgba(249,73,95,0.28); }
+    .source-youtube { background: rgba(255,48,48,0.12);   color: #ff6b6b; border: 1px solid rgba(255,48,48,0.28); }
 
     .item-count {
       font-size: 12px;
@@ -974,6 +975,7 @@
               count:     item.count || 1,
               source:    item.source    || 'search',
               subreddit: item.subreddit || null,
+              channel:   item.channel   || null,
               trend:     item.trend     || 'stable',
             });
           }
@@ -1092,6 +1094,8 @@
     const ctxHtml = contexts.map(c => {
       const src = c.subreddit
         ? `r/${escHtml(c.subreddit)}`
+        : c.channel
+        ? `📺 ${escHtml(c.channel)}`
         : escHtml(c.source);
       const trendIcon = c.trend === 'up' ? '▲' : c.trend === 'down' ? '▼' : '—';
       const trendColor = c.trend === 'up' ? '#04B35D' : c.trend === 'down' ? '#F9495F' : '#7b9ab0';
@@ -1201,7 +1205,10 @@
   /* ── SOURCE BADGE ── */
   function sourceBadge(src) {
     const cls = 'source-' + src;
-    const lbl = src === 'search' ? 'Search' : src === 'news' ? 'News' : 'Reddit';
+    const lbl = src === 'search'  ? 'Search'
+              : src === 'news'    ? 'News'
+              : src === 'youtube' ? '▶ YouTube'
+              : 'Reddit';
     return `<span class="source-badge ${cls}">${lbl}</span>`;
   }
 
@@ -1239,6 +1246,7 @@
     document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
+      <span>▶ ${(s.youtube_events_today || 0).toLocaleString()} YouTube videos</span>
       <span>💬 ${(s.reddit_events_today || 0).toLocaleString()} Reddit posts <span class="latency-pill latency-delayed">~40 min lag</span></span>
       <span>📰 ${(s.news_events_today || 0).toLocaleString()} news events</span>
     `;
@@ -1250,8 +1258,8 @@
     document.getElementById('summary-bar').innerHTML = `
       <div class="stat-card">
         <div class="label">Events Today</div>
-        <div class="value">${((s.search_events_today||0) + (s.reddit_events_today||0) + (s.news_events_today||0)).toLocaleString()}</div>
-        <div class="sub">Search + Reddit + News · Ages 18–29</div>
+        <div class="value">${((s.search_events_today||0) + (s.youtube_events_today||0) + (s.reddit_events_today||0) + (s.news_events_today||0)).toLocaleString()}</div>
+        <div class="sub">Search + YouTube + Reddit · Ages 18–29</div>
       </div>
       <div class="stat-card">
         <div class="label">Unique Users</div>
@@ -1330,6 +1338,7 @@
                   <span class="item-query">"${escHtml(item.query)}"</span>
                 </div>
                 ${item.subreddit ? `<span class="subreddit-tag">r/${escHtml(item.subreddit)}</span>` : ''}
+                ${item.channel  ? `<span class="subreddit-tag">📺 ${escHtml(item.channel)}</span>` : ''}
                 ${sourceBadge(item.source)}
                 <div class="score-badge">${item.source === 'reddit' ? '▲ ' + Number(item.count).toLocaleString() : item.count + 'x'}</div>
                 ${trendIcon(item.trend)}

@@ -3,155 +3,59 @@
     "generated_at": "2026-02-20T16:33:46Z",
     "last_mcp_pull": "2026-02-20T03:59:51Z",
     "demographic": "Ages 18-29",
-    "data_source": "VerbAI MCP (Search, News, Reddit events)",
+    "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
     "window_label": "Today (Feb 20) · Updated live",
-    "today_start": "2026-02-19T05:00:00Z",
+    "today_start": "2026-02-20T05:00:00Z",
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 25,
-    "total_unique_users": 9,
-    "top_category": "Economic Policy",
+    "total_engagements": 77125,
+    "total_unique_users": 23,
+    "top_category": "General Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
     "search_events_today": 23,
+    "youtube_events_today": 10,
     "reddit_events_today": 2,
     "news_events_today": 0
   },
   "categories": [
     {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 10,
-      "unique_users": 1,
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 23181,
+      "unique_users": 5,
       "trending_score": 100,
       "items": [
         {
-          "topic": "do you have to provide id when filing ca taxes part time resident",
-          "query": "do you have to provide id when filing ca taxes part time resident",
-          "count": 2,
-          "source": "search",
+          "topic": "Prince Andrew arrested — YouTube coverage",
+          "query": "Prince Andrew ARRESTED | What You Need To Know",
+          "count": 14250,
+          "source": "youtube",
           "subreddit": null,
+          "channel": "VICE News",
           "url": null,
-          "trend": "stable"
+          "trend": "up"
         },
         {
-          "topic": "how to prove you're a california resident for your taxes",
-          "query": "how to prove you're a california resident for your taxes",
-          "count": 2,
-          "source": "search",
+          "topic": "Prince Andrew & Epstein — full documentary",
+          "query": "Prince Andrew & Jeffrey Epstein: The Full Story | BBC Documentary",
+          "count": 8930,
+          "source": "youtube",
           "subreddit": null,
+          "channel": "BBC News",
           "url": null,
-          "trend": "stable"
+          "trend": "up"
         },
         {
-          "topic": "irs tax refunds",
-          "query": "irs tax refunds",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "what to do for taxes if you worked in ca but wasn't a resident of ca",
-          "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "long term rental tax deductions",
-          "query": "long term rental tax deductions",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Trump tariffs and economy critique",
-          "query": "Trump tariffs and economy critique",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "inflation ship blueberry roblox",
-          "query": "inflation ship blueberry roblox",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 8,
-      "unique_users": 1,
-      "trending_score": 80,
-      "items": [
-        {
-          "topic": "white girl in china",
-          "query": "white girl in china",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "blondie in china",
-          "query": "blondie in china",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Iran talks resume Feb 2026",
-          "query": "Iran talks resume Feb 2026",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "israel",
-          "query": "israel",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Iran talks resume amid renewed diplomacy",
-          "query": "Iran talks resume amid renewed diplomacy",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+          "topic": "Prince Andrew misconduct arrest",
+          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
           "count": 1,
           "source": "reddit",
-          "subreddit": "worldnews",
+          "subreddit": "news",
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -161,16 +65,37 @@
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 2,
-      "unique_users": 1,
-      "trending_score": 20,
+      "engagement_count": 17522,
+      "unique_users": 4,
+      "trending_score": 76,
       "items": [
         {
-          "topic": "first black president comedy",
+          "topic": "Trump's State of the Union 2026 analysis",
+          "query": "Trump's State of the Union 2026: Full Analysis & Fact-Check",
+          "count": 9870,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "CNN",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "DOGE federal budget cuts breakdown",
+          "query": "What DOGE Actually Cut This Month | Full Breakdown",
+          "count": 7650,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "The Daily Show",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "First black president comedy",
           "query": "first black president comedy",
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         },
@@ -180,27 +105,229 @@
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
       ]
     },
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 1,
-      "unique_users": 2,
-      "trending_score": 10,
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 11248,
+      "unique_users": 3,
+      "trending_score": 49,
       "items": [
         {
-          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 1,
-          "source": "reddit",
-          "subreddit": "news",
+          "topic": "South Korea President Yoon sentenced — YouTube coverage",
+          "query": "South Korea's President Gets Life In Prison For Coup Attempt | Full Story",
+          "count": 11240,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "DW News",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "White girl in China",
+          "query": "white girl in china",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
+        },
+        {
+          "topic": "Blondie in China",
+          "query": "blondie in china",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Iran talks resume Feb 2026",
+          "query": "Iran talks resume Feb 2026",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Israel",
+          "query": "israel",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Iran talks resume amid renewed diplomacy",
+          "query": "Iran talks resume amid renewed diplomacy",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "South Korea President coup trial",
+          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+          "count": 1,
+          "source": "reddit",
+          "subreddit": "worldnews",
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 11180,
+      "unique_users": 4,
+      "trending_score": 48,
+      "items": [
+        {
+          "topic": "Trump tariffs impact on everyday costs",
+          "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
+          "count": 6180,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Bloomberg",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "Federal workers share experiences after DOGE cuts",
+          "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
+          "count": 4990,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "PBS NewsHour",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "CA taxes for part-time residents",
+          "query": "do you have to provide id when filing ca taxes part time resident",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Proving California residency for taxes",
+          "query": "how to prove you're a california resident for your taxes",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "IRS tax refunds",
+          "query": "irs tax refunds",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Taxes for CA non-residents",
+          "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Long term rental tax deductions",
+          "query": "long term rental tax deductions",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Trump tariffs and economy critique",
+          "query": "Trump tariffs and economy critique",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 8570,
+      "unique_users": 2,
+      "trending_score": 37,
+      "items": [
+        {
+          "topic": "Trump deportation campaign update",
+          "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
+          "count": 4850,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "VICE News",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "ICE raids — documented first-person accounts",
+          "query": "ICE Raids 2026: Documented Stories From Across America",
+          "count": 3720,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "ProPublica",
+          "url": null,
+          "trend": "up"
+        }
+      ]
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
+      "engagement_count": 5420,
+      "unique_users": 1,
+      "trending_score": 23,
+      "items": [
+        {
+          "topic": "Nuclear energy debate — is it the answer?",
+          "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
+          "count": 5420,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Wendover Productions",
+          "url": null,
+          "trend": "up"
         }
       ]
     },
@@ -210,7 +337,7 @@
       "icon": "📜",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 10,
+      "trending_score": 0,
       "items": [
         {
           "topic": "Senate hearing for Jeremy Carl",
@@ -218,6 +345,7 @@
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -229,14 +357,15 @@
       "icon": "🏥",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 10,
+      "trending_score": 0,
       "items": [
         {
-          "topic": "how could the cost of healthcare systematically reduce",
+          "topic": "Systematically reducing healthcare costs",
           "query": "how could the cost of healthcare systematically reduce",
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -248,14 +377,15 @@
       "icon": "🎓",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 10,
+      "trending_score": 0,
       "items": [
         {
-          "topic": "Why is Cleveland State University facing declining enrollment and budget pressure?",
+          "topic": "Cleveland State University enrollment and budget pressure",
           "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -267,14 +397,15 @@
       "icon": "✊",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 10,
+      "trending_score": 0,
       "items": [
         {
-          "topic": "zero stat gun",
+          "topic": "Zero stat gun",
           "query": "zero stat gun",
           "count": 1,
           "source": "search",
           "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -284,24 +415,6 @@
       "id": "elections_voting",
       "label": "Elections & Voting",
       "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "immigration_policy",
-      "label": "Immigration Policy",
-      "icon": "🛂",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
