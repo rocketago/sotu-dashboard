@@ -1,0 +1,110 @@
+name: Test VerbAI Token
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-token:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Test MCP handshake
+        env:
+          VERBAI_TOKEN: ${{ secrets.VERBAI_TOKEN }}
+        run: |
+          python3 - <<'EOF'
+          import json, os, urllib.request, urllib.error, sys
+
+          URL = (
+              "https://zknnynm-exc60781.snowflakecomputing.com"
+              "/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS"
+              "/mcp-servers/VERB_AI_MCP_SERVER"
+          )
+          token = os.environ.get("VERBAI_TOKEN", "")
+
+          if not token:
+              print("FAIL: VERBAI_TOKEN secret is not set or is empty.")
+              sys.exit(1)
+
+          print(f"Token present ({len(token)} chars). Sending initialize handshake...")
+
+          payload = json.dumps({
+              "jsonrpc": "2.0", "id": 1, "method": "initialize",
+              "params": {
+                  "protocolVersion": "2024-11-05",
+                  "capabilities": {},
+                  "clientInfo": {"name": "sotu-dashboard-test", "version": "1.0"},
+              },
+          }).encode()
+
+          req = urllib.request.Request(URL, data=payload, method="POST", headers={
+              "Content-Type":  "application/json",
+              "Accept":        "application/json, text/event-stream",
+              "Authorization": f"Bearer {token}",
+          })
+
+          try:
+              with urllib.request.urlopen(req, timeout=30) as resp:
+                  sid = resp.headers.get("Mcp-Session-Id", "(none)")
+                  ct  = resp.headers.get("Content-Type", "")
+                  raw = resp.read().decode()
+
+                  # Handle SSE response
+                  if "text/event-stream" in ct:
+                      for line in raw.splitlines():
+                          if line.startswith("data: "):
+                              raw = line[6:].strip()
+                              break
+
+                  data = json.loads(raw) if raw.strip() else {}
+
+          except urllib.error.HTTPError as e:
+              body = e.read().decode()[:300]
+              print(f"FAIL: HTTP {e.code} {e.reason}")
+              print(f"Body: {body}")
+              sys.exit(1)
+          except urllib.error.URLError as e:
+              print(f"FAIL: Connection error — {e.reason}")
+              sys.exit(1)
+
+          if data.get("error"):
+              print(f"FAIL: MCP error — {data['error']}")
+              sys.exit(1)
+
+          if not data.get("result"):
+              print(f"FAIL: Unexpected response — {json.dumps(data)[:300]}")
+              sys.exit(1)
+
+          server_info = data["result"].get("serverInfo", {})
+          print(f"OK: MCP session established.")
+          print(f"  Session-Id : {sid}")
+          print(f"  Server     : {server_info.get('name', '?')} {server_info.get('version', '')}")
+          print(f"  Protocol   : {data['result'].get('protocolVersion', '?')}")
+
+          # Step 2: list available tools
+          payload2 = json.dumps({
+              "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {},
+          }).encode()
+          req2 = urllib.request.Request(URL, data=payload2, method="POST", headers={
+              "Content-Type":  "application/json",
+              "Accept":        "application/json, text/event-stream",
+              "Authorization": f"Bearer {token}",
+              "Mcp-Session-Id": sid,
+          })
+          with urllib.request.urlopen(req2, timeout=30) as resp2:
+              raw2 = resp2.read().decode()
+              if "text/event-stream" in resp2.headers.get("Content-Type", ""):
+                  for line in raw2.splitlines():
+                      if line.startswith("data: "):
+                          raw2 = line[6:].strip()
+                          break
+              data2 = json.loads(raw2) if raw2.strip() else {}
+
+          tools = data2.get("result", {}).get("tools", [])
+          if tools:
+              print(f"  Tools ({len(tools)}): {[t['name'] for t in tools]}")
+          else:
+              print("  WARN: tools/list returned no tools — token works but no tools available.")
+
+          print("\nVERBAI_TOKEN is valid and the MCP endpoint is reachable.")
+          EOF
