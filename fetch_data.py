@@ -332,6 +332,7 @@ def _parse_json_array(text: str) -> list:
     DATA_KEYS = frozenset({
         "policy_category", "engagement_count", "unique_users",
         "query", "count", "source", "category", "time", "subreddit", "trend",
+        "channel",  # YouTube
     })
 
     def is_data(arr):
@@ -556,6 +557,7 @@ _POLITICAL_KEYWORDS: frozenset[str] = frozenset({
     "elon musk", "deportation", "tax", "war", "obamacare", "epstein",
     "coup", "arrest", "nuclear", "geopolitics", "minister", "parliament",
     "protest", "rally", "regime", "sanction", "diplomat",
+    "state of the union", "sotu", "address to congress",
 })
 
 
@@ -682,20 +684,92 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
     return _cap_events_per_user(political)
 
 
+def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
+    """
+    Query top political YouTube videos watched by 18-29 year-olds since since_iso.
+    Uses YOUTUBE_EVENTS_FLAT_DYM joined with AGENT_SYNC for age filtering.
+    Returns list of dicts with keys: query (video title), topic, count, source
+    ('youtube'), channel, category, trend.
+    """
+    kw_block = (
+        "y.VIDEO_TITLE ILIKE '%trump%' OR y.VIDEO_TITLE ILIKE '%biden%' "
+        "OR y.VIDEO_TITLE ILIKE '%kamala%' OR y.VIDEO_TITLE ILIKE '%congress%' "
+        "OR y.VIDEO_TITLE ILIKE '%senate%' OR y.VIDEO_TITLE ILIKE '%president%' "
+        "OR y.VIDEO_TITLE ILIKE '%election%' OR y.VIDEO_TITLE ILIKE '%vote%' "
+        "OR y.VIDEO_TITLE ILIKE '%democrat%' OR y.VIDEO_TITLE ILIKE '%republican%' "
+        "OR y.VIDEO_TITLE ILIKE '%immigration%' OR y.VIDEO_TITLE ILIKE '%border%' "
+        "OR y.VIDEO_TITLE ILIKE '%tariff%' OR y.VIDEO_TITLE ILIKE '%ukraine%' "
+        "OR y.VIDEO_TITLE ILIKE '%israel%' OR y.VIDEO_TITLE ILIKE '%climate%' "
+        "OR y.VIDEO_TITLE ILIKE '%healthcare%' OR y.VIDEO_TITLE ILIKE '%medicare%' "
+        "OR y.VIDEO_TITLE ILIKE '%abortion%' OR y.VIDEO_TITLE ILIKE '%gun%' "
+        "OR y.VIDEO_TITLE ILIKE '%supreme court%' OR y.VIDEO_TITLE ILIKE '%military%' "
+        "OR y.VIDEO_TITLE ILIKE '%policy%' OR y.VIDEO_TITLE ILIKE '%government%' "
+        "OR y.VIDEO_TITLE ILIKE '%federal%' OR y.VIDEO_TITLE ILIKE '%doge%' "
+        "OR y.VIDEO_TITLE ILIKE '%maga%' OR y.VIDEO_TITLE ILIKE '%white house%' "
+        "OR y.VIDEO_TITLE ILIKE '%nato%' OR y.VIDEO_TITLE ILIKE '%china%' "
+        "OR y.VIDEO_TITLE ILIKE '%iran%' OR y.VIDEO_TITLE ILIKE '%inflation%' "
+        "OR y.VIDEO_TITLE ILIKE '%student loan%' OR y.VIDEO_TITLE ILIKE '%social security%' "
+        "OR y.VIDEO_TITLE ILIKE '%budget%' OR y.VIDEO_TITLE ILIKE '%legislation%' "
+        "OR y.VIDEO_TITLE ILIKE '%elon musk%' OR y.VIDEO_TITLE ILIKE '%deportation%' "
+        "OR y.VIDEO_TITLE ILIKE '%tax%' OR y.VIDEO_TITLE ILIKE '%war%' "
+        "OR y.VIDEO_TITLE ILIKE '%obamacare%' OR y.VIDEO_TITLE ILIKE '%state of the union%' "
+        "OR y.VIDEO_TITLE ILIKE '%sotu%' OR y.VIDEO_TITLE ILIKE '%nuclear%' "
+        "OR y.VIDEO_TITLE ILIKE '%epstein%' OR y.VIDEO_TITLE ILIKE '%coup%'"
+    )
+    prompt = (
+        f"Use the Snowflake database tool to find the top 20 political YouTube videos "
+        f"watched by 18-29 year-olds since {since_iso}. Run this SQL query:\n\n"
+        f"SELECT y.VIDEO_TITLE AS query, y.CHANNEL AS channel, "
+        f"COUNT(*) AS count, COUNT(DISTINCT y.USER_ID) AS users "
+        f"FROM YOUTUBE_EVENTS_FLAT_DYM y "
+        f"JOIN AGENT_SYNC a ON y.USER_ID = a.USER_ID "
+        f"WHERE y.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND ({kw_block}) "
+        f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
+        f"ORDER BY count DESC LIMIT 20;\n\n"
+        f"For each video assign the ONE most relevant category from this exact list: "
+        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
+        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
+        f"Education Policy, Environmental Policy, Civil Rights. "
+        f"Use 'General Politics' only if no other category fits. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
+        f"query (video title), topic (one-sentence description), count, "
+        f"source (always 'youtube'), channel (YouTube channel name), "
+        f"category, trend ('up', 'down', or 'stable')."
+    )
+
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        if text is not None:
+            raw = _parse_json_array(text)
+            result = [item for item in raw if _is_political_item(item)]
+            print(f"[MCP-DIRECT] youtube_videos: {len(raw)} rows → {len(result)} political")
+            return result
+        print("[MCP-DIRECT] youtube_videos protocol failure — falling back to Claude")
+
+    text = run_verb_ai_query(prompt)
+    raw = _parse_json_array(text) if text else []
+    result = [item for item in raw if _is_political_item(item)]
+    print(f"[INFO] youtube_videos: {len(raw)} rows → {len(result)} political")
+    return result
+
+
 def _dedup_items(items: list[dict]) -> list[dict]:
     """
     Remove near-duplicate items within a category.
     Rules:
-    - Max 2 items per subreddit (keeps the two highest-scored posts per sub).
-    - Search queries: deduplicate by lowercased 35-char prefix so near-identical
-      queries ("trump tariffs 2026" vs "trump tariffs today") collapse into one
-      with the higher count kept.
+    - Search/YouTube: deduplicate by lowercased 35-char title prefix so near-
+      identical queries ("trump tariffs 2026" vs "trump tariffs today") collapse
+      into one with the higher count kept.
+    - Max 2 items per subreddit (Reddit) or channel (YouTube).
     """
-    # 1. Deduplicate search queries by prefix
+    # 1. Deduplicate search and YouTube items by title prefix
     seen_prefix: dict[str, int] = {}   # prefix -> index in result
     result: list[dict] = []
     for item in sorted(items, key=lambda x: -x.get("count", 0)):
-        if item.get("source") == "search":
+        if item.get("source") in ("search", "youtube"):
             prefix = " ".join(item.get("query", "").lower().split())[:35]
             if prefix in seen_prefix:
                 # Accumulate count into the existing item
@@ -704,29 +778,33 @@ def _dedup_items(items: list[dict]) -> list[dict]:
             seen_prefix[prefix] = len(result)
         result.append(item)
 
-    # 2. Cap at 2 items per subreddit (for Reddit items)
-    sub_count: dict[str, int] = {}
+    # 2. Cap at 2 items per subreddit (Reddit) or channel (YouTube)
+    group_count: dict[str, int] = {}
     filtered: list[dict] = []
     for item in sorted(result, key=lambda x: -x.get("count", 0)):
-        sub = item.get("subreddit")
-        if sub:
-            if sub_count.get(sub, 0) >= 2:
+        group = item.get("subreddit") or item.get("channel")
+        if group and item.get("source") in ("reddit", "youtube"):
+            if group_count.get(group, 0) >= 2:
                 continue
-            sub_count[sub] = sub_count.get(sub, 0) + 1
+            group_count[group] = group_count.get(group, 0) + 1
         filtered.append(item)
     return filtered
 
 
-def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
+def merge_into_structure(
+    categories_raw: list,
+    queries_raw: list,
+    youtube_raw: list | None = None,
+) -> dict:
     """
-    Merge VerbAI query results into the dashboard JSON structure.
-    Falls back to existing file data if API data is missing.
+    Merge VerbAI query results (search, Reddit, YouTube) into the dashboard
+    JSON structure.  Falls back to existing file data if API data is missing.
 
     Engagement counts are ALWAYS derived from the items returned by
-    fetch_search_queries (not from the separate fetch_category_counts call).
-    The two calls categorise independently and create count/item mismatches
-    when used together, so category_counts is only consulted when no items
-    at all were returned.
+    fetch_search_queries / fetch_youtube_videos (not from the separate
+    fetch_category_counts call).  The two calls categorise independently and
+    create count/item mismatches when used together, so category_counts is only
+    consulted when no items at all were returned.
     """
     # Load existing data as fallback
     existing = {}
@@ -736,7 +814,8 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
 
     # ── Step 1: Place each item into its category ──────────────────────────
     query_map: dict[str, list] = {k: [] for k in CATEGORY_META}
-    for q in (queries_raw or []):
+    all_items = list(queries_raw or []) + list(youtube_raw or [])
+    for q in all_items:
         raw_label = q.get("category", "General Politics")
         cat_label = _normalize_category(raw_label)
         raw_url = q.get("url") or q.get("page_url")
@@ -751,6 +830,7 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
             "count":     int(q.get("count", 1)),
             "source":    q.get("source", "search"),
             "subreddit": q.get("subreddit"),
+            "channel":   q.get("channel"),   # YouTube channel name; None for search/reddit
             "url":       raw_url,
             "trend":     q.get("trend", "stable"),
         })
@@ -835,11 +915,12 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     today_label = datetime.date.today().strftime("%b %-d")
 
     # Count today's events by source from items
-    search_today = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
-    reddit_today = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
+    search_today  = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
+    reddit_today  = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
+    youtube_today = sum(1 for c in categories for i in c["items"] if i.get("source") == "youtube")
 
-    # Preserve last_mcp_pull: advance it when either fetch returned real data
-    got_mcp_data = bool(categories_raw) or bool(queries_raw)
+    # Preserve last_mcp_pull: advance it when any fetch returned real data
+    got_mcp_data = bool(categories_raw) or bool(queries_raw) or bool(youtube_raw)
     last_mcp_pull = now_iso if got_mcp_data else existing.get("meta", {}).get("last_mcp_pull")
 
     return {
@@ -847,21 +928,22 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
             "generated_at":  now_iso,
             "last_mcp_pull": last_mcp_pull,
             "demographic":   "Ages 18-29",
-            "data_source":   "VerbAI MCP (Search, News, Reddit events)",
+            "data_source":   "VerbAI MCP (Search, YouTube, Reddit events)",
             "window":        "today",
             "window_label":  f"Today ({today_label}) · Updated live",
             "today_start":   et_midnight_utc(),
             "refresh_interval_minutes": 5,
         },
         "summary": {
-            "total_engagements":   total_eng,
-            "total_unique_users":  sum(c["unique_users"] for c in categories),
-            "top_category":        top_cat,
-            "categories_tracked":  len(categories),
-            "data_window":         "Today from midnight · accumulates throughout the day",
-            "search_events_today": search_today,
-            "reddit_events_today": reddit_today,
-            "news_events_today":   0,
+            "total_engagements":    total_eng,
+            "total_unique_users":   sum(c["unique_users"] for c in categories),
+            "top_category":         top_cat,
+            "categories_tracked":   len(categories),
+            "data_window":          "Today from midnight · accumulates throughout the day",
+            "search_events_today":  search_today,
+            "reddit_events_today":  reddit_today,
+            "youtube_events_today": youtube_today,
+            "news_events_today":    0,
         },
         "categories": categories,
     }
@@ -935,21 +1017,24 @@ def main():
 
     # ── Fetch data sets ───────────────────────────────────────────────────────
     if mcp_ctx:
-        # Direct MCP: run sequentially (one MCP session, calls are fast)
+        # Direct MCP: run sequentially (one session, calls are fast)
         categories_raw = fetch_category_counts(since_iso, mcp_ctx)
         queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
+        youtube_raw    = fetch_youtube_videos(since_iso, mcp_ctx)
     else:
-        # Claude fallback: run subprocesses in parallel (max time = slowest one, not sum)
-        print("[INFO] Running 2 Claude queries in parallel (timeout=300s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        # Claude fallback: run subprocesses in parallel (max time = slowest one)
+        print("[INFO] Running 3 Claude queries in parallel (timeout=300s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
             f_cats    = pool.submit(fetch_category_counts, since_iso, None)
             f_queries = pool.submit(fetch_search_queries,  since_iso, None)
+            f_youtube = pool.submit(fetch_youtube_videos,  since_iso, None)
             categories_raw = f_cats.result()
             queries_raw    = f_queries.result()
+            youtube_raw    = f_youtube.result()
 
     # ── Write outputs ─────────────────────────────────────────────────────────
-    if not categories_raw and not queries_raw:
-        print("[WARN] VerbAI returned no category/query data — keeping existing JSON unchanged.")
+    if not categories_raw and not queries_raw and not youtube_raw:
+        print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
         # Update generated_at (= last action run) but leave last_mcp_pull untouched.
         if OUTPUT_FILE.exists():
             with open(OUTPUT_FILE) as f:
@@ -960,12 +1045,13 @@ def main():
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(existing, f, indent=2, ensure_ascii=False)
     else:
-        data = merge_into_structure(categories_raw, queries_raw)
+        data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
               f"{data['summary']['total_engagements']} engagements across "
-              f"{data['summary']['categories_tracked']} categories.")
+              f"{data['summary']['categories_tracked']} categories "
+              f"(YouTube: {data['summary']['youtube_events_today']} videos).")
 
 
 
