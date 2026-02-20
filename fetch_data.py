@@ -404,15 +404,50 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
     Returns list of dicts with keys: policy_category, engagement_count, unique_users.
     """
     prompt = (
-        f"Use the available Snowflake database tool to run SQL queries and return real data. "
-        f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
-        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'. "
-        f"Group the results by policy_category and count total engagements and distinct users per category. "
-        f"Map each category to the closest match from this list: Presidential Politics, "
-        f"General Politics, Elections & Voting, Foreign Policy, Immigration Policy, "
-        f"Legislative Politics, Economic Policy, Healthcare Policy, Education Policy, "
-        f"Environmental Policy, Civil Rights. "
-        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
+        f"Use the Snowflake database tool to count political engagement by 18-29 year-olds since {since_iso}. "
+        f"Run two SQL queries and combine results by category:\n\n"
+        f"QUERY 1 — political search counts by category:\n"
+        f"SELECT s.QUERY, COUNT(*) AS cnt, COUNT(DISTINCT s.USER_ID) AS users "
+        f"FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"WHERE s.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
+        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
+        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
+        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
+        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
+        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
+        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
+        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
+        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
+        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
+        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
+        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%' "
+        f"OR s.QUERY ILIKE '%elon musk%' OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' "
+        f"OR s.QUERY ILIKE '%war%' OR s.QUERY ILIKE '%obamacare%') "
+        f"GROUP BY s.QUERY;\n\n"
+        f"QUERY 2 — political Reddit post counts by category:\n"
+        f"SELECT r.TITLE AS query, COUNT(*) AS cnt, COUNT(DISTINCT r.USER_ID) AS users, r.SUBREDDIT "
+        f"FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"WHERE r.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
+        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
+        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
+        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
+        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"GROUP BY r.TITLE, r.SUBREDDIT;\n\n"
+        f"For each search query or Reddit post, assign it to the ONE most relevant category from: "
+        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
+        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
+        f"Education Policy, Environmental Policy, Civil Rights. "
+        f"Then sum engagement_count and unique_users per category. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
         f"policy_category, engagement_count, unique_users."
     )
 
@@ -431,20 +466,56 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
 
 def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query top search queries and Reddit posts for 18-29 year-olds.
+    Query top political search queries and Reddit posts for 18-29 year-olds.
     Returns list of dicts with keys: query, topic, count, source, subreddit, category, trend.
     """
     prompt = (
-        f"Use the available Snowflake database tool to run SQL queries and return real data. "
-        f"Query both SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for rows where "
-        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}'. "
-        f"From SEARCH_EVENTS_FLAT_DYM return the top 20 search queries by count. "
-        f"From REDDIT_EVENTS_FLAT_DYM return the top 20 posts by score. "
-        f"For each item map it to a policy category from: Presidential Politics, General Politics, "
-        f"Elections & Voting, Foreign Policy, Immigration Policy, Legislative Politics, "
-        f"Economic Policy, Healthcare Policy, Education Policy, Environmental Policy, Civil Rights. "
-        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
-        f"query, topic, count, source (search or reddit), subreddit, category, trend (up/down/stable)."
+        f"Use the Snowflake database tool to find the top 40 political items engaged with by 18-29 year-olds since {since_iso}. "
+        f"Run these two SQL queries and return combined results:\n\n"
+        f"QUERY 1 — top political search queries (top 20):\n"
+        f"SELECT s.QUERY, COUNT(*) AS count "
+        f"FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"WHERE s.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
+        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
+        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
+        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
+        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
+        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
+        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
+        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
+        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
+        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
+        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
+        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%' "
+        f"OR s.QUERY ILIKE '%elon musk%' OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' "
+        f"OR s.QUERY ILIKE '%war%' OR s.QUERY ILIKE '%obamacare%') "
+        f"GROUP BY s.QUERY ORDER BY count DESC LIMIT 20;\n\n"
+        f"QUERY 2 — top political Reddit posts (top 20):\n"
+        f"SELECT r.TITLE AS query, r.SCORE AS count, r.SUBREDDIT "
+        f"FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"WHERE r.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
+        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
+        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
+        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
+        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"ORDER BY r.SCORE DESC LIMIT 20;\n\n"
+        f"For each item assign the ONE most relevant category from this exact list: "
+        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
+        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
+        f"Education Policy, Environmental Policy, Civil Rights. "
+        f"Use 'General Politics' only if no other category fits. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
+        f"query, topic, count, source ('search' or 'reddit'), subreddit (null if search), "
+        f"category, trend ('up', 'down', or 'stable')."
     )
 
     if mcp_ctx:
@@ -460,20 +531,63 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     return _parse_json_array(text) if text else []
 
 
-def fetch_live_events(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
+def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query the 50 most recent individual events for 18-29 year-olds.
-    Returns list of dicts with keys: time, query, source, subreddit, category.
+    Query the 50 most recent individual political events for 18-29 year-olds.
+    Uses a 24-hour rolling window (live_since_iso) so the feed is never stale.
+    Returns list of dicts with keys: time, query, source, subreddit, category, age, gender, state.
     """
     prompt = (
-        f"Use the available Snowflake database tool to run SQL queries and return real data. "
-        f"Query SEARCH_EVENTS_FLAT_DYM and REDDIT_EVENTS_FLAT_DYM for the 50 most recent rows where "
-        f"age BETWEEN 18 AND 29 AND event_time >= '{since_iso}', ordered by event_time DESC. "
-        f"For each row return: event_time (ISO 8601), the search query or post title, "
-        f"source (search or reddit), subreddit (null if search), a broad political category, "
-        f"age (integer), gender, and US state abbreviation. "
-        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects containing: "
-        f"time, query, source, subreddit, category, age, gender, state."
+        f"Use the Snowflake database tool to find the 50 most recent political events by 18-29 year-olds since {live_since_iso}. "
+        f"Run these two SQL queries, merge results, and return the 50 most recent overall:\n\n"
+        f"QUERY 1 — recent political searches:\n"
+        f"SELECT s.EVENT_TIME AS time, s.QUERY AS query, 'search' AS source, "
+        f"NULL AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
+        f"FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"WHERE s.EVENT_TIME >= '{live_since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
+        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
+        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
+        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
+        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
+        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
+        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
+        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
+        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
+        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
+        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
+        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%elon musk%' "
+        f"OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' OR s.QUERY ILIKE '%war%' "
+        f"OR s.QUERY ILIKE '%obamacare%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%') "
+        f"ORDER BY s.EVENT_TIME DESC LIMIT 30;\n\n"
+        f"QUERY 2 — recent political Reddit posts:\n"
+        f"SELECT r.EVENT_TIME AS time, r.TITLE AS query, 'reddit' AS source, "
+        f"r.SUBREDDIT AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
+        f"FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"WHERE r.EVENT_TIME >= '{live_since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
+        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
+        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
+        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
+        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"ORDER BY r.EVENT_TIME DESC LIMIT 30;\n\n"
+        f"For the returned EVENT_TIME values format them as ISO 8601 (e.g. 2026-02-20T14:32:00Z). "
+        f"For age compute YEAR(CURRENT_DATE) - YEAR_OF_BIRTH. "
+        f"For state extract the 2-letter US state abbreviation from FULL_ADDRESS. "
+        f"For each event assign the ONE most relevant category from this EXACT list (use these labels verbatim): "
+        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
+        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
+        f"Education Policy, Environmental Policy, Civil Rights. "
+        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
+        f"time, query, source, subreddit, category, age, gender, state. "
+        f"Merge both query results, sort by time descending, return the 50 most recent."
     )
 
     if mcp_ctx:
@@ -675,7 +789,11 @@ def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
     since_iso = et_midnight_utc()
-    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
+    # Live feed uses a 24-hour rolling window so it never runs dry early in the day
+    live_since_iso = (
+        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight); live feed window: {live_since_iso}")
 
     # ── Overnight gate: skip heavy fetch 11 PM – 6 AM ET ────────────────────
     now_utc = datetime.datetime.now(datetime.timezone.utc)
@@ -707,14 +825,14 @@ def main():
         # Direct MCP: run sequentially (one MCP session, calls are fast)
         categories_raw = fetch_category_counts(since_iso, mcp_ctx)
         queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
-        events_raw     = fetch_live_events(since_iso, mcp_ctx)
+        events_raw     = fetch_live_events(live_since_iso, mcp_ctx)
     else:
         # Claude fallback: run 3 subprocesses in parallel (max time = slowest one, not sum)
         print("[INFO] Running 3 Claude queries in parallel (timeout=300s each)...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
             f_cats    = pool.submit(fetch_category_counts, since_iso, None)
             f_queries = pool.submit(fetch_search_queries,  since_iso, None)
-            f_events  = pool.submit(fetch_live_events,     since_iso, None)
+            f_events  = pool.submit(fetch_live_events,     live_since_iso, None)
             categories_raw = f_cats.result()
             queries_raw    = f_queries.result()
             events_raw     = f_events.result()
