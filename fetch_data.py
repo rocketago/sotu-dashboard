@@ -522,17 +522,56 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
         if text is not None:
-            result = _parse_json_array(text)
-            print(f"[MCP-DIRECT] search_queries: {len(result)} rows")
+            raw = _parse_json_array(text)
+            result = [item for item in raw if _is_political_item(item)]
+            print(f"[MCP-DIRECT] search_queries: {len(raw)} rows → {len(result)} political")
             return result
         print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
-    return _parse_json_array(text) if text else []
+    raw = _parse_json_array(text) if text else []
+    return [item for item in raw if _is_political_item(item)]
 
 
 # Lowercase → canonical label lookup built once at import time
 _CANONICAL_CATEGORY: dict[str, str] = {k.lower(): k for k in CATEGORY_META}
+
+# Subreddits that are by definition political (matches the SQL WHERE clause whitelist)
+_POLITICAL_SUBREDDITS: frozenset[str] = frozenset({
+    "politics", "politicaldiscussion", "conservative", "liberal",
+    "worldnews", "news", "neutralpolitics", "geopolitics", "economics",
+    "economy", "environment", "climate", "healthcare", "immigration",
+    "supremecourt", "law", "progressive", "democrats", "republican",
+    "political_humor", "libertarian", "uspolitics", "americanpolitics",
+})
+
+# Keywords that make a search query or Reddit title political
+_POLITICAL_KEYWORDS: frozenset[str] = frozenset({
+    "trump", "biden", "kamala", "congress", "senate", "president",
+    "election", "vote", "democrat", "republican", "immigration", "border",
+    "tariff", "ukraine", "israel", "climate", "healthcare", "medicare",
+    "abortion", "gun", "supreme court", "military", "policy", "government",
+    "federal", "doge", "maga", "white house", "nato", "china", "iran",
+    "inflation", "student loan", "social security", "budget", "legislation",
+    "elon musk", "deportation", "tax", "war", "obamacare", "epstein",
+    "coup", "arrest", "nuclear", "geopolitics", "minister", "parliament",
+    "protest", "rally", "regime", "sanction", "diplomat",
+})
+
+
+def _is_political_item(item: dict) -> bool:
+    """
+    Return True if this item is plausibly political.
+    Reddit items must be from a known political subreddit OR contain a political keyword.
+    Search items must contain at least one political keyword.
+    """
+    text = (item.get("query") or item.get("topic") or "").lower()
+    if item.get("source") == "reddit":
+        sub = (item.get("subreddit") or "").lower()
+        if sub in _POLITICAL_SUBREDDITS:
+            return True
+        return any(kw in text for kw in _POLITICAL_KEYWORDS)
+    return any(kw in text for kw in _POLITICAL_KEYWORDS)
 
 
 def _filter_to_political(events: list[dict]) -> list[dict]:
@@ -799,8 +838,8 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     search_today = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
     reddit_today = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
 
-    # Preserve last_mcp_pull: advance it only when real API data was used
-    got_mcp_data = bool(categories_raw)
+    # Preserve last_mcp_pull: advance it when either fetch returned real data
+    got_mcp_data = bool(categories_raw) or bool(queries_raw)
     last_mcp_pull = now_iso if got_mcp_data else existing.get("meta", {}).get("last_mcp_pull")
 
     return {
