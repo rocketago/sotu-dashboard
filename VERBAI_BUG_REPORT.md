@@ -1,0 +1,148 @@
+# VerbAI MCP — Bug Report
+**Date:** 2026-02-20
+**Reported by:** SOTU Dashboard (rocketago/sotu-dashboard)
+**Integration:** VerbAI MCP via Claude CLI (`claude --print --dangerously-skip-permissions`)
+**Tables queried:** `SEARCH_EVENTS_FLAT_DYM`, `REDDIT_EVENTS_FLAT_DYM`, `AGENT_SYNC`
+
+---
+
+## Background
+
+The SOTU Dashboard queries VerbAI to surface political engagement data for users aged 18–29. The panel is ~3,000 users, the majority of whom fall in the 18–29 age bracket. Two separate queries are affected: one for aggregate category counts (`fetch_category_counts`) and one for a real-time individual event feed (`fetch_live_events`). Both are broken in distinct ways described below.
+
+---
+
+## Bug 1 — Live event feed ignores the political keyword filter entirely
+
+### What we request
+
+The prompt instructs VerbAI to run this SQL (simplified):
+
+```sql
+SELECT s.EVENT_TIME, s.QUERY, 'search' AS source, ...
+FROM SEARCH_EVENTS_FLAT_DYM s
+JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID
+WHERE s.EVENT_TIME >= '2026-02-19T02:23:08Z'
+  AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29
+  AND (
+    s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%congress%' OR
+    s.QUERY ILIKE '%president%' OR s.QUERY ILIKE '%election%' OR
+    s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%tariff%' OR
+    s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' OR
+    s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR
+    s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR
+    s.QUERY ILIKE '%elon musk%' OR s.QUERY ILIKE '%deportation%' OR
+    s.QUERY ILIKE '%war%' -- ... ~38 political keyword conditions total
+  )
+ORDER BY s.EVENT_TIME DESC LIMIT 50;
+```
+
+Expected result: up to 50 recent search events where the query matches at least one of ~38 political keywords, from users aged 18–29.
+
+### What we actually receive
+
+```
+50 events returned.
+Category breakdown: { "entertainment": 36, "sports": 14 }
+Unique users: 1  (a single 24-year-old female from IL)
+```
+
+Sample events returned:
+
+| time | query | category |
+|------|-------|----------|
+| 2026-02-19T18:13:04Z | `dmd friendship season 3` | entertainment |
+| 2026-02-19T18:13:04Z | `junhwan cha olympics 2026` | sports |
+| 2026-02-19T18:13:04Z | `pyeongchang 2018 figure skating` | sports |
+| 2026-02-19T18:13:04Z | `yuzuru hanyu 2022 brijing olympics gala performance` | sports |
+| 2026-02-19T18:13:04Z | `unethical faouzia` | entertainment |
+
+### What this indicates
+
+- The `QUERY ILIKE '%trump%' OR ...` WHERE clause is not being applied. None of the 50 returned queries match any of the ~38 political keywords.
+- All 50 events belong to a single user — the query appears to be returning the full recent search history of one user rather than aggregating across the panel with the specified filters.
+- The `category` field is being assigned freely by the response (returning "entertainment", "sports") rather than from the canonical list we specify in the prompt.
+
+---
+
+## Bug 2 — Category engagement counts return Reddit scores instead of VerbAI user engagement
+
+### What we request
+
+The prompt instructs VerbAI to count how many VerbAI users (aged 18–29) searched for or engaged with political content today, grouped by policy category. The intent is:
+
+- `engagement_count` = number of search/post events by VerbAI panel users
+- `unique_users` = number of distinct VerbAI panel users
+
+With ~3,000 panel users (majority 18–29), we would expect at minimum several hundred unique users and thousands of engagement events on a typical day for high-salience political categories like Presidential Politics.
+
+### What we actually receive
+
+```
+generated_at: [field missing from response]
+
+Categories with data (3 of 11):
+  General Politics:      17 users,     108,644 engagements
+  Foreign Policy:         2 users,      16,378 engagements
+  Environmental Policy:   1 user,        3,647 engagements
+
+Categories with zero data (8 of 11):
+  Presidential Politics, Elections & Voting, Immigration Policy,
+  Legislative Politics, Economic Policy, Healthcare Policy,
+  Education Policy, Civil Rights
+```
+
+Sample items returned under "General Politics":
+
+| source | count | subreddit | query |
+|--------|-------|-----------|-------|
+| reddit | 23,789 | r/cats | `came home and my cats feet are yellow?` |
+| reddit | 19,328 | r/pics | `Andrew Mountbatten Windsor has been arrested on suspicion of misconduct in public office` |
+| reddit | 12,426 | r/memes | `They were real Chads` |
+
+Sample items returned under "Foreign Policy":
+
+| source | count | subreddit | query |
+|--------|-------|-----------|-------|
+| reddit | 9,455 | r/interestingasfuck | `Bro went to space just to never return to his "country" cause "country" was gone` |
+| reddit | 6,923 | r/worldnews | `Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt` |
+
+### What this indicates
+
+1. **`count` is a Reddit post score (upvotes), not a VerbAI user engagement count.** Values of 23,789 engagements from 17 users would require ~1,400 search events per user in a single day — impossible. These are Reddit upvote scores being passed through as the engagement metric.
+
+2. **The political keyword filter is not being applied here either.** `r/cats` asking about yellow cat feet and `r/memes` with "They were real Chads" are not political queries under any interpretation. The subreddit allowlist (`politics`, `worldnews`, `news`, etc.) and the title `ILIKE` conditions are not being enforced.
+
+3. **The `AGENT_SYNC` join for age filtering does not appear to be executing.** If it were, the results would reflect VerbAI panel behaviour, not global Reddit popularity. The data looks like a general Reddit trending-posts feed rather than VerbAI user activity.
+
+4. **8 of 11 categories return zero data**, including Presidential Politics — the category most likely to have the highest real-world engagement. This is inconsistent with expected panel behaviour during a politically active news cycle.
+
+5. **`generated_at` is absent** from the response, suggesting the structured output contract is not being fully honoured.
+
+---
+
+## Questions for VerbAI
+
+1. **Schema confirmation:** Can you confirm the correct table and column names for search events, Reddit events, and the user demographic table? Specifically: are `SEARCH_EVENTS_FLAT_DYM`, `REDDIT_EVENTS_FLAT_DYM`, and `AGENT_SYNC` the correct names, and are the column names `QUERY`, `TITLE`, `USER_ID`, `EVENT_TIME`, `YEAR_OF_BIRTH`, `FULL_ADDRESS`, `SUBREDDIT` correct?
+
+2. **SQL execution:** Are the SQL WHERE clauses in our prompts being executed as literal Snowflake SQL, or are they being interpreted as natural language intent? If the latter, is there a preferred way to submit structured queries that guarantees filter application?
+
+3. **`engagement_count` definition:** What does the `count`/`engagement_count` field represent in the context of VerbAI panel data? Is it the number of VerbAI users who performed the action, the total event count, or a score sourced from the upstream platform (e.g. Reddit upvotes)?
+
+4. **Age filter:** Is `YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH` the correct expression to compute age from `AGENT_SYNC`? Or is there a pre-computed age field?
+
+5. **Panel coverage:** Given ~3,000 panel users (majority 18–29), is it expected that a query for political searches today would return results from only a single user? Or does this indicate a query execution issue?
+
+---
+
+## Reproduction
+
+All queries are issued via:
+
+```bash
+claude --print --dangerously-skip-permissions "<prompt>"
+```
+
+with the VerbAI MCP registered. The full prompt text for each query is in `fetch_data.py` in functions `fetch_category_counts()` (line ~401) and `fetch_live_events()` (line ~569) of the repository.
+
+The current broken output is in `live_feed.json` (generated 2026-02-20T02:23:08Z) and `political_data.json` in the repo root.
