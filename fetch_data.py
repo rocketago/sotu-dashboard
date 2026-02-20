@@ -50,6 +50,93 @@ CATEGORY_META = {
     "Civil Rights":          {"id": "civil_rights",          "icon": "✊"},
 }
 
+# Maps VerbAI category name variants → canonical CATEGORY_META key.
+# VerbAI often returns shorter/different names than what the dashboard uses.
+CATEGORY_ALIASES: dict[str, str] = {
+    # Presidential Politics
+    "presidential":                   "Presidential Politics",
+    "president":                      "Presidential Politics",
+    "white house":                    "Presidential Politics",
+    "executive":                      "Presidential Politics",
+    "trump":                          "Presidential Politics",
+    # General Politics
+    "politics":                       "General Politics",
+    "political":                      "General Politics",
+    "government":                     "General Politics",
+    "government & accountability":    "General Politics",
+    "government and accountability":  "General Politics",
+    # Elections & Voting
+    "elections":                      "Elections & Voting",
+    "election":                       "Elections & Voting",
+    "voting":                         "Elections & Voting",
+    "elections & political figures":  "Elections & Voting",
+    "elections and political figures":"Elections & Voting",
+    # Foreign Policy
+    "foreign":                        "Foreign Policy",
+    "foreign policy & world":         "Foreign Policy",
+    "foreign policy and world":       "Foreign Policy",
+    "international":                  "Foreign Policy",
+    "geopolitics":                    "Foreign Policy",
+    # Immigration Policy
+    "immigration":                    "Immigration Policy",
+    "border":                         "Immigration Policy",
+    "immigration & civil liberties":  "Immigration Policy",
+    "immigration and civil liberties":"Immigration Policy",
+    # Legislative Politics
+    "legislative":                    "Legislative Politics",
+    "congress":                       "Legislative Politics",
+    "senate":                         "Legislative Politics",
+    "legislation":                    "Legislative Politics",
+    # Economic Policy
+    "economy":                        "Economic Policy",
+    "economic":                       "Economic Policy",
+    "economics":                      "Economic Policy",
+    "finance":                        "Economic Policy",
+    "fiscal":                         "Economic Policy",
+    "economic inequality":            "Economic Policy",
+    "corporate power & consumers":    "Economic Policy",
+    "corporate power and consumers":  "Economic Policy",
+    "trade":                          "Economic Policy",
+    # Healthcare Policy
+    "healthcare":                     "Healthcare Policy",
+    "health":                         "Healthcare Policy",
+    "medical":                        "Healthcare Policy",
+    "health policy":                  "Healthcare Policy",
+    # Education Policy
+    "education":                      "Education Policy",
+    "schools":                        "Education Policy",
+    "student":                        "Education Policy",
+    # Environmental Policy
+    "environment":                    "Environmental Policy",
+    "environmental":                  "Environmental Policy",
+    "climate":                        "Environmental Policy",
+    "energy":                         "Environmental Policy",
+    "environment & science":          "Environmental Policy",
+    "environment and science":        "Environmental Policy",
+    # Civil Rights
+    "civil rights":                   "Civil Rights",
+    "civil liberties":                "Civil Rights",
+    "social justice":                 "Civil Rights",
+    "criminal justice":               "Civil Rights",
+    "culture & media":                "Civil Rights",
+    "culture and media":              "Civil Rights",
+    "other":                          "General Politics",
+}
+
+
+def _normalize_category(raw: str) -> str:
+    """Map a raw VerbAI category string to a canonical CATEGORY_META key."""
+    if raw in CATEGORY_META:
+        return raw
+    lower = raw.lower().strip()
+    if lower in CATEGORY_ALIASES:
+        return CATEGORY_ALIASES[lower]
+    # Partial-match fallback: return the first alias whose key is a substring
+    for alias, canonical in CATEGORY_ALIASES.items():
+        if alias in lower or lower in alias:
+            return canonical
+    return "General Politics"
+
 
 def et_midnight_utc() -> str:
     """Return the ISO UTC timestamp for midnight Eastern Time today."""
@@ -416,7 +503,8 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     # Build category map from API or fall back
     cat_map: dict[str, dict] = {}
     for cat in (categories_raw or []):
-        label = cat.get("policy_category") or cat.get("label", "")
+        raw_label = cat.get("policy_category") or cat.get("label", "")
+        label = _normalize_category(raw_label)
         if label in CATEGORY_META:
             cat_map[label] = {
                 "engagement_count": int(cat.get("engagement_count", 0)),
@@ -434,9 +522,8 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     # Build query map per category from API or fall back
     query_map: dict[str, list] = {k: [] for k in CATEGORY_META}
     for q in (queries_raw or []):
-        cat_label = q.get("category", "General Politics")
-        if cat_label not in query_map:
-            cat_label = "General Politics"
+        raw_label = q.get("category", "General Politics")
+        cat_label = _normalize_category(raw_label)
         raw_url = q.get("url") or q.get("page_url")
         # Only use the URL if it's a real post link, not a Reddit API endpoint
         if raw_url and ("shreddit/events" in raw_url or "gql-fed.reddit.com" in raw_url):
@@ -458,6 +545,17 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
         for c in existing["categories"]:
             if c["label"] in query_map:
                 query_map[c["label"]] = c.get("items", [])
+
+    # When category_counts API returned nothing, derive engagement totals from
+    # the item counts so the dashboard bars and rankings reflect real activity.
+    if not categories_raw:
+        for label, items in query_map.items():
+            if items and cat_map.get(label, {}).get("engagement_count", 0) == 0:
+                derived = sum(q.get("count", 1) for q in items)
+                cat_map[label] = {
+                    "engagement_count": derived,
+                    "unique_users":     cat_map.get(label, {}).get("unique_users") or len(items),
+                }
 
     # Assemble final category list
     categories = []
