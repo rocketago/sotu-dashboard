@@ -581,6 +581,143 @@
       border-color: var(--accent);
     }
 
+    /* ── TAB NAV ── */
+    .tab-nav {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 18px;
+      margin-bottom: -1px;
+      transition: color 0.15s, border-color 0.15s;
+      letter-spacing: 0.2px;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+    }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── SENTIMENT LAYOUT ── */
+    .sentiment-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .sentiment-layout { grid-template-columns: 1fr; }
+    }
+
+    /* ── GAUGE ── */
+    .gauge-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 20px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .gauge-wrap h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    #sentiment-gauge { width: 100%; max-width: 300px; }
+
+    .gauge-score-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+    }
+
+    .gauge-score-label span {
+      display: block;
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--muted);
+      margin-top: 3px;
+    }
+
+    .gauge-legend {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
+
+    .sentiment-meta {
+      margin-top: 8px;
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* ── WORD CLOUD ── */
+    .wordcloud-wrap {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .wordcloud-wrap h3 {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--muted);
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    #word-cloud {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      min-height: 200px;
+      padding: 8px 0;
+    }
+
+    .wc-word {
+      line-height: 1.2;
+      font-weight: 700;
+      cursor: default;
+      transition: opacity 0.2s;
+      letter-spacing: 0.2px;
+    }
+
+    .wc-word:hover { opacity: 0.75; }
+
   </style>
 </head>
 <body>
@@ -607,29 +744,77 @@
 
 <div class="content-layout">
 <main>
-  <div class="section-header">
-    <h2>Today's Topics by Policy Category</h2>
-    <div class="demo-tag">Ages 18–29</div>
+
+  <!-- Tab Navigation -->
+  <nav class="tab-nav">
+    <button class="tab-btn active" id="tab-btn-topics"    onclick="switchTab('topics')">Topics</button>
+    <button class="tab-btn"        id="tab-btn-sentiment" onclick="switchTab('sentiment')">Sentiment</button>
+  </nav>
+
+  <!-- ── TOPICS TAB ── -->
+  <div id="tab-topics" class="tab-pane active">
+    <div class="section-header">
+      <h2>Today's Topics by Policy Category</h2>
+      <div class="demo-tag">Ages 18–29</div>
+    </div>
+
+    <div class="filter-row">
+      <input
+        class="filter-input"
+        id="topic-filter"
+        type="text"
+        placeholder="Filter topics..."
+        autocomplete="off"
+      />
+      <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
+        Expand All
+      </button>
+    </div>
+
+    <div class="category-grid" id="category-grid">
+      <!-- populated by JS -->
+    </div>
   </div>
 
-  <div class="filter-row">
-    <input
-      class="filter-input"
-      id="topic-filter"
-      type="text"
-      placeholder="Filter topics..."
-      autocomplete="off"
-    />
-    <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
-      Expand All
-    </button>
+  <!-- ── SENTIMENT TAB ── -->
+  <div id="tab-sentiment" class="tab-pane">
+    <div class="section-header">
+      <h2>SOTU Sentiment Analysis</h2>
+      <div class="demo-tag">Ages 18–29</div>
+    </div>
+
+    <div class="sentiment-layout">
+
+      <!-- Gauge -->
+      <div class="gauge-wrap">
+        <h3>Overall Sentiment Score</h3>
+        <svg id="sentiment-gauge" viewBox="0 0 300 210" xmlns="http://www.w3.org/2000/svg">
+          <!-- rendered by JS -->
+        </svg>
+        <div class="gauge-legend">
+          <span>Negative</span>
+          <span>Neutral</span>
+          <span>Positive</span>
+        </div>
+        <div class="gauge-score-label" id="gauge-label">
+          —
+          <span id="gauge-sublabel">Awaiting data</span>
+        </div>
+        <div class="sentiment-meta" id="sentiment-meta"></div>
+      </div>
+
+      <!-- Word Cloud -->
+      <div class="wordcloud-wrap">
+        <h3>SOTU Reference Words — VerbAI Users</h3>
+        <div id="word-cloud">
+          <!-- populated by JS -->
+        </div>
+      </div>
+
+    </div>
   </div>
 
-  <div class="category-grid" id="category-grid">
-    <!-- populated by JS -->
-  </div>
 </main>
-
 </div>
 
 <footer>
@@ -648,6 +833,204 @@
 
   let allExpanded    = false;
   let currentData    = null;
+
+  /* ── TAB SWITCHING ── */
+  function switchTab(name) {
+    ['topics', 'sentiment'].forEach(t => {
+      document.getElementById('tab-' + t).classList.toggle('active', t === name);
+      document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
+    });
+    if (name === 'sentiment' && currentData) renderSentimentPane(currentData);
+  }
+
+  /* ── SENTIMENT: score from trend × engagement ── */
+  function computeSentimentScore(data) {
+    let weightedSum = 0;
+    let totalWeight = 0;
+    let upWeight = 0, downWeight = 0, stableWeight = 0;
+
+    data.categories.forEach(cat => {
+      cat.items.forEach(item => {
+        const w = item.count || 1;
+        const t = item.trend === 'up' ? 1 : item.trend === 'down' ? -1 : 0;
+        weightedSum += t * w;
+        totalWeight += w;
+        if (item.trend === 'up')     upWeight     += w;
+        else if (item.trend === 'down') downWeight += w;
+        else                         stableWeight  += w;
+      });
+    });
+
+    const normalized = totalWeight > 0 ? weightedSum / totalWeight : 0; // -1..+1
+    const score = Math.round((normalized + 1) / 2 * 100);
+    return { score, upWeight, downWeight, stableWeight, totalWeight };
+  }
+
+  /* ── WORD EXTRACTION from query strings ── */
+  const STOPWORDS = new Set([
+    'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
+    'from','is','are','was','were','be','been','has','have','had','do','does',
+    'did','will','would','could','should','i','he','she','it','we','they','my',
+    'your','his','her','its','our','their','this','that','these','those','what',
+    'which','who','when','where','why','how','not','no','just','now','up','out',
+    'into','so','as','if','about','s','re','ve','ll','t','d','m','amp','gt','lt',
+    'quot','bro','going','got','its','its','been','get','its','can','got','just',
+    'his','her','they','she','he','me','us','him','them','you','we','all','new',
+    'one','two','three','first','last','more','most','some','such','than','then',
+    'into','over','after','before','between','through','during','without','within',
+  ]);
+
+  function extractWords(data) {
+    const freq = {};
+
+    data.categories.forEach(cat => {
+      cat.items.forEach(item => {
+        const raw = (item.query || '') + ' ' + (item.topic || '');
+        const words = raw.toLowerCase()
+          .replace(/[^a-z0-9\s'-]/g, ' ')
+          .split(/\s+/)
+          .filter(w => w.length > 2 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
+
+        words.forEach(w => {
+          freq[w] = (freq[w] || 0) + (item.count || 1);
+        });
+      });
+    });
+
+    const sorted = Object.entries(freq)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 60)
+      .map(([word, weight]) => ({ word, weight }));
+
+    return sorted;
+  }
+
+  /* ── GAUGE SVG RENDER ── */
+  // Arc: center(150,165), radius 110. Gauge from 210° → 330° (standard math),
+  // sweeping clockwise in standard math (= counter-clockwise on SVG screen).
+  // Score 0 → start(lower-left), Score 100 → end(lower-right).
+  const CX = 150, CY = 165, R = 110;
+
+  function polarToXY(deg) {
+    const rad = deg * Math.PI / 180;
+    return {
+      x: CX + R * Math.cos(rad),
+      y: CY - R * Math.sin(rad),
+    };
+  }
+
+  function arcPath(startDeg, endDeg) {
+    // Sweep clockwise in standard math (decreasing degrees) = CCW in SVG screen (sweep-flag=0)
+    const s = polarToXY(startDeg);
+    const e = polarToXY(endDeg);
+    const sweep = startDeg - endDeg; // degrees swept (always positive for decreasing)
+    const largeArc = sweep > 180 ? 1 : 0;
+    return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${R} ${R} 0 ${largeArc} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
+  }
+
+  function scoreColor(score) {
+    if (score < 38) return '#F9495F';
+    if (score < 55) return '#F9A349';
+    if (score < 68) return '#E8CC4A';
+    return '#04B35D';
+  }
+
+  function scoreLabel(score) {
+    if (score < 30) return 'Very Negative';
+    if (score < 44) return 'Negative';
+    if (score < 57) return 'Neutral';
+    if (score < 70) return 'Positive';
+    return 'Very Positive';
+  }
+
+  function renderGauge(score) {
+    const START = 210, END = 330;
+    const FULL_SWEEP = 240; // degrees
+    const scoreAngle = START - (score / 100) * FULL_SWEEP;
+    const bgPath    = arcPath(START, END);
+    const fillPath  = score > 0 ? arcPath(START, scoreAngle) : '';
+    const color     = scoreColor(score);
+
+    // Center text positions
+    const cx = CX, cy = CY;
+
+    // Tick marks at 0%, 50%, 100%
+    function tick(deg, r1, r2) {
+      const a = polarToXY(deg);
+      const b = { x: CX + (r2/R)*R*Math.cos(deg*Math.PI/180), y: CY - (r2/R)*R*Math.sin(deg*Math.PI/180) };
+      // simplify: use fractions of R
+      const ox = Math.cos(deg*Math.PI/180), oy = -Math.sin(deg*Math.PI/180);
+      return `M ${(CX+r1*ox).toFixed(1)} ${(CY+r1*oy).toFixed(1)} L ${(CX+r2*ox).toFixed(1)} ${(CY+r2*oy).toFixed(1)}`;
+    }
+
+    const svg = document.getElementById('sentiment-gauge');
+    svg.innerHTML = `
+      <!-- Background track -->
+      <path d="${bgPath}" fill="none" stroke="#0d3060" stroke-width="18" stroke-linecap="round"/>
+
+      <!-- Score fill -->
+      ${fillPath ? `<path d="${fillPath}" fill="none" stroke="${color}" stroke-width="18" stroke-linecap="round" opacity="0.9"/>` : ''}
+
+      <!-- Glow on fill -->
+      ${fillPath ? `<path d="${fillPath}" fill="none" stroke="${color}" stroke-width="26" stroke-linecap="round" opacity="0.12"/>` : ''}
+
+      <!-- Center score number -->
+      <text x="${cx}" y="${cy - 10}" text-anchor="middle" fill="${color}"
+            font-size="38" font-weight="800" font-family="Inter,sans-serif">${score}</text>
+      <text x="${cx}" y="${cy + 14}" text-anchor="middle" fill="#7b9ab0"
+            font-size="12" font-weight="600" font-family="Inter,sans-serif">${scoreLabel(score)}</text>
+
+      <!-- Tick marks -->
+      <path d="${tick(START, 96, 106)}" stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
+      <path d="${tick(90,   96, 106)}"  stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
+      <path d="${tick(END,  96, 106)}"  stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
+    `;
+  }
+
+  /* ── WORD CLOUD RENDER ── */
+  const WC_COLORS = [
+    '#0DA2E6','#B080C3','#04B35D','#5dc8f5','#c8a0d8',
+    '#F9A349','#7b9ab0','#0DA2E6','#B080C3','#04B35D',
+  ];
+
+  function renderWordCloud(words) {
+    if (!words.length) return;
+    const container = document.getElementById('word-cloud');
+    const maxW = words[0].weight;
+    const minW = words[words.length - 1].weight;
+    const range = maxW - minW || 1;
+
+    // Log-scale font sizing: 12px → 46px
+    const MIN_FS = 12, MAX_FS = 46;
+
+    container.innerHTML = words.map(({ word, weight }, i) => {
+      const t = Math.log(weight - minW + 1) / Math.log(range + 1);
+      const fs = Math.round(MIN_FS + t * (MAX_FS - MIN_FS));
+      const color = WC_COLORS[i % WC_COLORS.length];
+      const opacity = 0.55 + t * 0.45;
+      return `<span class="wc-word" style="font-size:${fs}px;color:${color};opacity:${opacity}"
+                    title="${weight.toLocaleString()} engagements">${escHtml(word)}</span>`;
+    }).join('');
+  }
+
+  /* ── RENDER ENTIRE SENTIMENT PANE ── */
+  function renderSentimentPane(data) {
+    const { score, upWeight, downWeight, stableWeight, totalWeight } = computeSentimentScore(data);
+    renderGauge(score);
+
+    document.getElementById('gauge-label').innerHTML =
+      `${scoreLabel(score)} <span>Weighted sentiment index · ${totalWeight.toLocaleString()} signals</span>`;
+
+    const upPct   = totalWeight ? Math.round(upWeight     / totalWeight * 100) : 0;
+    const dnPct   = totalWeight ? Math.round(downWeight   / totalWeight * 100) : 0;
+    const stPct   = totalWeight ? Math.round(stableWeight / totalWeight * 100) : 0;
+    document.getElementById('sentiment-meta').innerHTML =
+      `▲ Positive ${upPct}% &nbsp;·&nbsp; — Stable ${stPct}% &nbsp;·&nbsp; ▼ Negative ${dnPct}%<br>
+       Source: VerbAI trend signals weighted by engagement`;
+
+    const words = extractWords(data);
+    renderWordCloud(words);
+  }
 
   /* ── TREND DISPLAY ── */
   function trendIcon(t) {
@@ -899,6 +1282,12 @@
 
       const filterText = document.getElementById('topic-filter').value;
       renderCategories(data.categories, filterText);
+
+      // Re-render sentiment pane if it's active, or prime it for first visit
+      const sentimentPane = document.getElementById('tab-sentiment');
+      if (sentimentPane && sentimentPane.classList.contains('active')) {
+        renderSentimentPane(data);
+      }
 
       showStatus('Data refreshed ✓', 'success');
     } catch (err) {
