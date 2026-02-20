@@ -3,12 +3,27 @@
 **Date:** 2026-02-20
 **Dashboard:** SOTU Gen Z Political Engagement Dashboard
 **MCP Endpoint:** `https://zknnynm-exc60781.snowflakecomputing.com/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS/mcp-servers/VERB_AI_MCP_SERVER`
+**Schema reference:** https://docs.generationlab.org/getting-started/editor
+
+---
+
+## Schema Confirmation
+
+Our queries use the table and column names exactly as documented in the VerbAI schema reference. The following fields were verified against the published schema before this run:
+
+| Table | Columns used | Schema status |
+|---|---|---|
+| `AGENT_SYNC` | `USER_ID`, `YEAR_OF_BIRTH`, `GENDER`, `FULL_ADDRESS` | ✅ All documented |
+| `SEARCH_EVENTS_FLAT_DYM` | `USER_ID`, `QUERY`, `EVENT_TIME` | ✅ All documented |
+| `REDDIT_EVENTS_FLAT_DYM` | `USER_ID`, `TITLE`, `SUBREDDIT`, `SCORE`, `EVENT_TIME` | ✅ All documented |
+
+The SQL was written to the spec. The issues described below are with execution, not schema.
 
 ---
 
 ## What We Requested
 
-We called the VerbAI agent tool via `tools/call` with a prompt asking it to run two SQL queries and return combined results as a JSON array. The Reddit query included an explicit subreddit whitelist in the WHERE clause:
+We called the VerbAI agent tool via `tools/call` with a prompt containing explicit SQL. The Reddit query:
 
 ```sql
 SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT
@@ -31,15 +46,31 @@ WHERE r.EVENT_TIME >= '2026-02-20T05:00:00Z'
 GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 20;
 ```
 
-**Expected output:** top Reddit posts from political subreddits (or with political titles), engaged with by 18–29 year-old VerbAI panel users today.
+**Expected:** `count` = number of panel event rows per post (`COUNT(*)`), from political subreddits or posts with political keywords, by users aged 18–29, ordered by panel engagement.
 
 ---
 
 ## What Was Returned
 
-The agent returned results that did not honour the `SUBREDDIT IN (...)` whitelist. 9 of ~17 Reddit items came from subreddits absent from the whitelist and with no political keywords in their titles:
+Three distinct problems were observed in the response:
 
-| subreddit | count | query | Political? |
+### Problem 1 — `count` values are Reddit `SCORE` (upvotes), not `COUNT(*)`
+
+The documented `REDDIT_EVENTS_FLAT_DYM.SCORE` column holds the Reddit upvote score for each post. Our SQL asks for `COUNT(*) AS count` — the number of VerbAI panel event rows. The returned values match Reddit upvote scores, not panel engagement counts:
+
+| query | returned `count` | plausible as panel `COUNT(*)`? | plausible as Reddit `SCORE`? |
+|---|---|---|---|
+| `came home and my cats feet are yellow?` | 23,789 | ❌ Impossible (23K events from a ~3K user panel) | ✅ Typical viral post score |
+| `Former South Korean President Yoon Sentenced...` | 6,923 | ❌ Implausibly high | ✅ Consistent with r/worldnews upvotes |
+| `Everybody Hates Nuclear-Chan` | 3,647 | ❌ Implausibly high | ✅ Consistent with r/comics upvotes |
+
+The agent appears to be returning `SCORE` in place of the `COUNT(*)` aggregate.
+
+### Problem 2 — `SUBREDDIT IN (...)` whitelist not enforced
+
+9 of ~17 Reddit items came from subreddits absent from the whitelist and with no political keywords in their titles:
+
+| subreddit | count | query | In whitelist? |
 |---|---|---|---|
 | `r/cats` | 23,789 | `came home and my cats feet are yellow?` | ❌ |
 | `r/memes` | 12,426 | `They were real Chads` | ❌ |
@@ -49,22 +80,30 @@ The agent returned results that did not honour the `SUBREDDIT IN (...)` whitelis
 | `r/losercity` | 3,619 | `Losercity gluten` | ❌ |
 | `r/nbacirclejerk` | 1,557 | `Barely into June and she's already acting out` | ❌ |
 | `r/worldnews` | 6,923 | `Former South Korean President Yoon Sentenced to Life in Prison` | ✅ |
-| `r/interestingasfuck` | 9,455 | `Bro went to space just to never return to his "country"` | ⚠️ |
+| `r/interestingasfuck` | 9,455 | `Bro went to space just to never return to his "country"` | ❌ |
 
-All non-political items were categorised as `"General Politics"` by the agent.
+All non-whitelisted items were categorised as `"General Politics"` by the agent. The `LOWER(r.SUBREDDIT) IN (...)` WHERE clause was not applied before results were returned.
 
-The full output is preserved in `political_data.json` at git commit `a0dd54f`.
+### Problem 3 — Inconsistent results across two calls in the same session
 
----
-
-## Additional Finding — Inconsistent Results Across Two Calls in the Same Session
-
-In the same workflow run, a second call (`fetch_category_counts`) asked for aggregate engagement counts grouped by `policy_category` using equivalent SQL. That call returned **0 rows**, while this call returned ~70 rows. Both used the same MCP session against the same Snowflake tables with the same time window and age filter. The inconsistency suggests the SQL is not being executed deterministically.
+A second call in the same workflow run (`fetch_category_counts`) used equivalent SQL asking for aggregate engagement grouped by `policy_category`. That call returned **0 rows**, while this call returned ~70 rows. Both used the same MCP session, the same Snowflake tables, and the same time window and age filter. The SQL does not appear to be executed deterministically across calls.
 
 ---
 
-## Summary
+## Note on Age Range
 
-The `LOWER(r.SUBREDDIT) IN (...)` WHERE clause is not being enforced. The agent appears to be selecting trending/viral Reddit posts regardless of subreddit, then assigning category labels independently, rather than executing the SQL filter and returning only matching rows.
+The published schema states the `AGENT_SYNC` panel covers ages **21–34**. Our SQL filters `BETWEEN 18 AND 29`. In practice this means the cohort being queried is **ages 21–29** — there are no 18–20 year old panelists. This is not a blocking bug but worth flagging: the dashboard labels the data "Ages 18-29" and we would update that label to "Ages 21-29" if this is confirmed as a hard panel constraint.
 
-**Requested fix:** When a prompt contains explicit SQL with a WHERE clause, execute it as written against the Snowflake tables. The subreddit whitelist and keyword ILIKE filters must restrict the result set before it is returned.
+---
+
+## Full Output
+
+The complete broken output is preserved in `political_data.json` at git commit `a0dd54f`.
+
+---
+
+## Requested Fix
+
+1. **`COUNT(*)`** — Execute the aggregate as written. The `count` field in the response should reflect the number of VerbAI panel event rows matching the WHERE clause, not the post's Reddit `SCORE`.
+2. **Subreddit filter** — Apply the `LOWER(r.SUBREDDIT) IN (...)` WHERE clause before returning results. Only rows matching the whitelist (or a title keyword condition) should appear in the response.
+3. **Determinism** — Two calls with equivalent SQL in the same session should return consistent non-zero results when data exists in the time window.
