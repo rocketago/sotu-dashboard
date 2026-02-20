@@ -882,11 +882,7 @@ def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
     since_iso = et_midnight_utc()
-    # Live feed uses a 24-hour rolling window so it never runs dry early in the day
-    live_since_iso = (
-        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
-    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight); live feed window: {live_since_iso}")
+    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -898,22 +894,19 @@ def main():
     else:
         print("[INFO] VERBAI_TOKEN not set — using Claude CLI only")
 
-    # ── Fetch all 3 data sets ─────────────────────────────────────────────────
+    # ── Fetch data sets ───────────────────────────────────────────────────────
     if mcp_ctx:
         # Direct MCP: run sequentially (one MCP session, calls are fast)
         categories_raw = fetch_category_counts(since_iso, mcp_ctx)
         queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
-        events_raw     = fetch_live_events(live_since_iso, mcp_ctx)
     else:
-        # Claude fallback: run 3 subprocesses in parallel (max time = slowest one, not sum)
-        print("[INFO] Running 3 Claude queries in parallel (timeout=300s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        # Claude fallback: run subprocesses in parallel (max time = slowest one, not sum)
+        print("[INFO] Running 2 Claude queries in parallel (timeout=300s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             f_cats    = pool.submit(fetch_category_counts, since_iso, None)
             f_queries = pool.submit(fetch_search_queries,  since_iso, None)
-            f_events  = pool.submit(fetch_live_events,     live_since_iso, None)
             categories_raw = f_cats.result()
             queries_raw    = f_queries.result()
-            events_raw     = f_events.result()
 
     # ── Write outputs ─────────────────────────────────────────────────────────
     if not categories_raw and not queries_raw:
@@ -935,44 +928,6 @@ def main():
               f"{data['summary']['total_engagements']} engagements across "
               f"{data['summary']['categories_tracked']} categories.")
 
-    # Always write a fresh live_feed.json with the current timestamp so the
-    # dashboard never shows a stale "last updated" time.
-    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    if events_raw:
-        feed_events = events_raw[:50]
-        print(f"[OK] live_events: {len(feed_events)} events from VerbAI.")
-    else:
-        # VerbAI returned nothing — fall back to existing events or seed from categories
-        feed_events = []
-        if LIVE_FEED_FILE.exists():
-            try:
-                with open(LIVE_FEED_FILE) as f:
-                    cached = json.load(f).get("events", [])
-                # Strip any stale non-political events (sports, entertainment, etc.)
-                feed_events = _filter_to_political(cached)
-                if len(feed_events) < len(cached):
-                    print(f"[INFO] Filtered cached feed: {len(cached)} → {len(feed_events)} political events")
-            except (json.JSONDecodeError, AttributeError):
-                pass
-
-        if not feed_events and OUTPUT_FILE.exists():
-            try:
-                with open(OUTPUT_FILE) as f:
-                    cat_data = json.load(f)
-                feed_events = seed_events_from_categories(cat_data)
-                print(f"[INFO] Seeded live feed with {len(feed_events)} events from category items.")
-            except Exception as e:
-                print(f"[WARN] Fallback seeding failed: {e}")
-
-        if feed_events:
-            print(f"[WARN] VerbAI returned no live events — refreshing timestamp with {len(feed_events)} cached events.")
-        else:
-            print("[WARN] No live events available.")
-
-    feed = {"generated_at": now_iso, "events": feed_events}
-    with open(LIVE_FEED_FILE, "w") as f:
-        json.dump(feed, f, indent=2, ensure_ascii=False)
-    print(f"[OK] Wrote {LIVE_FEED_FILE.name} (generated_at={now_iso}).")
 
 
 if __name__ == "__main__":
