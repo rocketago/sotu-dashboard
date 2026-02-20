@@ -172,6 +172,70 @@ The fact that `AGENT_SYNC` is referenced in every JOIN in Bugs 1 and 2 — and m
 
 ---
 
+## Update — 2026-02-20 Run: `fetch_search_queries` also returned non-political content
+
+This is a new observation from the **2026-02-20 action run** (workflow: Auto-update political data).
+
+### What we requested
+
+`fetch_search_queries` prompt (simplified) — the full text is in `fetch_data.py:fetch_search_queries()`:
+
+```sql
+-- QUERY 2 (Reddit posts) — key WHERE clause:
+WHERE r.EVENT_TIME >= '2026-02-20T05:00:00Z'
+  AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29
+  AND (
+    LOWER(r.SUBREDDIT) IN (
+      'politics','politicaldiscussion','conservative','liberal',
+      'worldnews','news','neutralpolitics','geopolitics','economics',
+      'economy','environment','climate','healthcare','immigration',
+      'supremecourt','law','progressive','democrats','republican',
+      'political_humor','libertarian','uspolitics','americanpolitics'
+    )
+    OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%'
+    OR r.TITLE ILIKE '%immigration%' OR r.TITLE ILIKE '%ukraine%'
+    -- ... 12 more political title keyword conditions
+  )
+GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 20;
+```
+
+Expected: top Reddit posts from political subreddits (or with political titles), by 18–29 VerbAI users.
+
+### What was returned
+
+The items written to `political_data.json` (git commit `a0dd54f` preserves the file) included:
+
+| subreddit | count | query | Political? |
+|---|---|---|---|
+| `r/cats` | 23,789 | `came home and my cats feet are yellow?` | ❌ Not in whitelist, no keyword |
+| `r/memes` | 12,426 | `They were real Chads` | ❌ Not in whitelist, no keyword |
+| `r/pcmasterrace` | 12,184 | `discord right now:` | ❌ Not in whitelist, no keyword |
+| `r/losercity` | 4,377 | `Kitty's first date` | ❌ Not in whitelist, no keyword |
+| `r/losercity` | 3,744 | `Losercity Quake memes` | ❌ Not in whitelist, no keyword |
+| `r/losercity` | 3,619 | `Losercity gluten` | ❌ Not in whitelist, no keyword |
+| `r/nbacirclejerk` | 1,557 | `Barely into June and she's already acting out` | ❌ Sports, not politics |
+| `r/worldnews` | 6,923 | `Former South Korean President Yoon Sentenced to Life in Prison` | ✅ |
+| `r/interestingasfuck` | 9,455 | `Bro went to space just to never return to his "country"` | ⚠️ Borderline |
+
+9 of ~17 Reddit items were from subreddits not in the whitelist and had no matching political keywords.
+All were categorised as `"General Politics"` by the agent.
+
+### Additional finding — `last_mcp_pull: null` despite data being written
+
+The `fetch_category_counts` call (which asks for aggregate engagement by policy_category)
+returned **0 rows** in this run, while `fetch_search_queries` returned ~70 rows.
+Both calls hit the same Snowflake tables via the same MCP session in the same workflow run.
+This confirms the agent is not consistently executing both SQL statements against live data.
+
+### Conclusion
+
+The `LOWER(r.SUBREDDIT) IN (...)` whitelist in QUERY 2 is not being enforced by the agent.
+The agent appears to be selecting trending/viral Reddit posts regardless of subreddit,
+then assigning category labels independently (defaulting to "General Politics" for anything
+it cannot classify), rather than executing the SQL as written and returning only matching rows.
+
+---
+
 ## Reproduction
 
 All queries are issued via:
