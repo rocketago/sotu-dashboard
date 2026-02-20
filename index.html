@@ -212,153 +212,8 @@
       min-width: 0;
     }
 
-    /* ── LIVE FEED PANEL ── */
-    .live-feed-panel {
-      width: 300px;
-      flex-shrink: 0;
-      border-left: 1px solid var(--border);
-      background: var(--surface);
-      position: sticky;
-      top: 60px;
-      max-height: calc(100vh - 60px);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-
-    .feed-header {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      font-size: 13px;
-      flex-shrink: 0;
-    }
-
-    .feed-header .feed-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 2s ease-in-out infinite;
-      flex-shrink: 0;
-    }
-
-    .feed-count {
-      margin-left: auto;
-      font-size: 11px;
-      font-weight: 400;
-      color: var(--muted);
-    }
-
-    .feed-list {
-      flex: 1;
-      overflow-y: auto;
-      scrollbar-width: thin;
-      scrollbar-color: var(--border) transparent;
-    }
-
-    .feed-item {
-      padding: 10px 14px;
-      border-bottom: 1px solid var(--border);
-      transition: background 0.12s;
-      animation: feed-in 0.25s ease;
-    }
-
-    .feed-item:hover { background: var(--surface2); }
-
-    @keyframes feed-in {
-      from { opacity: 0; transform: translateY(-6px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
-    .feed-time {
-      font-size: 10px;
-      color: var(--muted);
-      margin-bottom: 3px;
-    }
-
-    .feed-query {
-      font-size: 12px;
-      color: var(--text);
-      margin-bottom: 5px;
-      line-height: 1.4;
-      word-break: break-word;
-    }
-
-    .feed-meta {
-      display: flex;
-      gap: 5px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .feed-category {
-      font-size: 10px;
-      color: var(--muted);
-      background: var(--surface2);
-      border-radius: 3px;
-      padding: 1px 5px;
-    }
-
-    .feed-empty {
-      padding: 32px 16px;
-      text-align: center;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .feed-item {
-      cursor: pointer;
-    }
-
-    .feed-item .demo-row {
-      display: none;
-      gap: 5px;
-      flex-wrap: wrap;
-      margin-top: 7px;
-      padding-top: 7px;
-      border-top: 1px solid var(--border);
-    }
-
-    .feed-item.expanded .demo-row {
-      display: flex;
-    }
-
-    .demo-chip {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 4px;
-      background: rgba(13, 162, 230, 0.10);
-      border: 1px solid rgba(13, 162, 230, 0.25);
-      color: var(--accent);
-    }
-
-    .demo-chip.gender { background: rgba(176,128,195,0.12); border-color: rgba(176,128,195,0.3); color: var(--accent2); }
-    .demo-chip.state  { background: rgba(4,179,93,0.10);    border-color: rgba(4,179,93,0.25);   color: var(--up); }
-
-    .feed-expand-hint {
-      font-size: 10px;
-      color: var(--muted);
-      margin-left: auto;
-      opacity: 0.6;
-      transition: opacity 0.15s;
-    }
-
-    .feed-item:hover .feed-expand-hint { opacity: 1; }
-
     @media (max-width: 900px) {
       .content-layout { flex-direction: column; }
-      .live-feed-panel {
-        width: 100%;
-        position: static;
-        max-height: 320px;
-        border-left: none;
-        border-top: 1px solid var(--border);
-      }
     }
 
     .section-header {
@@ -775,16 +630,6 @@
   </div>
 </main>
 
-<aside class="live-feed-panel">
-  <div class="feed-header">
-    <div class="feed-dot"></div>
-    Live Events
-    <span class="feed-count" id="feed-count"></span>
-  </div>
-  <div class="feed-list" id="feed-list">
-    <div class="feed-empty">Waiting for live data…</div>
-  </div>
-</aside>
 </div>
 
 <footer>
@@ -798,15 +643,11 @@
 <script>
   const DATA_URL          = './political_data.json';
   const STATUS_URL        = './status.json';
-  const FEED_URL          = './live_feed.json';
   const SEARCH_REFRESH_MS = 5  * 60 * 1000;
   const REDDIT_REFRESH_MS = 15 * 60 * 1000;
-  const FEED_REFRESH_MS   = 2  * 60 * 1000; // feed polls every 2 min
 
   let allExpanded    = false;
   let currentData    = null;
-  let lastFeedStamp  = null;
-  let liveFeedEvents = [];
 
   /* ── TREND DISPLAY ── */
   function trendIcon(t) {
@@ -998,27 +839,7 @@
   }
 
   function buildItemDetail(item, catLabel) {
-    const q = (item.query || '').toLowerCase().trim();
-    // Match live events whose query overlaps with this item's query.
-    // No category-level fallback: that caused unrelated same-category events
-    // (e.g. a gaming query) to bleed into a completely different item's detail.
-    const matches = liveFeedEvents.filter(ev =>
-      q.length >= 6 && (ev.query || '').toLowerCase().includes(q.slice(0, 20))
-    ).slice(0, 4);
-
-    if (matches.length === 0) {
-      return `<div class="detail-no-data">No individual events in live feed for this topic yet.</div>`;
-    }
-
-    return matches.map(ev => {
-      const action = ev.source === 'reddit'
-        ? `posted in r/${escHtml(ev.subreddit || 'reddit')} about`
-        : 'searched for';
-      const agePart    = ev.age    ? `${ev.age}-year-old ` : '';
-      const genderPart = ev.gender ? ev.gender.toLowerCase() + ' ' : 'user ';
-      const locPart    = ev.state  ? ` from ${escHtml(ev.state)}` : '';
-      return `<div class="detail-event">${agePart}${genderPart}${locPart} ${action} <em>"${escHtml(ev.query)}"</em></div>`;
-    }).join('');
+    return '';
   }
 
   /* ── SHOW STATUS ── */
@@ -1043,45 +864,6 @@
     return `${Math.floor(h / 24)}d ago`;
   }
 
-  /* ── LIVE FEED ── */
-  async function loadFeed() {
-    try {
-      const res = await fetch(FEED_URL + '?_=' + Date.now());
-      if (!res.ok) return;
-      const data = await res.json();
-      if (!data.events || data.events.length === 0) return;
-      if (data.generated_at === lastFeedStamp) return; // unchanged
-      lastFeedStamp  = data.generated_at;
-      liveFeedEvents = data.events;
-
-      const list = document.getElementById('feed-list');
-      const count = document.getElementById('feed-count');
-      if (!list) return;
-
-      if (count) count.textContent = `${data.events.length} events`;
-
-      list.innerHTML = data.events.map(ev => {
-        const hasDemо = ev.age || ev.gender || ev.state;
-        return `
-        <div class="feed-item" onclick="this.classList.toggle('expanded')">
-          <div class="feed-time">${timeAgo(ev.time)}</div>
-          <div class="feed-query">${escHtml(ev.query)}</div>
-          <div class="feed-meta">
-            ${sourceBadge(ev.source)}
-            ${ev.subreddit ? `<span class="subreddit-tag">r/${escHtml(ev.subreddit)}</span>` : ''}
-            ${ev.category  ? `<span class="feed-category">${escHtml(ev.category)}</span>` : ''}
-            ${hasDemо ? '<span class="feed-expand-hint">▾ demo</span>' : ''}
-          </div>
-          ${hasDemо ? `
-          <div class="demo-row">
-            ${ev.age    ? `<span class="demo-chip">Age ${ev.age}</span>` : ''}
-            ${ev.gender ? `<span class="demo-chip gender">${escHtml(ev.gender)}</span>` : ''}
-            ${ev.state  ? `<span class="demo-chip state">${escHtml(ev.state)}</span>` : ''}
-          </div>` : ''}
-        </div>`;
-      }).join('');
-    } catch (_) { /* live_feed.json not yet available — stay silent */ }
-  }
 
   /* ── LOAD AUTO-UPDATE STATUS ── */
   async function loadStatus() {
@@ -1133,11 +915,9 @@
   /* ── INIT + AUTO-REFRESH ── */
   loadStatus();
   loadData();
-  loadFeed();
   setInterval(loadStatus, SEARCH_REFRESH_MS);
   setInterval(loadData,   SEARCH_REFRESH_MS);
   setInterval(loadData,   REDDIT_REFRESH_MS);
-  setInterval(loadFeed,   FEED_REFRESH_MS);
 </script>
 </body>
 </html>
