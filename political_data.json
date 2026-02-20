@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-20T02:39:28Z",
-    "last_mcp_pull": "2026-02-20T02:39:28Z",
+    "generated_at": "2026-02-20T03:03:48Z",
+    "last_mcp_pull": "2026-02-20T03:03:48Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
@@ -10,12 +10,12 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 16,
-    "total_unique_users": 11,
+    "total_engagements": 10579,
+    "total_unique_users": 14,
     "top_category": "Foreign Policy",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 88,
+    "search_events_today": 0,
     "reddit_events_today": 2,
     "news_events_today": 0
   },
@@ -24,8 +24,8 @@
       "id": "foreign_policy",
       "label": "Foreign Policy",
       "icon": "🌍",
-      "engagement_count": 8,
-      "unique_users": 6,
+      "engagement_count": 6923,
+      "unique_users": 3,
       "trending_score": 100,
       "items": [
         {
@@ -35,14 +35,24 @@
           "source": "reddit",
           "subreddit": "worldnews",
           "url": null,
-          "trend": "up"
-        },
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 3641,
+      "unique_users": 1,
+      "trending_score": 53,
+      "items": [
         {
-          "topic": "white girl in china",
-          "query": "white girl in china",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
+          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation",
+          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
+          "count": 3641,
+          "source": "reddit",
+          "subreddit": "news",
           "url": null,
           "trend": "stable"
         }
@@ -52,9 +62,36 @@
       "id": "economic_policy",
       "label": "Economic Policy",
       "icon": "💰",
-      "engagement_count": 7,
-      "unique_users": 4,
-      "trending_score": 88,
+      "engagement_count": 8,
+      "unique_users": 5,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏛️",
+      "engagement_count": 4,
+      "unique_users": 2,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 1,
+      "unique_users": 1,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 1,
+      "unique_users": 1,
+      "trending_score": 0,
       "items": []
     },
     {
@@ -63,207 +100,8 @@
       "icon": "✊",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 12,
-      "items": []
-    },
-    {
-      "id": "presidential_politics",
-      "label": "Presidential Politics",
-      "icon": "🏛️",
-      "engagement_count": 0,
-      "unique_users": 0,
       "trending_score": 0,
       "items": []
-    },
-    {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 3641,
-          "source": "reddit",
-          "subreddit": "news",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "remember war of the son trailer",
-          "query": "remember war of the son trailer",
-          "count": 7,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son ep 1 eng sub",
-          "query": "remember war of the son ep 1 eng sub",
-          "count": 7,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son episode 1 tagalog version",
-          "query": "remember war of the son episode 1 tagalog version",
-          "count": 7,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son kdrama",
-          "query": "remember war of the son kdrama",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son full episodes",
-          "query": "remember war of the son full episodes",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the sun episode 1",
-          "query": "remember war of the sun episode 1",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son",
-          "query": "remember war of the son",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "google messages text selection update",
-          "query": "google messages text selection update",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the sun episode 1 eng sub",
-          "query": "remember war of the sun episode 1 eng sub",
-          "count": 4,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son kiss",
-          "query": "remember war of the son kiss",
-          "count": 4,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the sun ost",
-          "query": "remember war of the sun ost",
-          "count": 4,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the sun",
-          "query": "remember war of the sun",
-          "count": 4,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "ordinary alex warren",
-          "query": "ordinary alex warren",
-          "count": 4,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son music",
-          "query": "remember war of the son music",
-          "count": 3,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son soundtrack",
-          "query": "remember war of the son soundtrack",
-          "count": 3,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "warning multiple leviathan class lifeforms detected",
-          "query": "warning multiple leviathan class lifeforms detected",
-          "count": 3,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son song",
-          "query": "remember war of the son song",
-          "count": 3,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the sun soundtrack",
-          "query": "remember war of the sun soundtrack",
-          "count": 3,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "remember war of the son bus scene",
-          "query": "remember war of the son bus scene",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
     },
     {
       "id": "elections_voting",
@@ -284,27 +122,9 @@
       "items": []
     },
     {
-      "id": "legislative_politics",
-      "label": "Legislative Politics",
-      "icon": "📜",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
       "id": "healthcare_policy",
       "label": "Healthcare Policy",
       "icon": "🏥",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "education_policy",
-      "label": "Education Policy",
-      "icon": "🎓",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
