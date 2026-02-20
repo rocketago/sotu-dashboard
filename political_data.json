@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-20T02:23:08Z",
-    "last_mcp_pull": null,
+    "generated_at": "2026-02-20T02:39:28Z",
+    "last_mcp_pull": "2026-02-20T02:39:28Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
@@ -10,225 +10,61 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 128669,
-    "total_unique_users": 20,
-    "top_category": "General Politics",
+    "total_engagements": 16,
+    "total_unique_users": 11,
+    "top_category": "Foreign Policy",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 53,
-    "reddit_events_today": 17,
+    "search_events_today": 88,
+    "reddit_events_today": 2,
     "news_events_today": 0
   },
   "categories": [
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 108644,
-      "unique_users": 17,
-      "trending_score": 100,
-      "items": [
-        {
-          "topic": "Cats with yellow feet (home/pet concern)",
-          "query": "came home and my cats feet are yellow?",
-          "count": 23789,
-          "source": "reddit",
-          "subreddit": "cats",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Prince Andrew arrest",
-          "query": "Andrew Mountbatten Windsor has been arrested on suspicion of misconduct in public office",
-          "count": 19328,
-          "source": "reddit",
-          "subreddit": "pics",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Meme about real Chads",
-          "query": "They were real Chads",
-          "count": 12426,
-          "source": "reddit",
-          "subreddit": "memes",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Discord platform discussion",
-          "query": "discord right now:",
-          "count": 12184,
-          "source": "reddit",
-          "subreddit": "pcmasterrace",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Prince Andrew arrest/Epstein",
-          "query": "Former Prince Andrew has been arrested by UK police over his links to Jeffrey Epstein",
-          "count": 11537,
-          "source": "reddit",
-          "subreddit": "underreportednews",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Prince Andrew arrest on birthday",
-          "query": "Andrew Mountbatten-Windsor, formerly Prince Andrew, has been arrested on suspicion of misconduct in public office. He turns 66 today.",
-          "count": 5833,
-          "source": "reddit",
-          "subreddit": "fauxmoi",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Cat meme/joke",
-          "query": "Kitty's first date",
-          "count": 4377,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Gaming memes",
-          "query": "Losercity Quake memes",
-          "count": 3744,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Prince Andrew misconduct arrest",
-          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 3641,
-          "source": "reddit",
-          "subreddit": "news",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Gluten meme",
-          "query": "Losercity gluten",
-          "count": 3619,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Alien meme/art",
-          "query": "Commander. The Aliens are making me feel unwise (artist: @IIITHEMANIII)",
-          "count": 3267,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Life-changing content",
-          "query": "Life changing...[OC]",
-          "count": 1732,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "June behavioral comment",
-          "query": "Barely into June and she's already acting out",
-          "count": 1557,
-          "source": "reddit",
-          "subreddit": "nbacirclejerk",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Transformation meme",
-          "query": "Losercity transformation",
-          "count": 1557,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "City search",
-          "query": "City",
-          "count": 23,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "down"
-        },
-        {
-          "topic": "Song search",
-          "query": "no hands (feat. roscoe dash & wale)",
-          "count": 15,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "TV show search",
-          "query": "stranger things",
-          "count": 15,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "up"
-        }
-      ]
-    },
-    {
       "id": "foreign_policy",
       "label": "Foreign Policy",
       "icon": "🌍",
-      "engagement_count": 16378,
-      "unique_users": 2,
-      "trending_score": 15,
+      "engagement_count": 8,
+      "unique_users": 6,
+      "trending_score": 100,
       "items": [
         {
-          "topic": "Soviet cosmonaut/country dissolution",
-          "query": "Bro went to space just to never return to his \"country\" cause \"country\" was gone",
-          "count": 9455,
-          "source": "reddit",
-          "subreddit": "interestingasfuck",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "South Korea President coup trial",
+          "topic": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
           "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
           "count": 6923,
           "source": "reddit",
           "subreddit": "worldnews",
           "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "white girl in china",
+          "query": "white girl in china",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
           "trend": "stable"
         }
       ]
     },
     {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
-      "engagement_count": 3647,
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 7,
+      "unique_users": 4,
+      "trending_score": 88,
+      "items": []
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil Rights",
+      "icon": "✊",
+      "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 3,
-      "items": [
-        {
-          "topic": "Nuclear energy comic/discussion",
-          "query": "Everybody Hates Nuclear-Chan",
-          "count": 3647,
-          "source": "reddit",
-          "subreddit": "comics",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "trending_score": 12,
+      "items": []
     },
     {
       "id": "presidential_politics",
@@ -238,6 +74,196 @@
       "unique_users": 0,
       "trending_score": 0,
       "items": []
+    },
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": [
+        {
+          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
+          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
+          "count": 3641,
+          "source": "reddit",
+          "subreddit": "news",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "remember war of the son trailer",
+          "query": "remember war of the son trailer",
+          "count": 7,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son ep 1 eng sub",
+          "query": "remember war of the son ep 1 eng sub",
+          "count": 7,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son episode 1 tagalog version",
+          "query": "remember war of the son episode 1 tagalog version",
+          "count": 7,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son kdrama",
+          "query": "remember war of the son kdrama",
+          "count": 6,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son full episodes",
+          "query": "remember war of the son full episodes",
+          "count": 6,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the sun episode 1",
+          "query": "remember war of the sun episode 1",
+          "count": 6,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son",
+          "query": "remember war of the son",
+          "count": 5,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "google messages text selection update",
+          "query": "google messages text selection update",
+          "count": 5,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the sun episode 1 eng sub",
+          "query": "remember war of the sun episode 1 eng sub",
+          "count": 4,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son kiss",
+          "query": "remember war of the son kiss",
+          "count": 4,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the sun ost",
+          "query": "remember war of the sun ost",
+          "count": 4,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the sun",
+          "query": "remember war of the sun",
+          "count": 4,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "ordinary alex warren",
+          "query": "ordinary alex warren",
+          "count": 4,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son music",
+          "query": "remember war of the son music",
+          "count": 3,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son soundtrack",
+          "query": "remember war of the son soundtrack",
+          "count": 3,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "warning multiple leviathan class lifeforms detected",
+          "query": "warning multiple leviathan class lifeforms detected",
+          "count": 3,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son song",
+          "query": "remember war of the son song",
+          "count": 3,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the sun soundtrack",
+          "query": "remember war of the sun soundtrack",
+          "count": 3,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "remember war of the son bus scene",
+          "query": "remember war of the son bus scene",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        }
+      ]
     },
     {
       "id": "elections_voting",
@@ -267,15 +293,6 @@
       "items": []
     },
     {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
       "id": "healthcare_policy",
       "label": "Healthcare Policy",
       "icon": "🏥",
@@ -294,9 +311,9 @@
       "items": []
     },
     {
-      "id": "civil_rights",
-      "label": "Civil Rights",
-      "icon": "✊",
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
