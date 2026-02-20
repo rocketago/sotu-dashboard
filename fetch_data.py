@@ -531,6 +531,29 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     return _parse_json_array(text) if text else []
 
 
+# Lowercase → canonical label lookup built once at import time
+_CANONICAL_CATEGORY: dict[str, str] = {k.lower(): k for k in CATEGORY_META}
+
+
+def _filter_to_political(events: list[dict]) -> list[dict]:
+    """
+    Drop events whose category is not one of the 11 canonical political labels.
+    Also normalises the category field to the exact canonical string so the
+    frontend's category matching never silently fails (e.g. 'foreign policy'
+    becomes 'Foreign Policy').
+    """
+    result = []
+    for ev in events:
+        raw = (ev.get("category") or "").strip()
+        canonical = _CANONICAL_CATEGORY.get(raw.lower())
+        if canonical:
+            ev = dict(ev)          # don't mutate the original
+            ev["category"] = canonical
+            result.append(ev)
+        # else: silently drop 'sports', 'entertainment', etc.
+    return result
+
+
 def _cap_events_per_user(events: list[dict], max_per_user: int = 3) -> list[dict]:
     """Keep at most max_per_user events per unique (age, gender, state) fingerprint."""
     counts: dict[str, int] = {}
@@ -608,13 +631,16 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
         if text is not None:
             result = _parse_json_array(text)
-            print(f"[MCP-DIRECT] live_events: {len(result)} rows")
-            return _cap_events_per_user(result)
+            political = _filter_to_political(result)
+            print(f"[MCP-DIRECT] live_events: {len(result)} rows → {len(political)} political")
+            return _cap_events_per_user(political)
         print("[MCP-DIRECT] live_events protocol failure — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
     raw = _parse_json_array(text) if text else []
-    return _cap_events_per_user(raw)
+    political = _filter_to_political(raw)
+    print(f"[INFO] live_events: {len(raw)} rows → {len(political)} political after filter")
+    return _cap_events_per_user(political)
 
 
 def _dedup_items(items: list[dict]) -> list[dict]:
@@ -921,7 +947,11 @@ def main():
         if LIVE_FEED_FILE.exists():
             try:
                 with open(LIVE_FEED_FILE) as f:
-                    feed_events = json.load(f).get("events", [])
+                    cached = json.load(f).get("events", [])
+                # Strip any stale non-political events (sports, entertainment, etc.)
+                feed_events = _filter_to_political(cached)
+                if len(feed_events) < len(cached):
+                    print(f"[INFO] Filtered cached feed: {len(cached)} → {len(feed_events)} political events")
             except (json.JSONDecodeError, AttributeError):
                 pass
 
