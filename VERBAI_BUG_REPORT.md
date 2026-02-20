@@ -121,6 +121,41 @@ Sample items returned under "Foreign Policy":
 
 ---
 
+## Bug 3 — AGENT_SYNC user count query does not return
+
+### Context
+
+The panel is reported to contain approximately 3,000 users, the majority of whom are aged 18–29. If accurate, this age cohort likely represents ~2,000–2,500 users. That figure makes the results in Bug 1 and Bug 2 even harder to explain: a single user in the live feed (Bug 1) and only 20 unique users across all political categories (Bug 2) would represent less than 1% of expected panel activity.
+
+### Validation attempt
+
+To confirm the true 18–29 user count and rule out a small panel as the explanation, we issued the following query directly:
+
+```sql
+SELECT
+  COUNT(*) AS total_users,
+  SUM(CASE WHEN (YEAR(CURRENT_DATE) - YEAR_OF_BIRTH) BETWEEN 18 AND 29 THEN 1 ELSE 0 END) AS users_18_29,
+  MIN(YEAR(CURRENT_DATE) - YEAR_OF_BIRTH) AS min_age,
+  MAX(YEAR(CURRENT_DATE) - YEAR_OF_BIRTH) AS max_age
+FROM AGENT_SYNC;
+```
+
+### Result
+
+**The query did not return after 30+ minutes and was killed.** No response, no error, no partial output.
+
+### What this indicates
+
+This is an additional failure mode separate from Bugs 1 and 2. Either:
+
+- `AGENT_SYNC` does not exist under that name, causing the query to hang rather than fail fast
+- The table exists but querying it via the MCP integration is broken in a way that produces no response rather than an error
+- There is a permissions or connectivity issue specific to `AGENT_SYNC` that does not affect `SEARCH_EVENTS_FLAT_DYM` and `REDDIT_EVENTS_FLAT_DYM` (which do return results, albeit incorrect ones)
+
+The fact that `AGENT_SYNC` is referenced in every JOIN in Bugs 1 and 2 — and may not exist or be accessible — could also explain why those queries are returning data without the age filter applied: if the JOIN silently fails or is dropped, the query would return unfiltered results from the event tables.
+
+---
+
 ## Questions for VerbAI
 
 1. **Schema confirmation:** Can you confirm the correct table and column names for search events, Reddit events, and the user demographic table? Specifically: are `SEARCH_EVENTS_FLAT_DYM`, `REDDIT_EVENTS_FLAT_DYM`, and `AGENT_SYNC` the correct names, and are the column names `QUERY`, `TITLE`, `USER_ID`, `EVENT_TIME`, `YEAR_OF_BIRTH`, `FULL_ADDRESS`, `SUBREDDIT` correct?
@@ -129,9 +164,11 @@ Sample items returned under "Foreign Policy":
 
 3. **`engagement_count` definition:** What does the `count`/`engagement_count` field represent in the context of VerbAI panel data? Is it the number of VerbAI users who performed the action, the total event count, or a score sourced from the upstream platform (e.g. Reddit upvotes)?
 
-4. **Age filter:** Is `YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH` the correct expression to compute age from `AGENT_SYNC`? Or is there a pre-computed age field?
+4. **`AGENT_SYNC` accessibility:** Does the `AGENT_SYNC` table exist under that name and is it accessible via this integration? A direct `SELECT COUNT(*) FROM AGENT_SYNC` query hung for 30+ minutes without returning. If the table name is wrong or the table is inaccessible, this would explain why the age JOIN in Bugs 1 and 2 is silently not being applied.
 
-5. **Panel coverage:** Given ~3,000 panel users (majority 18–29), is it expected that a query for political searches today would return results from only a single user? Or does this indicate a query execution issue?
+5. **Age filter:** If `AGENT_SYNC` is the correct table, is `YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH` the correct expression for age? Or is there a pre-computed age column?
+
+6. **Panel coverage:** The panel is reported to be ~3,000 users, majority aged 18–29 (~2,000–2,500 users in scope). Given that, is it expected that a query for political searches today would return results from only a single user? Or does this indicate a query execution issue?
 
 ---
 
