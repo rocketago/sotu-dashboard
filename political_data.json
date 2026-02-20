@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-20T03:03:48Z",
-    "last_mcp_pull": "2026-02-20T03:03:48Z",
+    "generated_at": "2026-02-20T03:20:48Z",
+    "last_mcp_pull": "2026-02-20T03:20:48Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
@@ -10,30 +10,39 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 10579,
-    "total_unique_users": 14,
-    "top_category": "Foreign Policy",
+    "total_engagements": 6,
+    "total_unique_users": 6,
+    "top_category": "Economic Policy",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 0,
+    "search_events_today": 4,
     "reddit_events_today": 2,
     "news_events_today": 0
   },
   "categories": [
     {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 6923,
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 4,
       "unique_users": 3,
       "trending_score": 100,
       "items": [
         {
-          "topic": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-          "count": 6923,
-          "source": "reddit",
-          "subreddit": "worldnews",
+          "topic": "do you have to provide id when filing ca taxes part time resident",
+          "query": "do you have to provide id when filing ca taxes part time resident",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "irs tax refunds",
+          "query": "irs tax refunds",
+          "count": 2,
+          "source": "search",
+          "subreddit": null,
           "url": null,
           "trend": "stable"
         }
@@ -43,14 +52,14 @@
       "id": "general_politics",
       "label": "General Politics",
       "icon": "🗳️",
-      "engagement_count": 3641,
+      "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 53,
+      "trending_score": 25,
       "items": [
         {
-          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation",
+          "topic": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
           "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 3641,
+          "count": 1,
           "source": "reddit",
           "subreddit": "news",
           "url": null,
@@ -59,47 +68,30 @@
       ]
     },
     {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 8,
-      "unique_users": 5,
-      "trending_score": 0,
-      "items": []
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 1,
+      "unique_users": 2,
+      "trending_score": 25,
+      "items": [
+        {
+          "topic": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+          "count": 1,
+          "source": "reddit",
+          "subreddit": "worldnews",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
     },
     {
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 4,
-      "unique_users": 2,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "legislative_politics",
-      "label": "Legislative Politics",
-      "icon": "📜",
-      "engagement_count": 1,
-      "unique_users": 1,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "education_policy",
-      "label": "Education Policy",
-      "icon": "🎓",
-      "engagement_count": 1,
-      "unique_users": 1,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "civil_rights",
-      "label": "Civil Rights",
-      "icon": "✊",
-      "engagement_count": 1,
-      "unique_users": 1,
+      "engagement_count": 0,
+      "unique_users": 0,
       "trending_score": 0,
       "items": []
     },
@@ -122,6 +114,15 @@
       "items": []
     },
     {
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
       "id": "healthcare_policy",
       "label": "Healthcare Policy",
       "icon": "🏥",
@@ -131,9 +132,27 @@
       "items": []
     },
     {
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
       "id": "environmental_policy",
       "label": "Environmental Policy",
       "icon": "🌿",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil Rights",
+      "icon": "✊",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
