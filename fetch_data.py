@@ -539,47 +539,56 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
     """
     prompt = (
         f"Use the Snowflake database tool to find the 50 most recent political events by 18-29 year-olds since {live_since_iso}. "
-        f"Run these two SQL queries, merge results, and return the 50 most recent overall:\n\n"
-        f"QUERY 1 — recent political searches:\n"
-        f"SELECT s.EVENT_TIME AS time, s.QUERY AS query, 'search' AS source, "
-        f"NULL AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
-        f"FROM SEARCH_EVENTS_FLAT_DYM s "
-        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
-        f"WHERE s.EVENT_TIME >= '{live_since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
-        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
-        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
-        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
-        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
-        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
-        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
-        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
-        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
-        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
-        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
-        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%elon musk%' "
-        f"OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' OR s.QUERY ILIKE '%war%' "
-        f"OR s.QUERY ILIKE '%obamacare%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%') "
-        f"ORDER BY s.EVENT_TIME DESC LIMIT 30;\n\n"
-        f"QUERY 2 — recent political Reddit posts:\n"
-        f"SELECT r.EVENT_TIME AS time, r.TITLE AS query, 'reddit' AS source, "
-        f"r.SUBREDDIT AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
-        f"FROM REDDIT_EVENTS_FLAT_DYM r "
-        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
-        f"WHERE r.EVENT_TIME >= '{live_since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
-        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
-        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
-        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
-        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
-        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
-        f"ORDER BY r.EVENT_TIME DESC LIMIT 30;\n\n"
+        f"Limit each individual user to at most 3 events so no single person dominates the feed. "
+        f"Run these two SQL queries using CTEs, merge results, and return the 50 most recent overall:\n\n"
+        f"QUERY 1 — recent political searches (max 3 per user):\n"
+        f"WITH ranked_searches AS ("
+        f"  SELECT s.EVENT_TIME, s.QUERY, s.USER_ID, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS, "
+        f"         ROW_NUMBER() OVER (PARTITION BY s.USER_ID ORDER BY s.EVENT_TIME DESC) AS rn "
+        f"  FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"  JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"  WHERE s.EVENT_TIME >= '{live_since_iso}' "
+        f"  AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"  AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
+        f"  OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
+        f"  OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
+        f"  OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
+        f"  OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
+        f"  OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
+        f"  OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
+        f"  OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
+        f"  OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
+        f"  OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
+        f"  OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
+        f"  OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%elon musk%' "
+        f"  OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' OR s.QUERY ILIKE '%war%' "
+        f"  OR s.QUERY ILIKE '%obamacare%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%')"
+        f") "
+        f"SELECT EVENT_TIME AS time, QUERY AS query, 'search' AS source, NULL AS subreddit, "
+        f"YEAR_OF_BIRTH, GENDER, FULL_ADDRESS "
+        f"FROM ranked_searches WHERE rn <= 3 ORDER BY EVENT_TIME DESC LIMIT 25;\n\n"
+        f"QUERY 2 — recent political Reddit posts (max 3 per user):\n"
+        f"WITH ranked_reddit AS ("
+        f"  SELECT r.EVENT_TIME, r.TITLE, r.SUBREDDIT, r.USER_ID, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS, "
+        f"         ROW_NUMBER() OVER (PARTITION BY r.USER_ID ORDER BY r.EVENT_TIME DESC) AS rn "
+        f"  FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"  JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"  WHERE r.EVENT_TIME >= '{live_since_iso}' "
+        f"  AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"  AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        f"  'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"  'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        f"  'republican','political_humor','libertarian','uspolitics','americanpolitics') "
+        f"  OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
+        f"  OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
+        f"  OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
+        f"  OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%')"
+        f") "
+        f"SELECT EVENT_TIME AS time, TITLE AS query, 'reddit' AS source, SUBREDDIT AS subreddit, "
+        f"YEAR_OF_BIRTH, GENDER, FULL_ADDRESS "
+        f"FROM ranked_reddit WHERE rn <= 3 ORDER BY EVENT_TIME DESC LIMIT 25;\n\n"
         f"For the returned EVENT_TIME values format them as ISO 8601 (e.g. 2026-02-20T14:32:00Z). "
-        f"For age compute YEAR(CURRENT_DATE) - YEAR_OF_BIRTH. "
+        f"For age compute YEAR(CURRENT_DATE) - YEAR_OF_BIRTH as an integer. "
         f"For state extract the 2-letter US state abbreviation from FULL_ADDRESS. "
         f"For each event assign the ONE most relevant category from this EXACT list (use these labels verbatim): "
         f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
@@ -603,10 +612,51 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
     return _parse_json_array(text) if text else []
 
 
+def _dedup_items(items: list[dict]) -> list[dict]:
+    """
+    Remove near-duplicate items within a category.
+    Rules:
+    - Max 2 items per subreddit (keeps the two highest-scored posts per sub).
+    - Search queries: deduplicate by lowercased 35-char prefix so near-identical
+      queries ("trump tariffs 2026" vs "trump tariffs today") collapse into one
+      with the higher count kept.
+    """
+    # 1. Deduplicate search queries by prefix
+    seen_prefix: dict[str, int] = {}   # prefix -> index in result
+    result: list[dict] = []
+    for item in sorted(items, key=lambda x: -x.get("count", 0)):
+        if item.get("source") == "search":
+            prefix = " ".join(item.get("query", "").lower().split())[:35]
+            if prefix in seen_prefix:
+                # Accumulate count into the existing item
+                result[seen_prefix[prefix]]["count"] += item.get("count", 0)
+                continue
+            seen_prefix[prefix] = len(result)
+        result.append(item)
+
+    # 2. Cap at 2 items per subreddit (for Reddit items)
+    sub_count: dict[str, int] = {}
+    filtered: list[dict] = []
+    for item in sorted(result, key=lambda x: -x.get("count", 0)):
+        sub = item.get("subreddit")
+        if sub:
+            if sub_count.get(sub, 0) >= 2:
+                continue
+            sub_count[sub] = sub_count.get(sub, 0) + 1
+        filtered.append(item)
+    return filtered
+
+
 def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
     """
     Merge VerbAI query results into the dashboard JSON structure.
     Falls back to existing file data if API data is missing.
+
+    Engagement counts are ALWAYS derived from the items returned by
+    fetch_search_queries (not from the separate fetch_category_counts call).
+    The two calls categorise independently and create count/item mismatches
+    when used together, so category_counts is only consulted when no items
+    at all were returned.
     """
     # Load existing data as fallback
     existing = {}
@@ -614,26 +664,7 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
         with open(OUTPUT_FILE) as f:
             existing = json.load(f)
 
-    # Build category map from API or fall back
-    cat_map: dict[str, dict] = {}
-    for cat in (categories_raw or []):
-        raw_label = cat.get("policy_category") or cat.get("label", "")
-        label = _normalize_category(raw_label)
-        if label in CATEGORY_META:
-            cat_map[label] = {
-                "engagement_count": int(cat.get("engagement_count", 0)),
-                "unique_users":     int(cat.get("unique_users", 0)),
-            }
-
-    # If VerbAI returned nothing, keep existing counts
-    if not cat_map and existing.get("categories"):
-        for c in existing["categories"]:
-            cat_map[c["label"]] = {
-                "engagement_count": c["engagement_count"],
-                "unique_users":     c["unique_users"],
-            }
-
-    # Build query map per category from API or fall back
+    # ── Step 1: Place each item into its category ──────────────────────────
     query_map: dict[str, list] = {k: [] for k in CATEGORY_META}
     for q in (queries_raw or []):
         raw_label = q.get("category", "General Politics")
@@ -654,22 +685,47 @@ def merge_into_structure(categories_raw: list, queries_raw: list) -> dict:
             "trend":     q.get("trend", "stable"),
         })
 
-    # Fallback: use existing items if no new data
+    # ── Step 2: Fallback to existing items when API returned nothing ───────
     if all(len(v) == 0 for v in query_map.values()) and existing.get("categories"):
         for c in existing["categories"]:
             if c["label"] in query_map:
                 query_map[c["label"]] = c.get("items", [])
 
-    # When category_counts API returned nothing, derive engagement totals from
-    # the item counts so the dashboard bars and rankings reflect real activity.
-    if not categories_raw:
-        for label, items in query_map.items():
-            if items and cat_map.get(label, {}).get("engagement_count", 0) == 0:
-                derived = sum(q.get("count", 1) for q in items)
-                cat_map[label] = {
-                    "engagement_count": derived,
-                    "unique_users":     cat_map.get(label, {}).get("unique_users") or len(items),
-                }
+    # ── Step 3: Deduplicate within each category ───────────────────────────
+    for label in list(query_map.keys()):
+        query_map[label] = _dedup_items(query_map[label])
+
+    # ── Step 4: Derive engagement counts FROM items (always) ───────────────
+    # Using the separate fetch_category_counts numbers causes count/item
+    # mismatches because the two API calls categorise independently.
+    # We fall back to category_counts only for categories that have NO items.
+    cat_map: dict[str, dict] = {}
+
+    # Seed from fetch_category_counts (used only for empty categories below)
+    for cat in (categories_raw or []):
+        raw_label = cat.get("policy_category") or cat.get("label", "")
+        label = _normalize_category(raw_label)
+        if label in CATEGORY_META:
+            cat_map[label] = {
+                "engagement_count": int(cat.get("engagement_count", 0)),
+                "unique_users":     int(cat.get("unique_users", 0)),
+            }
+
+    # Override with item-derived counts for any category that has items
+    for label, items in query_map.items():
+        if items:
+            cat_map[label] = {
+                "engagement_count": sum(q.get("count", 1) for q in items),
+                "unique_users":     cat_map.get(label, {}).get("unique_users") or len(items),
+            }
+
+    # If still nothing (both calls empty), keep existing counts
+    if not any(cat_map.values()) and existing.get("categories"):
+        for c in existing["categories"]:
+            cat_map[c["label"]] = {
+                "engagement_count": c["engagement_count"],
+                "unique_users":     c["unique_users"],
+            }
 
     # Assemble final category list
     categories = []
@@ -794,21 +850,6 @@ def main():
         datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
     ).strftime("%Y-%m-%dT%H:%M:%SZ")
     print(f"[INFO] Fetching data since {since_iso} (Eastern midnight); live feed window: {live_since_iso}")
-
-    # ── Overnight gate: skip heavy fetch 11 PM – 6 AM ET ────────────────────
-    now_utc = datetime.datetime.now(datetime.timezone.utc)
-    et_hours = 4 if 4 <= now_utc.month <= 10 else 5
-    et_tz = datetime.timezone(datetime.timedelta(hours=-et_hours))
-    hour_et = now_utc.astimezone(et_tz).hour
-    if 23 <= hour_et or hour_et < 6:
-        print(f"[INFO] Overnight gate active (ET hour={hour_et}). Updating generated_at only.")
-        if OUTPUT_FILE.exists():
-            with open(OUTPUT_FILE) as f:
-                existing = json.load(f)
-            existing["meta"]["generated_at"] = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
-            with open(OUTPUT_FILE, "w") as f:
-                json.dump(existing, f, indent=2, ensure_ascii=False)
-        return
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
