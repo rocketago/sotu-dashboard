@@ -1,25 +1,235 @@
 {
   "meta": {
-    "generated_at": "2026-02-19T20:49:38Z",
+    "generated_at": "2026-02-20T02:23:08Z",
     "last_mcp_pull": null,
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, News, Reddit events)",
     "window": "today",
-    "window_label": "Today (Feb 19) · Updated live",
+    "window_label": "Today (Feb 20) · Updated live",
     "today_start": "2026-02-19T05:00:00Z",
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 0,
-    "total_unique_users": 0,
-    "top_category": "Presidential Politics",
+    "total_engagements": 128669,
+    "total_unique_users": 20,
+    "top_category": "General Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 127,
-    "reddit_events_today": 20,
+    "search_events_today": 53,
+    "reddit_events_today": 17,
     "news_events_today": 0
   },
   "categories": [
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 108644,
+      "unique_users": 17,
+      "trending_score": 100,
+      "items": [
+        {
+          "topic": "Cats with yellow feet (home/pet concern)",
+          "query": "came home and my cats feet are yellow?",
+          "count": 23789,
+          "source": "reddit",
+          "subreddit": "cats",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Prince Andrew arrest",
+          "query": "Andrew Mountbatten Windsor has been arrested on suspicion of misconduct in public office",
+          "count": 19328,
+          "source": "reddit",
+          "subreddit": "pics",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Meme about real Chads",
+          "query": "They were real Chads",
+          "count": 12426,
+          "source": "reddit",
+          "subreddit": "memes",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Discord platform discussion",
+          "query": "discord right now:",
+          "count": 12184,
+          "source": "reddit",
+          "subreddit": "pcmasterrace",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Prince Andrew arrest/Epstein",
+          "query": "Former Prince Andrew has been arrested by UK police over his links to Jeffrey Epstein",
+          "count": 11537,
+          "source": "reddit",
+          "subreddit": "underreportednews",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Prince Andrew arrest on birthday",
+          "query": "Andrew Mountbatten-Windsor, formerly Prince Andrew, has been arrested on suspicion of misconduct in public office. He turns 66 today.",
+          "count": 5833,
+          "source": "reddit",
+          "subreddit": "fauxmoi",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Cat meme/joke",
+          "query": "Kitty's first date",
+          "count": 4377,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Gaming memes",
+          "query": "Losercity Quake memes",
+          "count": 3744,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Prince Andrew misconduct arrest",
+          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
+          "count": 3641,
+          "source": "reddit",
+          "subreddit": "news",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Gluten meme",
+          "query": "Losercity gluten",
+          "count": 3619,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Alien meme/art",
+          "query": "Commander. The Aliens are making me feel unwise (artist: @IIITHEMANIII)",
+          "count": 3267,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Life-changing content",
+          "query": "Life changing...[OC]",
+          "count": 1732,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "June behavioral comment",
+          "query": "Barely into June and she's already acting out",
+          "count": 1557,
+          "source": "reddit",
+          "subreddit": "nbacirclejerk",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Transformation meme",
+          "query": "Losercity transformation",
+          "count": 1557,
+          "source": "reddit",
+          "subreddit": "losercity",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "City search",
+          "query": "City",
+          "count": 23,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "down"
+        },
+        {
+          "topic": "Song search",
+          "query": "no hands (feat. roscoe dash & wale)",
+          "count": 15,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "TV show search",
+          "query": "stranger things",
+          "count": 15,
+          "source": "search",
+          "subreddit": null,
+          "url": null,
+          "trend": "up"
+        }
+      ]
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 16378,
+      "unique_users": 2,
+      "trending_score": 15,
+      "items": [
+        {
+          "topic": "Soviet cosmonaut/country dissolution",
+          "query": "Bro went to space just to never return to his \"country\" cause \"country\" was gone",
+          "count": 9455,
+          "source": "reddit",
+          "subreddit": "interestingasfuck",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "South Korea President coup trial",
+          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+          "count": 6923,
+          "source": "reddit",
+          "subreddit": "worldnews",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
+      "engagement_count": 3647,
+      "unique_users": 1,
+      "trending_score": 3,
+      "items": [
+        {
+          "topic": "Nuclear energy comic/discussion",
+          "query": "Everybody Hates Nuclear-Chan",
+          "count": 3647,
+          "source": "reddit",
+          "subreddit": "comics",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
     {
       "id": "presidential_politics",
       "label": "Presidential Politics",
@@ -30,349 +240,13 @@
       "items": []
     },
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "They were real Chads",
-          "query": "They were real Chads",
-          "count": 12426,
-          "source": "reddit",
-          "subreddit": "memes",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "discord right now:",
-          "query": "discord right now:",
-          "count": 12184,
-          "source": "reddit",
-          "subreddit": "pcmasterrace",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Kittyâs first date",
-          "query": "Kittyâs first date",
-          "count": 4377,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Kitty's first date",
-          "query": "Kitty's first date",
-          "count": 4377,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Losercity Quake memes",
-          "query": "Losercity Quake memes",
-          "count": 3744,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Losercity gluten",
-          "query": "Losercity gluten",
-          "count": 3619,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Commander Aliens unwise",
-          "query": "Commander. The Aliens are making me feel unwise (artist: @IIITHEMANIII)",
-          "count": 3267,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Life changing",
-          "query": "Life changing...[OC]",
-          "count": 1732,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Barely into June acting out",
-          "query": "Barely into June and she's already acting out",
-          "count": 1557,
-          "source": "reddit",
-          "subreddit": "nbacirclejerk",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Losercity transformation",
-          "query": "Losercity transformation",
-          "count": 1557,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Chens chibi art modified",
-          "query": "Chens chibi art has been modified for the second",
-          "count": 1400,
-          "source": "reddit",
-          "subreddit": "Endfield",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Losercity Concert",
-          "query": "Losercity Concert (OC)",
-          "count": 1214,
-          "source": "reddit",
-          "subreddit": "losercity",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "City",
-          "query": "City",
-          "count": 23,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "kellydud",
-          "query": "kellydud",
-          "count": 9,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "asmr unintelligavle whisoering",
-          "query": "asmr unintelligavle whisoering",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "asmr scratching",
-          "query": "asmr scratching",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "asmr",
-          "query": "asmr",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "asmr wood scratching",
-          "query": "asmr wood scratching",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "opening a bottle sound",
-          "query": "opening a bottle sound",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "trivial meaning",
-          "query": "trivial meaning",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "if i can prove that i never touched my ball",
-          "query": "if i can prove that i never touched my ball",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "boris ruins",
-          "query": "boris ruins",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "twomad overwatch",
-          "query": "twomad overwatch",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "asmr cat pirr",
-          "query": "asmr cat pirr",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "chazington",
-          "query": "chazington",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "aura cleansing frequency",
-          "query": "aura cleansing frequency",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "master of goon soon",
-          "query": "master of goon soon",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "two dots 6010",
-          "query": "two dots 6010",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "trafalgar",
-          "query": "trafalgar",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "hasanabi",
-          "query": "hasanabi",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
       "id": "elections_voting",
       "label": "Elections & Voting",
       "icon": "🗳️",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
-      "items": [
-        {
-          "topic": "battle for wisconsin",
-          "query": "battle for wisconsin",
-          "count": 5,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Astronaut country disappeared",
-          "query": "Bro went to space just to never return to his country cause country was gone",
-          "count": 9455,
-          "source": "reddit",
-          "subreddit": "interestingasfuck",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Astronaut country disappeared",
-          "query": "Bro went to space just to never return to his \"country\" cause \"country\" was gone",
-          "count": 9455,
-          "source": "reddit",
-          "subreddit": "interestingasfuck",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "South Korea President Yoon coup",
-          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-          "count": 6923,
-          "source": "reddit",
-          "subreddit": "worldnews",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "kim jong un is a master of goon",
-          "query": "kim jong un is a master of goon",
-          "count": 6,
-          "source": "search",
-          "subreddit": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "items": []
     },
     {
       "id": "immigration_policy",
@@ -420,69 +294,13 @@
       "items": []
     },
     {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Everybody Hates Nuclear-Chan",
-          "query": "Everybody Hates Nuclear-Chan",
-          "count": 3647,
-          "source": "reddit",
-          "subreddit": "comics",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
       "id": "civil_rights",
       "label": "Civil Rights",
       "icon": "✊",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
-      "items": [
-        {
-          "topic": "Prince Andrew arrest",
-          "query": "Andrew Mountbatten Windsor has been arrested on suspicion of misconduct in public office",
-          "count": 19328,
-          "source": "reddit",
-          "subreddit": "pics",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Prince Andrew arrest Epstein",
-          "query": "Former Prince Andrew has been arrested by UK police over his links to Jeffrey Epstein",
-          "count": 11537,
-          "source": "reddit",
-          "subreddit": "underreportednews",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Prince Andrew arrest birthday",
-          "query": "Andrew Mountbatten-Windsor, formerly Prince Andrew, has been arrested on suspicion of misconduct in public office. He turns 66 today.",
-          "count": 5833,
-          "source": "reddit",
-          "subreddit": "fauxmoi",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Prince Andrew arrest misconduct",
-          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 3641,
-          "source": "reddit",
-          "subreddit": "news",
-          "url": null,
-          "trend": "up"
-        }
-      ]
+      "items": []
     }
   ]
 }
