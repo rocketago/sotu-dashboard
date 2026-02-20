@@ -999,14 +999,12 @@
 
   function buildItemDetail(item, catLabel) {
     const q = (item.query || '').toLowerCase().trim();
-    // Try to match by query prefix first, fall back to category
-    let matches = liveFeedEvents.filter(ev =>
-      q.length >= 8 && (ev.query || '').toLowerCase().includes(q.slice(0, 20))
-    );
-    if (matches.length < 2) {
-      matches = liveFeedEvents.filter(ev => ev.category === catLabel);
-    }
-    matches = matches.slice(0, 4);
+    // Match live events whose query overlaps with this item's query.
+    // No category-level fallback: that caused unrelated same-category events
+    // (e.g. a gaming query) to bleed into a completely different item's detail.
+    const matches = liveFeedEvents.filter(ev =>
+      q.length >= 6 && (ev.query || '').toLowerCase().includes(q.slice(0, 20))
+    ).slice(0, 4);
 
     if (matches.length === 0) {
       return `<div class="detail-no-data">No individual events in live feed for this topic yet.</div>`;
