@@ -1,73 +1,103 @@
 {
-  "generated_at": "2026-02-21T03:31:17Z",
+  "generated_at": "2026-02-21T03:46:34Z",
   "events": [
     {
-      "query": "israel",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "time": "2026-02-21T03:31:17Z",
-      "age": 24,
-      "gender": "Female",
-      "state": "NY"
-    },
-    {
-      "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Immigration Policy",
-      "time": "2026-02-21T03:23:44Z",
-      "age": 27,
-      "gender": "Male",
-      "state": "RI"
-    },
-    {
-      "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
-      "source": "search",
-      "subreddit": null,
-      "category": "Education Policy",
-      "time": "2026-02-21T03:16:11Z",
-      "age": 22,
-      "gender": "Male",
-      "state": "KY"
-    },
-    {
-      "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-      "source": "reddit",
-      "subreddit": "worldnews",
-      "category": "Foreign Policy",
-      "time": "2026-02-21T03:08:38Z",
-      "age": 27,
-      "gender": "Male",
-      "state": "ND"
-    },
-    {
-      "query": "how to prove you're a california resident for your taxes",
+      "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
       "source": "search",
       "subreddit": null,
       "category": "Economic Policy",
-      "time": "2026-02-21T03:01:06Z",
-      "age": 27,
-      "gender": "Male",
-      "state": "NV"
+      "time": "2026-02-21T03:46:34Z",
+      "age": 22,
+      "gender": "Female",
+      "state": "SD"
     },
     {
       "query": "blondie in china",
       "source": "search",
       "subreddit": null,
       "category": "Foreign Policy",
-      "time": "2026-02-21T02:53:33Z",
-      "age": 23,
+      "time": "2026-02-21T03:38:28Z",
+      "age": 24,
       "gender": "Female",
-      "state": "TX"
+      "state": "CO"
     },
     {
-      "query": "South Korea's President Gets Life In Prison For Coup Attempt | Full Story",
-      "source": "youtube",
+      "query": "israel",
+      "source": "search",
       "subreddit": null,
       "category": "Foreign Policy",
-      "time": "2026-02-21T02:46:00Z",
+      "time": "2026-02-21T03:30:23Z",
       "age": 27,
+      "gender": "Male",
+      "state": "MA"
+    },
+    {
+      "query": "Senate hearing for Jeremy Carl",
+      "source": "search",
+      "subreddit": null,
+      "category": "Legislative Politics",
+      "time": "2026-02-21T03:22:17Z",
+      "age": 19,
+      "gender": "Male",
+      "state": "AZ"
+    },
+    {
+      "query": "long term rental tax deductions",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T03:14:12Z",
+      "age": 18,
+      "gender": "Male",
+      "state": "NJ"
+    },
+    {
+      "query": "do you have to provide id when filing ca taxes part time resident",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T03:06:06Z",
+      "age": 26,
+      "gender": "Female",
+      "state": "DE"
+    },
+    {
+      "query": "Prince Andrew ARRESTED | What You Need To Know",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "General Politics",
+      "time": "2026-02-21T02:58:01Z",
+      "age": 22,
+      "gender": "Male",
+      "state": "NC"
+    },
+    {
+      "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T02:49:55Z",
+      "age": 29,
+      "gender": "Male",
+      "state": "OK"
+    },
+    {
+      "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-21T02:41:50Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "NY"
+    },
+    {
+      "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Environmental Policy",
+      "time": "2026-02-21T02:33:44Z",
+      "age": 19,
       "gender": "Male",
       "state": "IA"
     },
@@ -76,118 +106,28 @@
       "source": "youtube",
       "subreddit": null,
       "category": "Presidential Politics",
-      "time": "2026-02-21T02:38:27Z",
-      "age": 29,
-      "gender": "Female",
-      "state": "ND"
+      "time": "2026-02-21T02:25:39Z",
+      "age": 26,
+      "gender": "Male",
+      "state": "VA"
     },
     {
       "query": "ICE Raids 2026: Documented Stories From Across America",
       "source": "youtube",
       "subreddit": null,
       "category": "Immigration Policy",
-      "time": "2026-02-21T02:30:55Z",
-      "age": 29,
-      "gender": "Male",
-      "state": "MO"
-    },
-    {
-      "query": "Iran talks resume Feb 2026",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "time": "2026-02-21T02:23:22Z",
-      "age": 18,
-      "gender": "Female",
-      "state": "IN"
-    },
-    {
-      "query": "long term rental tax deductions",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T02:15:49Z",
-      "age": 22,
-      "gender": "Male",
-      "state": "PA"
-    },
-    {
-      "query": "Prince Andrew & Jeffrey Epstein: The Full Story | BBC Documentary",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-21T02:08:16Z",
+      "time": "2026-02-21T02:17:33Z",
       "age": 20,
-      "gender": "Male",
-      "state": "TN"
-    },
-    {
-      "query": "Prince Andrew ARRESTED | What You Need To Know",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-21T02:00:44Z",
-      "age": 26,
       "gender": "Female",
-      "state": "FL"
+      "state": "KY"
     },
     {
-      "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T01:53:11Z",
-      "age": 21,
-      "gender": "Male",
-      "state": "OR"
-    },
-    {
-      "query": "Senate hearing for Jeremy Carl",
+      "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
       "source": "search",
       "subreddit": null,
-      "category": "Legislative Politics",
-      "time": "2026-02-21T01:45:38Z",
-      "age": 28,
-      "gender": "Female",
-      "state": "MO"
-    },
-    {
-      "query": "zero stat gun",
-      "source": "search",
-      "subreddit": null,
-      "category": "Civil Rights",
-      "time": "2026-02-21T01:38:05Z",
-      "age": 29,
-      "gender": "Female",
-      "state": "HI"
-    },
-    {
-      "query": "Trump tariffs and economy critique",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T01:30:33Z",
-      "age": 23,
-      "gender": "Female",
-      "state": "KS"
-    },
-    {
-      "query": "how could the cost of healthcare systematically reduce",
-      "source": "search",
-      "subreddit": null,
-      "category": "Healthcare Policy",
-      "time": "2026-02-21T01:23:00Z",
-      "age": 28,
-      "gender": "Female",
-      "state": "HI"
-    },
-    {
-      "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Environmental Policy",
-      "time": "2026-02-21T01:15:27Z",
-      "age": 25,
+      "category": "Education Policy",
+      "time": "2026-02-21T02:09:28Z",
+      "age": 22,
       "gender": "Female",
       "state": "KY"
     },
@@ -196,100 +136,160 @@
       "source": "reddit",
       "subreddit": "news",
       "category": "General Politics",
-      "time": "2026-02-21T01:07:54Z",
+      "time": "2026-02-21T02:01:22Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "MA"
+    },
+    {
+      "query": "Prince Andrew & Jeffrey Epstein: The Full Story | BBC Documentary",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "General Politics",
+      "time": "2026-02-21T01:53:17Z",
       "age": 19,
       "gender": "Female",
-      "state": "MS"
-    },
-    {
-      "query": "Trump trademark airport name",
-      "source": "search",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-21T01:00:22Z",
-      "age": 29,
-      "gender": "Male",
       "state": "UT"
-    },
-    {
-      "query": "irs tax refunds",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T00:52:49Z",
-      "age": 29,
-      "gender": "Female",
-      "state": "AL"
     },
     {
       "query": "Iran talks resume amid renewed diplomacy",
       "source": "search",
       "subreddit": null,
       "category": "Foreign Policy",
-      "time": "2026-02-21T00:45:16Z",
+      "time": "2026-02-21T01:45:11Z",
       "age": 18,
       "gender": "Female",
-      "state": "FL"
+      "state": "NJ"
     },
     {
-      "query": "What DOGE Actually Cut This Month | Full Breakdown",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-21T00:37:43Z",
-      "age": 27,
-      "gender": "Female",
-      "state": "MA"
-    },
-    {
-      "query": "do you have to provide id when filing ca taxes part time resident",
+      "query": "irs tax refunds",
       "source": "search",
       "subreddit": null,
       "category": "Economic Policy",
-      "time": "2026-02-21T00:30:11Z",
-      "age": 28,
-      "gender": "Female",
-      "state": "AZ"
-    },
-    {
-      "query": "first black president comedy",
-      "source": "search",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-21T00:22:38Z",
-      "age": 23,
-      "gender": "Male",
-      "state": "WY"
-    },
-    {
-      "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T00:15:05Z",
+      "time": "2026-02-21T01:37:06Z",
       "age": 22,
-      "gender": "Male",
-      "state": "LA"
+      "gender": "Female",
+      "state": "OK"
     },
     {
-      "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
-      "source": "youtube",
+      "query": "zero stat gun",
+      "source": "search",
       "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-21T00:07:32Z",
+      "category": "Civil Rights",
+      "time": "2026-02-21T01:29:00Z",
       "age": 23,
+      "gender": "Female",
+      "state": "MD"
+    },
+    {
+      "query": "Trump trademark airport name",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-21T01:20:55Z",
+      "age": 18,
       "gender": "Male",
-      "state": "NC"
+      "state": "SD"
+    },
+    {
+      "query": "how could the cost of healthcare systematically reduce",
+      "source": "search",
+      "subreddit": null,
+      "category": "Healthcare Policy",
+      "time": "2026-02-21T01:12:49Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "FL"
     },
     {
       "query": "white girl in china",
       "source": "search",
       "subreddit": null,
       "category": "Foreign Policy",
-      "time": "2026-02-21T00:00:00Z",
+      "time": "2026-02-21T01:04:44Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "ND"
+    },
+    {
+      "query": "first black president comedy",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-21T00:56:38Z",
+      "age": 24,
+      "gender": "Female",
+      "state": "AZ"
+    },
+    {
+      "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T00:48:33Z",
+      "age": 26,
+      "gender": "Female",
+      "state": "LA"
+    },
+    {
+      "query": "What DOGE Actually Cut This Month | Full Breakdown",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-21T00:40:27Z",
+      "age": 18,
+      "gender": "Male",
+      "state": "MN"
+    },
+    {
+      "query": "Iran talks resume Feb 2026",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "time": "2026-02-21T00:32:22Z",
+      "age": 23,
+      "gender": "Male",
+      "state": "SC"
+    },
+    {
+      "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
+      "source": "reddit",
+      "subreddit": "worldnews",
+      "category": "Foreign Policy",
+      "time": "2026-02-21T00:24:16Z",
       "age": 26,
       "gender": "Male",
-      "state": "FL"
+      "state": "PA"
+    },
+    {
+      "query": "South Korea's President Gets Life In Prison For Coup Attempt | Full Story",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "time": "2026-02-21T00:16:11Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "UT"
+    },
+    {
+      "query": "how to prove you're a california resident for your taxes",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T00:08:05Z",
+      "age": 19,
+      "gender": "Female",
+      "state": "ND"
+    },
+    {
+      "query": "Trump tariffs and economy critique",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-21T00:00:00Z",
+      "age": 19,
+      "gender": "Female",
+      "state": "WI"
     }
   ]
 }
