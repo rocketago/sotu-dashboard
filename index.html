@@ -1013,61 +1013,163 @@
     if (name === 'history') renderHistoryChart();
   }
 
-  /* ── SENTIMENT: AFINN lexicon score on query/topic text ── */
+  /* ── SENTIMENT: AFINN lexicon for content text scoring ──
+     Scores are applied to each item's topic + query text, then weighted
+     by engagement count to produce the gauge score.
+     Positive = favorable/hopeful framing; Negative = critical/alarming framing.
+  ── */
   const AFINN = {
-    // strongly negative
-    "terrorist":-5,"massacre":-5,"murder":-4,"corrupt":-4,"fraud":-4,
-    "violence":-4,"disaster":-4,"bomb":-4,"killing":-4,"hate":-4,
-    "attack":-3,"war":-3,"crisis":-3,"scandal":-3,"impeach":-3,
-    "lies":-3,"fear":-3,"riot":-3,"death":-3,"crime":-3,
-    "conflict":-3,"threat":-3,"arrested":-3,"deportation":-3,"deported":-3,
-    "layoffs":-3,"fired":-3,"shooting":-3,"poverty":-3,"homeless":-3,
-    // moderately negative
-    "cut":-2,"cuts":-2,"oppose":-2,"shutdown":-2,"problem":-2,
-    "deficit":-2,"illegal":-2,"fail":-2,"failed":-2,"loss":-2,
-    "deport":-2,"restrict":-2,"tariff":-2,"tariffs":-2,"ban":-2,
-    "protest":-2,"protests":-2,"controversy":-2,"backlash":-2,
-    "debt":-2,"strike":-2,"sued":-2,"lawsuit":-2,"fine":-2,
-    // mildly negative
-    "wrong":-1,"decline":-1,"limit":-1,"slow":-1,"uncertain":-1,
-    "opposition":-1,"concern":-1,"concerns":-1,"risk":-1,"risks":-1,
-    "challenge":-1,"challenges":-1,"divided":-1,"debate":-1,
-    // mildly positive
-    "deal":1,"open":1,"expand":1,"agree":1,"elect":1,
-    "secure":1,"safe":1,"develop":1,"progress":1,"access":1,
-    // moderately positive
-    "approve":2,"plan":2,"fund":2,"funded":2,"help":2,
-    "create":2,"build":2,"grant":2,"leads":2,"ahead":2,
-    "pass":2,"passed":2,"signed":2,"relief":2,"aid":2,
-    // strongly positive
-    "improve":3,"reform":3,"grow":3,"growth":3,"invest":3,
-    "investment":3,"support":3,"benefit":3,"win":3,"wins":3,
-    "save":3,"saved":3,"protect":3,"protected":3,"rights":3,
-    "freedom":4,"justice":4,"peace":4,"victory":4,"historic":4,
-    "breakthrough":4,"record":3,"landmark":3,
+    // ── STRONGLY NEGATIVE (-4 to -5) ──
+    "arrested":-4,"arrest":-4,"arraigned":-4,"indicted":-4,"indictment":-4,
+    "charged":-3,"charges":-3,"convicted":-4,"conviction":-4,"sentence":-3,"sentenced":-4,
+    "imprisoned":-4,"prison":-3,"jailed":-4,"jail":-3,"inmate":-3,
+    "coup":-5,"assassin":-5,"assassinated":-5,"assassination":-5,
+    "murder":-5,"murdered":-4,"massacre":-5,"genocide":-5,"atrocity":-5,
+    "terrorist":-5,"terrorism":-5,"bomb":-4,"bombing":-5,"attack":-4,"attacked":-4,
+    "abuse":-4,"abused":-4,"torture":-4,"tortured":-4,
+    "corruption":-4,"corrupt":-4,"corrupted":-4,"fraud":-4,"fraudulent":-4,
+    "scandal":-4,"impeach":-4,"impeached":-4,"impeachment":-4,
+    "catastrophe":-4,"catastrophic":-4,"disaster":-4,"collapse":-4,"collapsed":-4,
+    "hate":-4,"hatred":-4,"extremist":-4,"extremism":-4,
+    "death":-4,"deaths":-4,"killed":-4,"killing":-4,"kill":-4,
+    "war":-4,"warfare":-4,"invasion":-4,"invaded":-4,
+    "misconduct":-4,"malpractice":-4,"negligence":-4,
+    "crime":-3,"crimes":-3,"criminal":-3,"illegal":-3,"illegally":-3,
+    // ── MODERATELY NEGATIVE (-2 to -3) ──
+    "tariff":-3,"tariffs":-3,"trade war":-3,
+    "deport":-3,"deportation":-3,"deportations":-3,"deported":-3,
+    "raid":-3,"raids":-3,"raided":-3,
+    "sanction":-3,"sanctions":-3,"sanctioned":-3,
+    "layoff":-3,"layoffs":-3,"laid":-2,
+    "fired":-3,"firing":-2,
+    "shutdown":-3,"shutdowns":-3,"shut":-2,
+    "poverty":-3,"homeless":-3,"homelessness":-3,
+    "crisis":-3,"crises":-3,
+    "opposition":-2,"oppose":-2,"opposed":-2,
+    "controversy":-3,"controversial":-2,
+    "backlash":-3,"outrage":-3,
+    "protest":-2,"protests":-2,"protesting":-2,"protesters":-2,
+    "lawsuit":-2,"sued":-2,"suing":-2,"litigation":-2,
+    "fine":-2,"fined":-2,"penalty":-2,"penalties":-2,
+    "deficit":-2,"debt":-2,
+    "cut":-2,"cuts":-2,"cutting":-2,"gutted":-3,
+    "ban":-2,"banned":-2,"banning":-2,
+    "restrict":-2,"restricted":-2,"restriction":-2,"restrictions":-2,
+    "block":-2,"blocked":-2,"blocking":-2,
+    "reject":-2,"rejected":-2,"rejection":-2,
+    "fail":-2,"failed":-2,"failure":-2,"failures":-3,
+    "loss":-2,"losses":-2,
+    "accusation":-2,"accusations":-2,"accused":-2,"accuse":-2,
+    "allegation":-2,"allegations":-2,"alleged":-2,
+    "conflict":-2,"confrontation":-2,
+    "tension":-2,"tensions":-2,
+    "riot":-3,"riots":-3,"unrest":-3,
+    "decline":-2,"declined":-2,"declining":-2,
+    "recession":-3,"inflation":-2,
+    "threat":-2,"threats":-2,"threaten":-2,
+    "victim":-2,"victims":-2,
+    "discrimination":-3,"racist":-4,"racism":-4,
+    // ── MILDLY NEGATIVE (-1) ──
+    "concern":-1,"concerns":-1,"concerned":-1,
+    "uncertain":-1,"uncertainty":-1,
+    "debate":-1,"debates":-1,
+    "slow":-1,"slowing":-1,
+    "divided":-1,"division":-1,
+    "criticism":-1,"criticize":-1,"criticizing":-1,"criticized":-1,"critic":-1,"critics":-1,
+    "challenge":-1,"challenges":-1,"challenging":-1,
+    "delay":-1,"delayed":-1,
+    "risk":-1,"risks":-1,"risky":-1,
+    "wrong":-1,
+    "limit":-1,"limited":-1,
+    "problem":-1,"problems":-1,
+    "struggle":-1,"struggling":-1,
+    "warning":-1,"warns":-1,"warned":-1,
+    "question":-1,"questions":-1,"questioned":-1,
+    "doubt":-1,"doubts":-1,
+    "anger":-1,"angry":-1,
+    "fear":-1,"fears":-1,
+    // ── MILDLY POSITIVE (+1) ──
+    "plan":1,"plans":1,"planning":1,
+    "open":1,"opening":1,
+    "agree":1,"agreement":1,"agreed":1,
+    "develop":1,"development":1,"developing":1,
+    "progress":1,"progressing":1,
+    "access":1,
+    "secure":1,"security":1,
+    "expand":1,"expanding":1,"expansion":1,
+    "protect":1,"protection":1,
+    "unite":1,"unity":1,
+    "discuss":1,"discussion":1,"discussions":1,
+    // ── MODERATELY POSITIVE (+2 to +3) ──
+    "approve":2,"approval":2,"approved":2,
+    "improve":2,"improvement":2,"improved":2,"improving":2,
+    "fund":2,"funded":2,"funding":3,
+    "create":2,"created":2,"creation":2,
+    "build":2,"built":2,"building":2,
+    "pass":2,"passed":2,
+    "sign":2,"signed":2,"signs":2,
+    "relief":2,
+    "invest":2,"investment":2,"investing":2,
+    "support":2,"supported":2,"supporting":2,
+    "benefit":2,"benefits":2,"benefiting":2,
+    "deal":2,"deals":2,
+    "diplomacy":3,"diplomatic":2,"diplomat":2,
+    "reform":3,"reforms":3,"reformed":2,
+    "aid":2,"assistance":2,
+    "help":2,"helping":2,
+    "hire":2,"hiring":2,"hired":2,
+    "job":2,"jobs":2,
+    "grow":2,"growth":2,"growing":2,
+    "rising":2,"rise":2,
+    "achieve":2,"achievement":2,"achieved":2,
+    "success":3,"successful":3,"succeed":2,
+    "partner":2,"partnership":2,"alliance":2,
+    "solve":2,"solution":2,"solutions":2,
+    "strengthen":2,"stronger":2,
+    "recover":2,"recovery":2,
+    // ── STRONGLY POSITIVE (+4 to +5) ──
+    "victory":4,"victories":4,"win":4,"wins":4,"winning":3,
+    "freedom":4,"liberty":4,
+    "justice":4,
+    "peace":5,"ceasefire":4,
+    "historic":3,"landmark":3,"breakthrough":4,
+    "record":3,
+    "save":3,"saved":3,
+    "rights":2,
   };
 
+  // Score topic + query text for a single item using the AFINN lexicon.
+  // Returns a 0-100 value: 50 = neutral, >50 = positive framing, <50 = negative framing.
+  function scoreItemText(topic, query) {
+    const text  = ((topic || '') + ' ' + (query || '')).toLowerCase().replace(/[^a-z\s]/g, ' ');
+    const words = text.split(/\s+/).filter(Boolean);
+    let raw = 0;
+    words.forEach(w => { if (AFINN[w] !== undefined) raw += AFINN[w]; });
+    // raw * 5 maps ±10 → ±50 (i.e. raw=0 → score 50, raw=-5 → 25, raw=+5 → 75)
+    return Math.max(0, Math.min(100, raw * 5 + 50));
+  }
+
   function computeSentimentScore(data) {
-    // Engagement momentum breakdown — count-weighted by item.trend
-    let upWeight = 0, downWeight = 0, stableWeight = 0, totalWeight = 0;
+    let totalWeight = 0, totalSentiment = 0;
+    let posWeight = 0, negWeight = 0, neuWeight = 0;
 
     data.categories.forEach(cat => {
       cat.items.forEach(item => {
-        const w = item.count || 1;
-        totalWeight += w;
-        if (item.trend === 'up')        upWeight     += w;
-        else if (item.trend === 'down') downWeight   += w;
-        else                            stableWeight += w;
+        const w     = item.count || 1;
+        const score = scoreItemText(item.topic, item.query);
+        totalWeight    += w;
+        totalSentiment += score * w;
+        if      (score >= 55) posWeight += w;
+        else if (score <= 45) negWeight += w;
+        else                  neuWeight += w;
       });
     });
 
-    // Score = engagement-trend-weighted: all-up→100, all-down→0, balanced→50.
-    // Matches the breakdown shown in the tickers below the gauge.
     const score = totalWeight > 0
-      ? Math.round(Math.max(0, Math.min(100, (upWeight - downWeight) / totalWeight * 50 + 50)))
+      ? Math.round(totalSentiment / totalWeight)
       : 50;
 
-    return { score, upWeight, downWeight, stableWeight, totalWeight };
+    return { score, posWeight, negWeight, neuWeight, totalWeight };
   }
 
   /* ── WORD EXTRACTION from query strings ── */
@@ -1313,17 +1415,17 @@
 
   /* ── RENDER ENTIRE SENTIMENT PANE ── */
   function renderSentimentPane(data) {
-    const { score, upWeight, downWeight, stableWeight, totalWeight } = computeSentimentScore(data);
+    const { score, posWeight, negWeight, neuWeight, totalWeight } = computeSentimentScore(data);
     renderGauge(score); // also sets gauge-score-num / gauge-score-text
 
-    const upPct = totalWeight ? Math.round(upWeight     / totalWeight * 100) : 0;
-    const dnPct = totalWeight ? Math.round(downWeight   / totalWeight * 100) : 0;
-    const stPct = totalWeight ? Math.round(stableWeight / totalWeight * 100) : 0;
+    const posPct = totalWeight ? Math.round(posWeight / totalWeight * 100) : 0;
+    const negPct = totalWeight ? Math.round(negWeight / totalWeight * 100) : 0;
+    const neuPct = totalWeight ? Math.round(neuWeight / totalWeight * 100) : 0;
     document.getElementById('sentiment-meta').innerHTML =
-      `<span style="color:#04B35D">▲ Positive ${upPct}%</span> &nbsp;·&nbsp;
-       <span style="color:#7b9ab0">— Stable ${stPct}%</span> &nbsp;·&nbsp;
-       <span style="color:#F9495F">▼ Negative ${dnPct}%</span><br>
-       Weighted by engagement · ${totalWeight.toLocaleString()} total signals`;
+      `<span style="color:#04B35D">▲ Positive tone ${posPct}%</span> &nbsp;·&nbsp;
+       <span style="color:#7b9ab0">— Neutral ${neuPct}%</span> &nbsp;·&nbsp;
+       <span style="color:#F9495F">▼ Negative tone ${negPct}%</span><br>
+       Content sentiment · ${totalWeight.toLocaleString()} engagement-weighted signals`;
 
     const words = extractWords(data);
     renderWordCloud(words);
