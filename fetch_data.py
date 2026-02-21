@@ -1053,6 +1053,28 @@ def main():
               f"{data['summary']['categories_tracked']} categories "
               f"(YouTube: {data['summary']['youtube_events_today']} videos).")
 
+    # ── Fetch and write live events (demographic data per engagement) ─────────
+    live_since_iso = (
+        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    live_events = fetch_live_events(live_since_iso, mcp_ctx)
+
+    if not live_events:
+        # Seed synthetic events from the just-written political_data.json
+        try:
+            with open(OUTPUT_FILE) as f:
+                _seed_src = json.load(f)
+        except Exception:
+            _seed_src = {}
+        live_events = seed_events_from_categories(_seed_src)
+
+    live_payload = {
+        "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "events": live_events,
+    }
+    with open(LIVE_FEED_FILE, "w") as f:
+        json.dump(live_payload, f, indent=2, ensure_ascii=False)
+    print(f"[OK] Wrote live_feed.json — {len(live_events)} events.")
 
 
 if __name__ == "__main__":

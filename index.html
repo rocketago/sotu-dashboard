@@ -474,19 +474,29 @@
       font-size: 12px;
     }
 
-    .detail-event {
-      padding: 4px 0;
+    .detail-header {
+      font-weight: 600;
       color: var(--text);
-      line-height: 1.5;
+      margin-bottom: 6px;
+    }
+
+    .detail-event {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 0;
+      color: var(--text);
+      font-size: 11px;
       border-bottom: 1px solid var(--border);
     }
 
     .detail-event:last-child { border-bottom: none; }
 
-    .detail-event em {
-      color: var(--accent);
-      font-style: normal;
-    }
+    .detail-time  { color: var(--muted); min-width: 56px; }
+    .detail-age   { color: var(--accent); font-weight: 600; }
+    .detail-gender{ color: var(--text); }
+    .detail-state { color: var(--text); }
 
     .detail-no-data {
       color: var(--muted);
@@ -900,12 +910,14 @@
 
 <script>
   const DATA_URL          = './political_data.json';
+  const LIVE_URL          = './live_feed.json';
   const STATUS_URL        = './status.json';
   const SEARCH_REFRESH_MS = 5  * 60 * 1000;
   const REDDIT_REFRESH_MS = 15 * 60 * 1000;
 
   let allExpanded    = false;
   let currentData    = null;
+  let liveData       = null;
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -916,26 +928,69 @@
     if (name === 'sentiment' && currentData) renderSentimentPane(currentData);
   }
 
-  /* ── SENTIMENT: score from trend × engagement ── */
+  /* ── SENTIMENT: AFINN lexicon score on query/topic text ── */
+  const AFINN = {
+    // strongly negative
+    "terrorist":-5,"massacre":-5,"murder":-4,"corrupt":-4,"fraud":-4,
+    "violence":-4,"disaster":-4,"bomb":-4,"killing":-4,"hate":-4,
+    "attack":-3,"war":-3,"crisis":-3,"scandal":-3,"impeach":-3,
+    "lies":-3,"fear":-3,"riot":-3,"death":-3,"crime":-3,
+    "conflict":-3,"threat":-3,"arrested":-3,"deportation":-3,"deported":-3,
+    "layoffs":-3,"fired":-3,"shooting":-3,"poverty":-3,"homeless":-3,
+    // moderately negative
+    "cut":-2,"cuts":-2,"oppose":-2,"shutdown":-2,"problem":-2,
+    "deficit":-2,"illegal":-2,"fail":-2,"failed":-2,"loss":-2,
+    "deport":-2,"restrict":-2,"tariff":-2,"tariffs":-2,"ban":-2,
+    "protest":-2,"protests":-2,"controversy":-2,"backlash":-2,
+    "debt":-2,"strike":-2,"sued":-2,"lawsuit":-2,"fine":-2,
+    // mildly negative
+    "wrong":-1,"decline":-1,"limit":-1,"slow":-1,"uncertain":-1,
+    "opposition":-1,"concern":-1,"concerns":-1,"risk":-1,"risks":-1,
+    "challenge":-1,"challenges":-1,"divided":-1,"debate":-1,
+    // mildly positive
+    "deal":1,"open":1,"expand":1,"agree":1,"elect":1,
+    "secure":1,"safe":1,"develop":1,"progress":1,"access":1,
+    // moderately positive
+    "approve":2,"plan":2,"fund":2,"funded":2,"help":2,
+    "create":2,"build":2,"grant":2,"leads":2,"ahead":2,
+    "pass":2,"passed":2,"signed":2,"relief":2,"aid":2,
+    // strongly positive
+    "improve":3,"reform":3,"grow":3,"growth":3,"invest":3,
+    "investment":3,"support":3,"benefit":3,"win":3,"wins":3,
+    "save":3,"saved":3,"protect":3,"protected":3,"rights":3,
+    "freedom":4,"justice":4,"peace":4,"victory":4,"historic":4,
+    "breakthrough":4,"record":3,"landmark":3,
+  };
+
   function computeSentimentScore(data) {
-    let weightedSum = 0;
-    let totalWeight = 0;
-    let upWeight = 0, downWeight = 0, stableWeight = 0;
+    // AFINN: count-weighted mean of lexicon scores across all item queries/topics
+    let afinnSum = 0, afinnWeight = 0;
+    // Engagement momentum breakdown (kept for the bar chart below the gauge)
+    let upWeight = 0, downWeight = 0, stableWeight = 0, totalWeight = 0;
 
     data.categories.forEach(cat => {
       cat.items.forEach(item => {
         const w = item.count || 1;
-        const t = item.trend === 'up' ? 1 : item.trend === 'down' ? -1 : 0;
-        weightedSum += t * w;
         totalWeight += w;
-        if (item.trend === 'up')     upWeight     += w;
-        else if (item.trend === 'down') downWeight += w;
-        else                         stableWeight  += w;
+        if (item.trend === 'up')        upWeight     += w;
+        else if (item.trend === 'down') downWeight   += w;
+        else                            stableWeight += w;
+
+        // Tokenize the query + topic text and score against AFINN
+        const text = ((item.query || '') + ' ' + (item.topic || '')).toLowerCase();
+        const words = text.match(/[a-z]+/g) || [];
+        words.forEach(word => {
+          if (word in AFINN) {
+            afinnSum    += AFINN[word] * w;
+            afinnWeight += w;
+          }
+        });
       });
     });
 
-    const normalized = totalWeight > 0 ? weightedSum / totalWeight : 0; // -1..+1
-    const score = Math.round((normalized + 1) / 2 * 100);
+    // Normalize AFINN mean (-5..+5) → 0..100; default 50 if no lexicon hits
+    const mean  = afinnWeight > 0 ? afinnSum / afinnWeight : 0;
+    const score = Math.round((mean / 5 + 1) / 2 * 100);
     return { score, upWeight, downWeight, stableWeight, totalWeight };
   }
 
@@ -1390,7 +1445,46 @@
   }
 
   function buildItemDetail(item, catLabel) {
-    return '';
+    const events = liveData && Array.isArray(liveData.events) ? liveData.events : [];
+
+    // Keywords from the item query (len>=4, skip stopwords) for fuzzy matching
+    const keywords = ((item.query || '') + ' ' + (item.topic || ''))
+      .toLowerCase().match(/[a-z]{4,}/g)
+      ?.filter(w => !STOPWORDS.has(w)) || [];
+
+    // Filter events by category; prefer keyword overlap, fall back to category-only
+    const catMatches = events.filter(e => e.category === catLabel);
+    let matched = keywords.length
+      ? catMatches.filter(e => {
+          const eq = (e.query || '').toLowerCase();
+          return keywords.some(kw => eq.includes(kw));
+        })
+      : [];
+    if (matched.length === 0) matched = catMatches;  // fall back to whole category
+
+    // Sort newest-first, cap at 8
+    matched = matched
+      .slice()
+      .sort((a, b) => new Date(b.time) - new Date(a.time))
+      .slice(0, 8);
+
+    if (matched.length === 0) {
+      return '<div class="detail-no-data">No individual engagement data available for this topic yet.</div>';
+    }
+
+    const genderIcon = g => g === 'Male' ? '♂' : g === 'Female' ? '♀' : '⚧';
+    const srcLabel   = s => s === 'reddit' ? 'Reddit' : s === 'youtube' ? '▶ YouTube' : 'Search';
+
+    const rows = matched.map(e => `
+      <div class="detail-event">
+        <span class="detail-time">${escHtml(timeAgo(e.time))}</span>
+        <span class="detail-age">Age ${escHtml(String(e.age))}</span>
+        <span class="detail-gender">${genderIcon(e.gender)} ${escHtml(e.gender || '—')}</span>
+        <span class="detail-state">📍 ${escHtml(e.state || '—')}</span>
+        <span class="source-badge source-${escHtml(e.source || 'search')}">${srcLabel(e.source)}</span>
+      </div>`).join('');
+
+    return `<div class="detail-header">👥 Who engaged with this</div>${rows}`;
   }
 
   /* ── SHOW STATUS ── */
@@ -1440,10 +1534,15 @@
   /* ── LOAD DATA ── */
   async function loadData() {
     try {
-      const res  = await fetch(DATA_URL + '?_=' + Date.now());
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
+      const ts = Date.now();
+      const [dataRes, liveRes] = await Promise.all([
+        fetch(DATA_URL + '?_=' + ts),
+        fetch(LIVE_URL + '?_=' + ts).catch(() => null),
+      ]);
+      if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
+      const data = await dataRes.json();
       currentData = data;
+      liveData = liveRes ? await liveRes.json().catch(() => null) : null;
 
       renderWindowBanner(data);
       renderSummary(data);
