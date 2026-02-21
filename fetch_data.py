@@ -1000,10 +1000,134 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     return events
 
 
+# ── AFINN lexicon (mirrors the JS version in index.html) ─────────────────────
+# Positive scores = favorable/hopeful framing; negative = critical/alarming.
+_AFINN: dict[str, int] = {
+    # strongly negative
+    "arrested":-4,"arrest":-4,"arraigned":-4,"indicted":-4,"indictment":-4,
+    "charged":-3,"charges":-3,"convicted":-4,"conviction":-4,"sentence":-3,"sentenced":-4,
+    "imprisoned":-4,"prison":-3,"jailed":-4,"jail":-3,"inmate":-3,
+    "coup":-5,"assassin":-5,"assassinated":-5,"assassination":-5,
+    "murder":-5,"murdered":-4,"massacre":-5,"genocide":-5,"atrocity":-5,
+    "terrorist":-5,"terrorism":-5,"bomb":-4,"bombing":-5,"attack":-4,"attacked":-4,
+    "abuse":-4,"abused":-4,"torture":-4,"tortured":-4,
+    "corruption":-4,"corrupt":-4,"corrupted":-4,"fraud":-4,"fraudulent":-4,
+    "scandal":-4,"impeach":-4,"impeached":-4,"impeachment":-4,
+    "catastrophe":-4,"catastrophic":-4,"disaster":-4,"collapse":-4,"collapsed":-4,
+    "hate":-4,"hatred":-4,"extremist":-4,"extremism":-4,
+    "death":-4,"deaths":-4,"killed":-4,"killing":-4,"kill":-4,
+    "war":-4,"warfare":-4,"invasion":-4,"invaded":-4,
+    "misconduct":-4,"malpractice":-4,"negligence":-4,
+    "crime":-3,"crimes":-3,"criminal":-3,"illegal":-3,"illegally":-3,
+    # moderately negative
+    "tariff":-3,"tariffs":-3,
+    "deport":-3,"deportation":-3,"deportations":-3,"deported":-3,
+    "raid":-3,"raids":-3,"raided":-3,
+    "sanction":-3,"sanctions":-3,"sanctioned":-3,
+    "layoff":-3,"layoffs":-3,"laid":-2,"fired":-3,"firing":-2,
+    "shutdown":-3,"shutdowns":-3,"shut":-2,
+    "poverty":-3,"homeless":-3,"homelessness":-3,
+    "crisis":-3,"crises":-3,
+    "opposition":-2,"oppose":-2,"opposed":-2,
+    "controversy":-3,"controversial":-2,
+    "backlash":-3,"outrage":-3,
+    "protest":-2,"protests":-2,"protesting":-2,"protesters":-2,
+    "lawsuit":-2,"sued":-2,"suing":-2,"litigation":-2,
+    "fine":-2,"fined":-2,"penalty":-2,"penalties":-2,
+    "deficit":-2,"debt":-2,
+    "cut":-2,"cuts":-2,"cutting":-2,"gutted":-3,
+    "ban":-2,"banned":-2,"banning":-2,
+    "restrict":-2,"restricted":-2,"restriction":-2,"restrictions":-2,
+    "block":-2,"blocked":-2,"blocking":-2,
+    "reject":-2,"rejected":-2,"rejection":-2,
+    "fail":-2,"failed":-2,"failure":-2,"failures":-3,
+    "loss":-2,"losses":-2,
+    "accusation":-2,"accusations":-2,"accused":-2,"accuse":-2,
+    "allegation":-2,"allegations":-2,"alleged":-2,
+    "conflict":-2,"confrontation":-2,
+    "tension":-2,"tensions":-2,
+    "riot":-3,"riots":-3,"unrest":-3,
+    "decline":-2,"declined":-2,"declining":-2,
+    "recession":-3,"inflation":-2,
+    "threat":-2,"threats":-2,"threaten":-2,
+    "victim":-2,"victims":-2,
+    "discrimination":-3,"racist":-4,"racism":-4,
+    # mildly negative
+    "concern":-1,"concerns":-1,"concerned":-1,
+    "uncertain":-1,"uncertainty":-1,
+    "debate":-1,"debates":-1,
+    "slow":-1,"slowing":-1,
+    "divided":-1,"division":-1,
+    "criticism":-1,"criticize":-1,"criticizing":-1,"criticized":-1,"critic":-1,"critics":-1,
+    "challenge":-1,"challenges":-1,"challenging":-1,
+    "delay":-1,"delayed":-1,
+    "risk":-1,"risks":-1,"risky":-1,
+    "wrong":-1,"limit":-1,"limited":-1,
+    "problem":-1,"problems":-1,
+    "struggle":-1,"struggling":-1,
+    "warning":-1,"warns":-1,"warned":-1,
+    "question":-1,"questions":-1,"questioned":-1,
+    "doubt":-1,"doubts":-1,
+    "anger":-1,"angry":-1,
+    "fear":-1,"fears":-1,
+    # mildly positive
+    "plan":1,"plans":1,"planning":1,
+    "open":1,"opening":1,
+    "agree":1,"agreement":1,"agreed":1,
+    "develop":1,"development":1,"developing":1,
+    "progress":1,"progressing":1,
+    "access":1,"secure":1,"security":1,
+    "expand":1,"expanding":1,"expansion":1,
+    "protect":1,"protection":1,
+    "unite":1,"unity":1,
+    "discuss":1,"discussion":1,"discussions":1,
+    # moderately positive
+    "approve":2,"approval":2,"approved":2,
+    "improve":2,"improvement":2,"improved":2,"improving":2,
+    "fund":2,"funded":2,"funding":3,
+    "create":2,"created":2,"creation":2,
+    "build":2,"built":2,"building":2,
+    "pass":2,"passed":2,
+    "sign":2,"signed":2,"signs":2,
+    "relief":2,"invest":2,"investment":2,"investing":2,
+    "support":2,"supported":2,"supporting":2,
+    "benefit":2,"benefits":2,"benefiting":2,
+    "deal":2,"deals":2,
+    "diplomacy":3,"diplomatic":2,"diplomat":2,
+    "reform":3,"reforms":3,"reformed":2,
+    "aid":2,"assistance":2,"help":2,"helping":2,
+    "hire":2,"hiring":2,"hired":2,"job":2,"jobs":2,
+    "grow":2,"growth":2,"growing":2,
+    "rising":2,"rise":2,
+    "achieve":2,"achievement":2,"achieved":2,
+    "success":3,"successful":3,"succeed":2,
+    "partner":2,"partnership":2,"alliance":2,
+    "solve":2,"solution":2,"solutions":2,
+    "strengthen":2,"stronger":2,
+    "recover":2,"recovery":2,
+    # strongly positive
+    "victory":4,"victories":4,"win":4,"wins":4,"winning":3,
+    "freedom":4,"liberty":4,
+    "justice":4,"peace":5,"ceasefire":4,
+    "historic":3,"landmark":3,"breakthrough":4,
+    "record":3,"save":3,"saved":3,"rights":2,
+}
+
+_CLEAN_RE = re.compile(r"[^a-z\s]")
+
+
+def _score_item_text(topic: str, query: str) -> float:
+    """Return 0-100 AFINN sentiment score for an item's topic + query text."""
+    text  = _CLEAN_RE.sub(" ", ((topic or "") + " " + (query or "")).lower())
+    raw   = sum(_AFINN.get(w, 0) for w in text.split())
+    return max(0.0, min(100.0, raw * 5 + 50))
+
+
 def update_history(data: dict) -> None:
     """
-    Append the current sentiment score (computed from item trends, matching the
-    frontend formula) to history.json.  Only called when real data was written.
+    Append the current AFINN text-sentiment score to history.json.
+    Score is engagement-count-weighted over all items' topic+query text,
+    matching the JS formula in index.html exactly.
     Keeps at most 2016 entries (~7 days at 5-min intervals).
     """
     all_items = [
@@ -1014,10 +1138,12 @@ def update_history(data: dict) -> None:
     if not all_items:
         return  # nothing to record
 
-    up    = sum(i.get("count", 1) for i in all_items if i.get("trend") == "up")
-    down  = sum(i.get("count", 1) for i in all_items if i.get("trend") == "down")
-    total = sum(i.get("count", 1) for i in all_items) or 1
-    score = round(max(0, min(100, (up - down) / total * 50 + 50)))
+    total_weight = sum(i.get("count", 1) for i in all_items) or 1
+    total_sentiment = sum(
+        _score_item_text(i.get("topic", ""), i.get("query", "")) * i.get("count", 1)
+        for i in all_items
+    )
+    score = round(total_sentiment / total_weight)
 
     history: dict = {"points": []}
     if HISTORY_FILE.exists():
