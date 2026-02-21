@@ -28,6 +28,7 @@ from pathlib import Path
 
 OUTPUT_FILE    = Path(__file__).parent / "political_data.json"
 LIVE_FEED_FILE = Path(__file__).parent / "live_feed.json"
+HISTORY_FILE   = Path(__file__).parent / "history.json"
 
 VERBAI_MCP_URL = (
     "https://zknnynm-exc60781.snowflakecomputing.com"
@@ -999,6 +1000,42 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     return events
 
 
+def update_history(data: dict) -> None:
+    """
+    Append the current sentiment score (computed from item trends, matching the
+    frontend formula) to history.json.  Only called when real data was written.
+    Keeps at most 2016 entries (~7 days at 5-min intervals).
+    """
+    all_items = [
+        item
+        for cat in data.get("categories", [])
+        for item in cat.get("items", [])
+    ]
+    if not all_items:
+        return  # nothing to record
+
+    up    = sum(i.get("count", 1) for i in all_items if i.get("trend") == "up")
+    down  = sum(i.get("count", 1) for i in all_items if i.get("trend") == "down")
+    total = sum(i.get("count", 1) for i in all_items) or 1
+    score = round(max(0, min(100, (up - down) / total * 50 + 50)))
+
+    history: dict = {"points": []}
+    if HISTORY_FILE.exists():
+        try:
+            with open(HISTORY_FILE) as f:
+                history = json.load(f)
+        except Exception:
+            pass
+
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    history.setdefault("points", []).append({"ts": now_iso, "score": score})
+    history["points"] = history["points"][-2016:]
+
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f, separators=(",", ":"))
+    print(f"[OK] Updated history.json — score={score}, {len(history['points'])} points total.")
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
@@ -1052,6 +1089,7 @@ def main():
               f"{data['summary']['total_engagements']} engagements across "
               f"{data['summary']['categories_tracked']} categories "
               f"(YouTube: {data['summary']['youtube_events_today']} videos).")
+        update_history(data)
 
     # ── Fetch and write live events (demographic data per engagement) ─────────
     live_since_iso = (
