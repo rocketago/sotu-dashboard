@@ -674,7 +674,7 @@ def _cap_events_per_user(events: list[dict], max_per_user: int = 3) -> list[dict
 def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
     Query the 50 most recent individual political events for 18-29 year-olds.
-    Uses a 24-hour rolling window (live_since_iso) so the feed is never stale.
+    Uses the midnight-ET cutoff (live_since_iso) matching the rest of the dashboard.
     Returns list of dicts with keys: time, query, source, subreddit, category, age, gender, state.
     Per-user capping (max 3 events per person) is applied in Python after retrieval.
     """
@@ -1241,9 +1241,9 @@ def main():
         update_history(data)
 
     # ── Fetch and write live events (demographic data per engagement) ─────────
-    live_since_iso = (
-        datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
-    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Use the same midnight-ET cutoff as the rest of the dashboard so the live
+    # feed resets at midnight Eastern Time, not on a rolling 24-hour window.
+    live_since_iso = et_midnight_utc()
     live_events = fetch_live_events(live_since_iso, mcp_ctx)
     live_events_from_mcp = bool(live_events)
 
