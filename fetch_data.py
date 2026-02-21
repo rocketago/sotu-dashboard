@@ -51,6 +51,64 @@ CATEGORY_META = {
     "Civil Rights":          {"id": "civil_rights",          "icon": "✊"},
 }
 
+# ── Shared SQL keyword blocks for all VerbAI prompts ─────────────────────────
+# These focus queries on US political topics relevant to the SOTU.
+# Kept in one place so fetch_* functions stay in sync with _is_political_item.
+
+# Topics that should be EXCLUDED even if they match an include keyword
+_SQL_EXCLUDE_BLOCK = (
+    "AND col NOT ILIKE '%prince andrew%' "
+    "AND col NOT ILIKE '%prince william%' "
+    "AND col NOT ILIKE '%royal family%' "
+    "AND col NOT ILIKE '%south korea%' "
+    "AND col NOT ILIKE '%yoon suk%' "
+    "AND col NOT ILIKE '%epstein%' "
+    "AND col NOT ILIKE '%blondie in china%' "
+    "AND col NOT ILIKE '%white girl in china%' "
+)
+
+# ILIKE include conditions for search / YouTube / Reddit title columns.
+# Placeholder "col" is replaced with the real column alias in each prompt.
+_SQL_INCLUDE_BLOCK = (
+    "(col ILIKE '%trump%' OR col ILIKE '%white house%' OR col ILIKE '%maga%' "
+    "OR col ILIKE '%executive order%' "
+    "OR col ILIKE '%congress%' OR col ILIKE '%senate%' OR col ILIKE '%democrat%' "
+    "OR col ILIKE '%republican%' OR col ILIKE '%legislation%' "
+    "OR col ILIKE '%doge%' OR col ILIKE '%elon musk%' "
+    "OR col ILIKE '%federal worker%' OR col ILIKE '%federal employee%' "
+    "OR col ILIKE '%federal budget%' OR col ILIKE '%spending cut%' "
+    "OR col ILIKE '%tariff%' OR col ILIKE '%trade war%' "
+    "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' "
+    "OR col ILIKE '%immigration%' OR col ILIKE '%border%' OR col ILIKE '%deportation%' "
+    "OR col ILIKE '%ice raid%' OR col ILIKE '%daca%' OR col ILIKE '%migrant%' "
+    "OR col ILIKE '%ukraine%' OR col ILIKE '%russia%' OR col ILIKE '%nato%' "
+    "OR col ILIKE '%china%' OR col ILIKE '%iran%' OR col ILIKE '%israel%' "
+    "OR col ILIKE '%gaza%' OR col ILIKE '%north korea%' OR col ILIKE '%taiwan%' "
+    "OR col ILIKE '%healthcare%' OR col ILIKE '%medicare%' OR col ILIKE '%medicaid%' "
+    "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%gun control%' "
+    "OR col ILIKE '%supreme court%' OR col ILIKE '%social security%' "
+    "OR col ILIKE '%student loan%' OR col ILIKE '%climate%' OR col ILIKE '%energy%' "
+    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' OR col ILIKE '%budget%' "
+    "OR col ILIKE '%state of the union%' OR col ILIKE '%sotu%' "
+    "OR col ILIKE '%address to congress%' "
+    "OR col ILIKE '%biden%' OR col ILIKE '%kamala%' OR col ILIKE '%rubio%' "
+    "OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
+)
+
+
+def _sql_include(col: str) -> str:
+    """SOTU include conditions as a parenthesised OR block (no leading AND)."""
+    return _SQL_INCLUDE_BLOCK.replace("col", col)
+
+def _sql_exclude(col: str) -> str:
+    """SOTU exclude conditions as AND NOT ILIKE clauses (leading AND)."""
+    return _SQL_EXCLUDE_BLOCK.replace("col", col)
+
+def _sql_kw(col: str) -> str:
+    """Full SOTU WHERE fragment: include block followed by exclude clauses."""
+    return _sql_include(col) + _sql_exclude(col)
+
+
 # Maps VerbAI category name variants → canonical CATEGORY_META key.
 # VerbAI often returns shorter/different names than what the dashboard uses.
 CATEGORY_ALIASES: dict[str, str] = {
@@ -414,20 +472,7 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
         f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
         f"WHERE s.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
-        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
-        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
-        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
-        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
-        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
-        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
-        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
-        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
-        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
-        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
-        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%' "
-        f"OR s.QUERY ILIKE '%elon musk%' OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' "
-        f"OR s.QUERY ILIKE '%war%' OR s.QUERY ILIKE '%obamacare%') "
+        f"AND {_sql_kw('s.QUERY')}"
         f"GROUP BY s.QUERY;\n\n"
         f"QUERY 2 — political Reddit post counts by category:\n"
         f"SELECT r.TITLE AS query, COUNT(*) AS cnt, COUNT(DISTINCT r.USER_ID) AS users, r.SUBREDDIT "
@@ -436,13 +481,11 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
         f"WHERE r.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'neutralpolitics','geopolitics','economics','economy','environment',"
         f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
         f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
-        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
-        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
-        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"OR {_sql_include('r.TITLE')}) "
+        f"{_sql_exclude('r.TITLE')}"
         f"GROUP BY r.TITLE, r.SUBREDDIT;\n\n"
         f"For each search query or Reddit post, assign it to the ONE most relevant category from: "
         f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
@@ -480,20 +523,7 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
         f"WHERE s.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
-        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
-        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
-        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
-        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
-        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
-        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
-        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
-        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
-        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
-        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
-        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%' "
-        f"OR s.QUERY ILIKE '%elon musk%' OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' "
-        f"OR s.QUERY ILIKE '%war%' OR s.QUERY ILIKE '%obamacare%') "
+        f"AND {_sql_kw('s.QUERY')}"
         f"GROUP BY s.QUERY ORDER BY count DESC LIMIT 20;\n\n"
         f"QUERY 2 — top political Reddit posts (top 20):\n"
         f"SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT "
@@ -502,13 +532,11 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"WHERE r.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'neutralpolitics','geopolitics','economics','economy','environment',"
         f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
         f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
-        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
-        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
-        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"OR {_sql_include('r.TITLE')}) "
+        f"{_sql_exclude('r.TITLE')}"
         f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 20;\n\n"
         f"For each item assign the ONE most relevant category from this exact list: "
         f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
@@ -538,42 +566,77 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
 # Lowercase → canonical label lookup built once at import time
 _CANONICAL_CATEGORY: dict[str, str] = {k.lower(): k for k in CATEGORY_META}
 
-# Subreddits that are by definition political (matches the SQL WHERE clause whitelist)
+# Subreddits that are by definition SOTU-relevant US politics
 _POLITICAL_SUBREDDITS: frozenset[str] = frozenset({
     "politics", "politicaldiscussion", "conservative", "liberal",
-    "worldnews", "news", "neutralpolitics", "geopolitics", "economics",
-    "economy", "environment", "climate", "healthcare", "immigration",
-    "supremecourt", "law", "progressive", "democrats", "republican",
-    "political_humor", "libertarian", "uspolitics", "americanpolitics",
+    "neutralpolitics", "economics", "economy", "environment", "climate",
+    "healthcare", "immigration", "supremecourt", "law", "progressive",
+    "democrats", "republican", "political_humor", "libertarian",
+    "uspolitics", "americanpolitics",
+    # worldnews/news excluded — too much non-US content slips through
 })
 
-# Keywords that make a search query or Reddit title political
+# Keywords anchoring content to US politics relevant to the SOTU
 _POLITICAL_KEYWORDS: frozenset[str] = frozenset({
-    "trump", "biden", "kamala", "congress", "senate", "president",
-    "election", "vote", "democrat", "republican", "immigration", "border",
-    "tariff", "ukraine", "israel", "climate", "healthcare", "medicare",
-    "abortion", "gun", "supreme court", "military", "policy", "government",
-    "federal", "doge", "maga", "white house", "nato", "china", "iran",
-    "inflation", "student loan", "social security", "budget", "legislation",
-    "elon musk", "deportation", "tax", "war", "obamacare", "epstein",
-    "coup", "arrest", "nuclear", "geopolitics", "minister", "parliament",
-    "protest", "rally", "regime", "sanction", "diplomat",
+    # Trump administration
+    "trump", "white house", "maga", "executive order", "administration",
+    # Congress / legislation
+    "congress", "senate", "house of representatives", "filibuster",
+    "legislation", "bill", "vote", "democrat", "republican",
+    # DOGE / federal spending
+    "doge", "elon musk", "federal worker", "federal employee",
+    "federal budget", "government efficiency", "spending cut",
+    # Economy
+    "tariff", "tariffs", "trade war", "inflation", "jobs", "unemployment",
+    "economy", "gdp", "recession", "stock market", "interest rate",
+    # Immigration / border
+    "immigration", "border", "deportation", "ice raid", "daca",
+    "asylum", "undocumented", "migrant",
+    # Foreign policy (US-relevant)
+    "ukraine", "russia", "nato", "china", "taiwan", "iran", "israel",
+    "gaza", "middle east", "north korea", "sancti",
+    # Domestic policy
+    "healthcare", "medicare", "medicaid", "obamacare", "aca",
+    "abortion", "gun control", "gun violence", "second amendment",
+    "supreme court", "social security", "student loan", "education",
+    "climate", "energy", "oil", "nuclear",
+    # Budget / debt
+    "deficit", "debt ceiling", "budget", "appropriations",
+    # SOTU-specific
     "state of the union", "sotu", "address to congress",
+    # Other US political figures
+    "biden", "kamala", "harris", "rubio", "noem", "hegseth",
+    "gabbard", "patel",
 })
+
+# Phrases that disqualify an item even if it passes a keyword check —
+# catches foreign-political content that leaks through broad terms like
+# "arrest", "president", "coup", "parliament", etc.
+_SOTU_BLOCKLIST: tuple[str, ...] = (
+    "prince andrew", "prince william", "prince harry", "royal family",
+    "buckingham", "king charles",
+    "south korea", "yoon suk", "korean president",
+    "epstein",  # tabloid context; not US policy
+    "blondie in china", "white girl in china",  # viral non-political
+)
 
 
 def _is_political_item(item: dict) -> bool:
     """
-    Return True if this item is plausibly political.
-    Reddit items must be from a known political subreddit OR contain a political keyword.
-    Search items must contain at least one political keyword.
+    Return True if this item is SOTU-relevant US politics.
+    Applies a blocklist first, then requires a SOTU keyword match.
+    Reddit items from known US political subreddits pass with just a keyword.
     """
     text = (item.get("query") or item.get("topic") or "").lower()
+
+    # Blocklist: drop known irrelevant content regardless of other signals
+    if any(phrase in text for phrase in _SOTU_BLOCKLIST):
+        return False
+
     if item.get("source") == "reddit":
         sub = (item.get("subreddit") or "").lower()
         if sub in _POLITICAL_SUBREDDITS:
-            return True
-        return any(kw in text for kw in _POLITICAL_KEYWORDS)
+            return any(kw in text for kw in _POLITICAL_KEYWORDS)
     return any(kw in text for kw in _POLITICAL_KEYWORDS)
 
 
@@ -625,20 +688,7 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
         f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
         f"WHERE s.EVENT_TIME >= '{live_since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (s.QUERY ILIKE '%trump%' OR s.QUERY ILIKE '%biden%' OR s.QUERY ILIKE '%kamala%' "
-        f"OR s.QUERY ILIKE '%congress%' OR s.QUERY ILIKE '%senate%' OR s.QUERY ILIKE '%president%' "
-        f"OR s.QUERY ILIKE '%election%' OR s.QUERY ILIKE '%vote%' OR s.QUERY ILIKE '%democrat%' "
-        f"OR s.QUERY ILIKE '%republican%' OR s.QUERY ILIKE '%immigration%' OR s.QUERY ILIKE '%border%' "
-        f"OR s.QUERY ILIKE '%tariff%' OR s.QUERY ILIKE '%ukraine%' OR s.QUERY ILIKE '%israel%' "
-        f"OR s.QUERY ILIKE '%climate%' OR s.QUERY ILIKE '%healthcare%' OR s.QUERY ILIKE '%medicare%' "
-        f"OR s.QUERY ILIKE '%abortion%' OR s.QUERY ILIKE '%gun%' OR s.QUERY ILIKE '%supreme court%' "
-        f"OR s.QUERY ILIKE '%military%' OR s.QUERY ILIKE '%policy%' OR s.QUERY ILIKE '%government%' "
-        f"OR s.QUERY ILIKE '%federal%' OR s.QUERY ILIKE '%doge%' OR s.QUERY ILIKE '%maga%' "
-        f"OR s.QUERY ILIKE '%white house%' OR s.QUERY ILIKE '%nato%' OR s.QUERY ILIKE '%china%' "
-        f"OR s.QUERY ILIKE '%iran%' OR s.QUERY ILIKE '%inflation%' OR s.QUERY ILIKE '%student loan%' "
-        f"OR s.QUERY ILIKE '%social security%' OR s.QUERY ILIKE '%elon musk%' "
-        f"OR s.QUERY ILIKE '%deportation%' OR s.QUERY ILIKE '%tax%' OR s.QUERY ILIKE '%war%' "
-        f"OR s.QUERY ILIKE '%obamacare%' OR s.QUERY ILIKE '%budget%' OR s.QUERY ILIKE '%legislation%') "
+        f"AND {_sql_kw('s.QUERY')}"
         f"ORDER BY s.EVENT_TIME DESC LIMIT 50;\n\n"
         f"QUERY 2 — recent political Reddit posts:\n"
         f"SELECT r.EVENT_TIME AS time, r.TITLE AS query, 'reddit' AS source, "
@@ -648,13 +698,11 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
         f"WHERE r.EVENT_TIME >= '{live_since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'worldnews','news','neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'neutralpolitics','geopolitics','economics','economy','environment',"
         f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
         f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR r.TITLE ILIKE '%trump%' OR r.TITLE ILIKE '%congress%' OR r.TITLE ILIKE '%president%' "
-        f"OR r.TITLE ILIKE '%election%' OR r.TITLE ILIKE '%ukraine%' OR r.TITLE ILIKE '%immigration%' "
-        f"OR r.TITLE ILIKE '%climate%' OR r.TITLE ILIKE '%healthcare%' OR r.TITLE ILIKE '%tariff%' "
-        f"OR r.TITLE ILIKE '%democrat%' OR r.TITLE ILIKE '%republican%' OR r.TITLE ILIKE '%war%') "
+        f"OR {_sql_include('r.TITLE')}) "
+        f"{_sql_exclude('r.TITLE')}"
         f"ORDER BY r.EVENT_TIME DESC LIMIT 25;\n\n"
         f"For EVENT_TIME format as ISO 8601 (e.g. 2026-02-20T14:32:00Z). "
         f"For age compute YEAR(CURRENT_DATE) - YEAR_OF_BIRTH as an integer. "
@@ -692,31 +740,6 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     Returns list of dicts with keys: query (video title), topic, count, source
     ('youtube'), channel, category, trend.
     """
-    kw_block = (
-        "y.VIDEO_TITLE ILIKE '%trump%' OR y.VIDEO_TITLE ILIKE '%biden%' "
-        "OR y.VIDEO_TITLE ILIKE '%kamala%' OR y.VIDEO_TITLE ILIKE '%congress%' "
-        "OR y.VIDEO_TITLE ILIKE '%senate%' OR y.VIDEO_TITLE ILIKE '%president%' "
-        "OR y.VIDEO_TITLE ILIKE '%election%' OR y.VIDEO_TITLE ILIKE '%vote%' "
-        "OR y.VIDEO_TITLE ILIKE '%democrat%' OR y.VIDEO_TITLE ILIKE '%republican%' "
-        "OR y.VIDEO_TITLE ILIKE '%immigration%' OR y.VIDEO_TITLE ILIKE '%border%' "
-        "OR y.VIDEO_TITLE ILIKE '%tariff%' OR y.VIDEO_TITLE ILIKE '%ukraine%' "
-        "OR y.VIDEO_TITLE ILIKE '%israel%' OR y.VIDEO_TITLE ILIKE '%climate%' "
-        "OR y.VIDEO_TITLE ILIKE '%healthcare%' OR y.VIDEO_TITLE ILIKE '%medicare%' "
-        "OR y.VIDEO_TITLE ILIKE '%abortion%' OR y.VIDEO_TITLE ILIKE '%gun%' "
-        "OR y.VIDEO_TITLE ILIKE '%supreme court%' OR y.VIDEO_TITLE ILIKE '%military%' "
-        "OR y.VIDEO_TITLE ILIKE '%policy%' OR y.VIDEO_TITLE ILIKE '%government%' "
-        "OR y.VIDEO_TITLE ILIKE '%federal%' OR y.VIDEO_TITLE ILIKE '%doge%' "
-        "OR y.VIDEO_TITLE ILIKE '%maga%' OR y.VIDEO_TITLE ILIKE '%white house%' "
-        "OR y.VIDEO_TITLE ILIKE '%nato%' OR y.VIDEO_TITLE ILIKE '%china%' "
-        "OR y.VIDEO_TITLE ILIKE '%iran%' OR y.VIDEO_TITLE ILIKE '%inflation%' "
-        "OR y.VIDEO_TITLE ILIKE '%student loan%' OR y.VIDEO_TITLE ILIKE '%social security%' "
-        "OR y.VIDEO_TITLE ILIKE '%budget%' OR y.VIDEO_TITLE ILIKE '%legislation%' "
-        "OR y.VIDEO_TITLE ILIKE '%elon musk%' OR y.VIDEO_TITLE ILIKE '%deportation%' "
-        "OR y.VIDEO_TITLE ILIKE '%tax%' OR y.VIDEO_TITLE ILIKE '%war%' "
-        "OR y.VIDEO_TITLE ILIKE '%obamacare%' OR y.VIDEO_TITLE ILIKE '%state of the union%' "
-        "OR y.VIDEO_TITLE ILIKE '%sotu%' OR y.VIDEO_TITLE ILIKE '%nuclear%' "
-        "OR y.VIDEO_TITLE ILIKE '%epstein%' OR y.VIDEO_TITLE ILIKE '%coup%'"
-    )
     prompt = (
         f"Use the Snowflake database tool to find the top 20 political YouTube videos "
         f"watched by 18-29 year-olds since {since_iso}. Run this SQL query:\n\n"
@@ -726,7 +749,7 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"JOIN AGENT_SYNC a ON y.USER_ID = a.USER_ID "
         f"WHERE y.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND ({kw_block}) "
+        f"AND {_sql_kw('y.VIDEO_TITLE')}"
         f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
         f"ORDER BY count DESC LIMIT 20;\n\n"
         f"For each video assign the ONE most relevant category from this exact list: "

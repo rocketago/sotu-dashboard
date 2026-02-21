@@ -10,7 +10,7 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 77125,
+    "total_engagements": 42698,
     "total_unique_users": 23,
     "top_category": "General Politics",
     "categories_tracked": 11,
@@ -25,41 +25,10 @@
       "id": "general_politics",
       "label": "General Politics",
       "icon": "🗳️",
-      "engagement_count": 23181,
+      "engagement_count": 0,
       "unique_users": 5,
-      "trending_score": 100,
-      "items": [
-        {
-          "topic": "Prince Andrew arrested — YouTube coverage",
-          "query": "Prince Andrew ARRESTED | What You Need To Know",
-          "count": 14250,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "VICE News",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Prince Andrew & Epstein — full documentary",
-          "query": "Prince Andrew & Jeffrey Epstein: The Full Story | BBC Documentary",
-          "count": 8930,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "BBC News",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Prince Andrew misconduct arrest",
-          "query": "Andrew Mountbatten-Windsor arrested on 'misconduct' allegation | The National",
-          "count": 1,
-          "source": "reddit",
-          "subreddit": "news",
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "trending_score": 0,
+      "items": []
     },
     {
       "id": "presidential_politics",
@@ -67,7 +36,7 @@
       "icon": "🏛️",
       "engagement_count": 17522,
       "unique_users": 4,
-      "trending_score": 76,
+      "trending_score": 100,
       "items": [
         {
           "topic": "Trump's State of the Union 2026 analysis",
@@ -115,40 +84,10 @@
       "id": "foreign_policy",
       "label": "Foreign Policy",
       "icon": "🌍",
-      "engagement_count": 11248,
+      "engagement_count": 3,
       "unique_users": 3,
-      "trending_score": 49,
+      "trending_score": 0,
       "items": [
-        {
-          "topic": "South Korea President Yoon sentenced — YouTube coverage",
-          "query": "South Korea's President Gets Life In Prison For Coup Attempt | Full Story",
-          "count": 11240,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "DW News",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "White girl in China",
-          "query": "white girl in china",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Blondie in China",
-          "query": "blondie in china",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
         {
           "topic": "Iran talks resume Feb 2026",
           "query": "Iran talks resume Feb 2026",
@@ -178,16 +117,6 @@
           "channel": null,
           "url": null,
           "trend": "stable"
-        },
-        {
-          "topic": "South Korea President coup trial",
-          "query": "Former South Korean President Yoon Sentenced to Life in Prison for Coup Attempt",
-          "count": 1,
-          "source": "reddit",
-          "subreddit": "worldnews",
-          "channel": null,
-          "url": null,
-          "trend": "stable"
         }
       ]
     },
@@ -195,9 +124,9 @@
       "id": "economic_policy",
       "label": "Economic Policy",
       "icon": "💰",
-      "engagement_count": 11180,
+      "engagement_count": 11179,
       "unique_users": 4,
-      "trending_score": 48,
+      "trending_score": 64,
       "items": [
         {
           "topic": "Trump tariffs impact on everyday costs",
@@ -287,7 +216,7 @@
       "icon": "🛂",
       "engagement_count": 8570,
       "unique_users": 2,
-      "trending_score": 37,
+      "trending_score": 49,
       "items": [
         {
           "topic": "Trump deportation campaign update",
@@ -317,7 +246,7 @@
       "icon": "🌿",
       "engagement_count": 5420,
       "unique_users": 1,
-      "trending_score": 23,
+      "trending_score": 31,
       "items": [
         {
           "topic": "Nuclear energy debate — is it the answer?",
