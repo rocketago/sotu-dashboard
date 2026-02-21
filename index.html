@@ -963,9 +963,7 @@
   };
 
   function computeSentimentScore(data) {
-    // AFINN: count-weighted mean of lexicon scores across all item queries/topics
-    let afinnSum = 0, afinnWeight = 0;
-    // Engagement momentum breakdown (kept for the bar chart below the gauge)
+    // Engagement momentum breakdown — count-weighted by item.trend
     let upWeight = 0, downWeight = 0, stableWeight = 0, totalWeight = 0;
 
     data.categories.forEach(cat => {
@@ -975,22 +973,15 @@
         if (item.trend === 'up')        upWeight     += w;
         else if (item.trend === 'down') downWeight   += w;
         else                            stableWeight += w;
-
-        // Tokenize the query + topic text and score against AFINN
-        const text = ((item.query || '') + ' ' + (item.topic || '')).toLowerCase();
-        const words = text.match(/[a-z]+/g) || [];
-        words.forEach(word => {
-          if (word in AFINN) {
-            afinnSum    += AFINN[word] * w;
-            afinnWeight += w;
-          }
-        });
       });
     });
 
-    // Normalize AFINN mean (-5..+5) → 0..100; default 50 if no lexicon hits
-    const mean  = afinnWeight > 0 ? afinnSum / afinnWeight : 0;
-    const score = Math.round((mean / 5 + 1) / 2 * 100);
+    // Score = engagement-trend-weighted: all-up→100, all-down→0, balanced→50.
+    // Matches the breakdown shown in the tickers below the gauge.
+    const score = totalWeight > 0
+      ? Math.round(Math.max(0, Math.min(100, (upWeight - downWeight) / totalWeight * 50 + 50)))
+      : 50;
+
     return { score, upWeight, downWeight, stableWeight, totalWeight };
   }
 
@@ -1065,7 +1056,9 @@
   function arcPath(startDeg, endDeg) {
     const s = polarToXY(startDeg);
     const e = polarToXY(endDeg);
-    const sweep = startDeg - endDeg; // always positive when going clockwise in std-math
+    // Clockwise sweep in standard-math coords (= counter-clockwise SVG sweep-flag=0).
+    // Use modular arithmetic so endDeg=330 gives sweep=240, not -120.
+    const sweep = ((startDeg - endDeg) % 360 + 360) % 360;
     const largeArc = sweep > 180 ? 1 : 0;
     return `M ${s.x.toFixed(2)} ${s.y.toFixed(2)} A ${R} ${R} 0 ${largeArc} 0 ${e.x.toFixed(2)} ${e.y.toFixed(2)}`;
   }
@@ -1296,8 +1289,13 @@
         timeZoneName: 'short',
       });
     }
-    const runStr  = m.generated_at  ? `Action run: ${fmtEST(m.generated_at)}`  : '';
-    const pullStr = m.last_mcp_pull ? `MCP data: ${fmtEST(m.last_mcp_pull)}`   : '';
+    const runStr  = m.generated_at ? `Action run: ${fmtEST(m.generated_at)}` : '';
+    // live_feed.generated_at is written on every action run (even with fallback data),
+    // so it's a more reliable "last pull" indicator than last_mcp_pull (category data only).
+    const pullTs  = (liveData && liveData.generated_at)
+      ? liveData.generated_at
+      : m.last_mcp_pull;
+    const pullStr = pullTs ? `Last data pull: ${fmtEST(pullTs)}` : '';
     document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>

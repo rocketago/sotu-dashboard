@@ -1058,6 +1058,7 @@ def main():
         datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(hours=24)
     ).strftime("%Y-%m-%dT%H:%M:%SZ")
     live_events = fetch_live_events(live_since_iso, mcp_ctx)
+    live_events_from_mcp = bool(live_events)
 
     if not live_events:
         # Seed synthetic events from the just-written political_data.json
@@ -1067,6 +1068,19 @@ def main():
         except Exception:
             _seed_src = {}
         live_events = seed_events_from_categories(_seed_src)
+
+    # If live events came from MCP but category/query/youtube fetches all failed,
+    # update last_mcp_pull in the existing political_data.json to reflect the pull.
+    if live_events_from_mcp and not categories_raw and not queries_raw and not youtube_raw:
+        try:
+            with open(OUTPUT_FILE) as f:
+                _existing = json.load(f)
+            _existing["meta"]["last_mcp_pull"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            with open(OUTPUT_FILE, "w") as f:
+                json.dump(_existing, f, indent=2, ensure_ascii=False)
+            print("[INFO] Updated last_mcp_pull from live events fetch.")
+        except Exception as e:
+            print(f"[WARN] Could not update last_mcp_pull from live events: {e}")
 
     live_payload = {
         "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
