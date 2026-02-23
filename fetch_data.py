@@ -26,9 +26,10 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-OUTPUT_FILE    = Path(__file__).parent / "political_data.json"
-LIVE_FEED_FILE = Path(__file__).parent / "live_feed.json"
-HISTORY_FILE   = Path(__file__).parent / "history.json"
+OUTPUT_FILE      = Path(__file__).parent / "political_data.json"
+LIVE_FEED_FILE   = Path(__file__).parent / "live_feed.json"
+HISTORY_FILE     = Path(__file__).parent / "history.json"
+MCP_STATUS_FILE  = Path(__file__).parent / "mcp_status.json"
 
 VERBAI_MCP_URL = (
     "https://zknnynm-exc60781.snowflakecomputing.com"
@@ -1185,6 +1186,32 @@ def update_history(data: dict) -> None:
     print(f"[OK] Updated history.json — score={score}, {len(history['points'])} points total.")
 
 
+def write_mcp_status(data_returned: bool, counts: dict) -> None:
+    """
+    Write mcp_status.json recording every MCP attempt and whether data came back.
+    Preserves last_success_at from the previous file when data_returned is False.
+    """
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    last_success = now_iso if data_returned else None
+    if not data_returned and MCP_STATUS_FILE.exists():
+        try:
+            with open(MCP_STATUS_FILE) as f:
+                prev = json.load(f)
+            last_success = prev.get("last_success_at")
+        except Exception:
+            pass
+    status = {
+        "last_attempt_at": now_iso,
+        "data_returned":   data_returned,
+        "last_success_at": last_success,
+        "counts":          counts,
+    }
+    with open(MCP_STATUS_FILE, "w") as f:
+        json.dump(status, f, indent=2)
+    flag = "" if data_returned else " ⚠ no data"
+    print(f"[OK] Wrote mcp_status.json — data_returned={data_returned}{flag}")
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
@@ -1282,6 +1309,18 @@ def main():
     with open(LIVE_FEED_FILE, "w") as f:
         json.dump(live_payload, f, indent=2, ensure_ascii=False)
     print(f"[OK] Wrote live_feed.json — {len(live_events)} events.")
+
+    # ── Write MCP status (every run, data or not) ─────────────────────────────
+    any_data = bool(categories_raw or queries_raw or youtube_raw or live_events_from_mcp)
+    write_mcp_status(
+        data_returned=any_data,
+        counts={
+            "categories":  len(categories_raw),
+            "queries":     len(queries_raw),
+            "youtube":     len(youtube_raw),
+            "live_events": len(live_events) if live_events_from_mcp else 0,
+        },
+    )
 
 
 if __name__ == "__main__":

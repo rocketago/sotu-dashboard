@@ -1118,6 +1118,7 @@
   const LIVE_URL          = './live_feed.json';
   const STATUS_URL        = './status.json';
   const HISTORY_URL       = './history.json';
+  const MCP_STATUS_URL    = './mcp_status.json';
   const SEARCH_REFRESH_MS = 5  * 60 * 1000;
   const REDDIT_REFRESH_MS = 15 * 60 * 1000;
 
@@ -1125,6 +1126,7 @@
   let currentData    = null;
   let liveData       = null;
   let historyData    = null;
+  let mcpStatus      = null;
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -1826,12 +1828,18 @@
       });
     }
     const runStr  = m.generated_at ? `Action run: ${fmtEST(m.generated_at)}` : '';
-    // live_feed.generated_at is written on every action run (even with fallback data),
-    // so it's a more reliable "last pull" indicator than last_mcp_pull (category data only).
-    const pullTs  = (liveData && liveData.generated_at)
-      ? liveData.generated_at
-      : m.last_mcp_pull;
-    const pullStr = pullTs ? `Last data pull: ${fmtEST(pullTs)}` : '';
+
+    // MCP pull status — sourced from mcp_status.json written by fetch_data.py on every run.
+    // Falls back to live_feed / last_mcp_pull timestamps for older deploys without the file.
+    let pullStr = '';
+    if (mcpStatus && mcpStatus.last_attempt_at) {
+      const noData = mcpStatus.data_returned === false;
+      const flag   = noData ? ' ⚠️ No data returned' : '';
+      pullStr = `Last MCP pull: ${fmtEST(mcpStatus.last_attempt_at)}${flag}`;
+    } else {
+      const pullTs = (liveData && liveData.generated_at) ? liveData.generated_at : m.last_mcp_pull;
+      if (pullTs) pullStr = `Last MCP pull: ${fmtEST(pullTs)}`;
+    }
     document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
@@ -2363,16 +2371,18 @@
   async function loadData() {
     try {
       const ts = Date.now();
-      const [dataRes, liveRes, histRes] = await Promise.all([
-        fetch(DATA_URL    + '?_=' + ts),
-        fetch(LIVE_URL    + '?_=' + ts).catch(() => null),
-        fetch(HISTORY_URL + '?_=' + ts).catch(() => null),
+      const [dataRes, liveRes, histRes, mcpStatusRes] = await Promise.all([
+        fetch(DATA_URL        + '?_=' + ts),
+        fetch(LIVE_URL        + '?_=' + ts).catch(() => null),
+        fetch(HISTORY_URL     + '?_=' + ts).catch(() => null),
+        fetch(MCP_STATUS_URL  + '?_=' + ts).catch(() => null),
       ]);
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
       currentData = data;
-      liveData    = liveRes  ? await liveRes.json().catch(()  => null) : null;
-      historyData = histRes  ? await histRes.json().catch(()  => null) : null;
+      liveData    = liveRes       ? await liveRes.json().catch(()       => null) : null;
+      historyData = histRes       ? await histRes.json().catch(()       => null) : null;
+      mcpStatus   = mcpStatusRes  ? await mcpStatusRes.json().catch(()  => null) : null;
 
       renderWindowBanner(data);
       renderSummary(data);
