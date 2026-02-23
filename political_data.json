@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-23T21:58:27Z",
-    "last_mcp_pull": "2026-02-23T21:58:27Z",
+    "generated_at": "2026-02-23T22:09:49Z",
+    "last_mcp_pull": "2026-02-23T22:09:49Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
@@ -10,27 +10,77 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 18,
-    "total_unique_users": 3,
-    "top_category": "Presidential Politics",
+    "total_engagements": 30,
+    "total_unique_users": 7,
+    "top_category": "General Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
     "search_events_today": 0,
     "reddit_events_today": 0,
-    "youtube_events_today": 3,
+    "youtube_events_today": 7,
     "news_events_today": 0
   },
   "categories": [
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 12,
+      "unique_users": 4,
+      "trending_score": 100,
+      "items": [
+        {
+          "topic": "Bollywood music video featuring popular romantic song",
+          "query": "Man mast magan..💗💗 #song #music #bollywood  #arijitsingh",
+          "count": 5,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "AashiRai__002",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood song featuring actress Alia Bhatt",
+          "query": "Mast Magan ft. Alia Bhatt",
+          "count": 5,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Nehal",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood wedding song compilation featuring popular actors",
+          "query": "Man Mast Magan- ||Alia Bhatt, Arjun Kapoor||  Wedding Songs||",
+          "count": 1,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "All In One #Deep",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood song compilation from the film 2 States",
+          "query": "collecting underrated songs - 2/20 #mast magan #aliabhatt #alia #arjunkapoor #2states",
+          "count": 1,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Snikitha",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
     {
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
       "engagement_count": 10,
       "unique_users": 2,
-      "trending_score": 100,
+      "trending_score": 83,
       "items": [
         {
-          "topic": "Political debate between journalists regarding Trump administration analysis",
+          "topic": "Pundit confronts media personality about denying Trump-related issues during interview",
           "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
           "count": 6,
           "source": "youtube",
@@ -40,7 +90,7 @@
           "trend": "stable"
         },
         {
-          "topic": "Overview of recent Trump administration actions and cryptocurrency discussion",
+          "topic": "Overview of recent Trump administration developments and cryptocurrency connections",
           "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
           "count": 4,
           "source": "youtube",
@@ -57,10 +107,10 @@
       "icon": "🎓",
       "engagement_count": 8,
       "unique_users": 1,
-      "trending_score": 80,
+      "trending_score": 67,
       "items": [
         {
-          "topic": "Personal story about paying off a brother's student loans as a content creator milestone",
+          "topic": "Creator discusses paying off brother's student loans as a personal milestone achievement",
           "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
           "count": 8,
           "source": "youtube",
@@ -70,15 +120,6 @@
           "trend": "stable"
         }
       ]
-    },
-    {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
     },
     {
       "id": "elections_voting",
