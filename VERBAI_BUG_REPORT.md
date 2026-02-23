@@ -1,6 +1,6 @@
-# VerbAI Bug Report — 2026-02-20
+# VerbAI Bug Report — 2026-02-20 through 2026-02-23
 
-**Date:** 2026-02-20
+**Last updated:** 2026-02-23
 **Dashboard:** SOTU Gen Z Political Engagement Dashboard
 **MCP Endpoint:** `https://zknnynm-exc60781.snowflakecomputing.com/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS/mcp-servers/VERB_AI_MCP_SERVER`
 **Schema reference:** https://docs.generationlab.org/getting-started/editor
@@ -16,7 +16,7 @@ Our queries use the table and column names exactly as documented in the VerbAI s
 | `AGENT_SYNC` | `USER_ID`, `YEAR_OF_BIRTH`, `GENDER`, `FULL_ADDRESS` | ✅ All documented |
 | `SEARCH_EVENTS_FLAT_DYM` | `USER_ID`, `QUERY`, `EVENT_TIME` | ✅ All documented |
 | `REDDIT_EVENTS_FLAT_DYM` | `USER_ID`, `TITLE`, `SUBREDDIT`, `SCORE`, `EVENT_TIME` | ✅ All documented |
-| `YOUTUBE_EVENTS_FLAT_DYM` | _(not yet queried)_ | ⚠️ In schema, not used |
+| `YOUTUBE_EVENTS_FLAT_DYM` | `USER_ID`, `VIDEO_TITLE`, `CHANNEL`, `EVENT_TIME` | ✅ Added Feb 20; returned data that run |
 
 The SQL was written to the spec. The issues described below are with execution, not schema.
 
@@ -131,13 +131,43 @@ The complete broken output is preserved in `political_data.json` at git commit `
 
 ---
 
+## Update — 2026-02-23: Complete Data Blackout (Feb 21–23)
+
+Problem 4 (non-deterministic results) has since escalated into a **total blackout**. Every workflow run from Feb 20 16:33 UTC through Feb 23 has returned **zero rows from all three fetch calls** simultaneously:
+
+| Fetch call | Feb 20 last run | Feb 21 | Feb 22 | Feb 23 |
+|---|---|---|---|---|
+| `fetch_category_counts` | 0 rows (already broken) | 0 rows | 0 rows | 0 rows |
+| `fetch_search_queries` | data returned | 0 rows | 0 rows | 0 rows |
+| `fetch_youtube_videos` | 10 items returned | 0 rows | 0 rows | 0 rows |
+
+The workflow has been running successfully (token present, MCP session established, `tools/call` completes without error) — VerbAI is just returning empty content blocks on every call.
+
+### Downstream impact
+
+The 3-day blackout caused the following visible failures in the dashboard:
+
+- **History graph gap** — `history.json` has no points for Feb 21, 22, or 23. The graph shows a flat line ending Feb 20 16:33 and then goes blank. (Workaround committed: the no-data path now appends a history point on every run so gaps don't accumulate further.)
+- **Stale date label** — The dashboard showed "Today (Feb 20) · Updated live" on Feb 21, 22, and 23 because `today_start` and `window_label` were not refreshed in the no-data path. (Workaround committed.)
+- **Stale engagement counts** — All category totals (42,698 engagements) and individual items frozen at Feb 20 values. The five YouTube videos from Feb 20 continue to dominate the display.
+- **Stale live feed** — `live_feed.json` last written Feb 20 03:59 UTC. Live events panel shows Feb 19 queries as "live."
+
+### State of Feb 20 data now on the dashboard
+
+Given Problems 1–3 from the original report, the Feb 20 data currently displayed is also of questionable accuracy:
+- The 42,698 "total engagements" figure is dominated by five YouTube items whose counts appear to reflect video view/like counts rather than panel `COUNT(*)` values (e.g. 9,870 for one video is implausibly high for a ~3K-user panel).
+- The data pipeline returned these inflated counts on the one run that succeeded; subsequent runs have returned nothing.
+
+---
+
 ## Requested Fix
 
 1. **Search keyword filter** — Apply the `s.QUERY ILIKE '%...'` conditions as written. Only search rows matching at least one political keyword should appear in results.
 2. **`COUNT(*)`** — Execute the aggregate as written. The `count` field should reflect the number of VerbAI panel event rows matching the WHERE clause, not the post's Reddit `SCORE`.
 3. **Subreddit filter** — Apply the `LOWER(r.SUBREDDIT) IN (...)` WHERE clause before returning results. Only rows matching the whitelist (or a title keyword condition) should appear.
 4. **Determinism** — Two calls with equivalent SQL in the same session should return consistent non-zero results when data exists in the time window.
+5. **Complete blackout (new, blocking)** — All three fetch calls have returned zero rows on every run since Feb 20 16:33 UTC. The MCP session establishes successfully and `tools/call` completes without a JSON-RPC error, but content blocks are empty. This is the highest-priority issue: the dashboard has been fully stale for 3+ days. We need either (a) confirmation that the Snowflake tables have data in the Feb 21–23 window and a fix for why queries return empty, or (b) a status update if there is a known data pipeline outage on VerbAI's end.
 
-## Question — YouTube Engagements
+## Note on YouTube (`YOUTUBE_EVENTS_FLAT_DYM`)
 
-The published schema includes `YOUTUBE_EVENTS_FLAT_DYM` with video title, channel, view count, and `EVENT_TIME`. We are not currently querying this table. Is it populated with panel data and available for the same `JOIN AGENT_SYNC` age/demographic filter pattern used by the search and Reddit tables? If so, we would like to add YouTube video consumption to the dashboard.
+We added YouTube queries (via `JOIN AGENT_SYNC`) on Feb 20 and received 10 results in that run, confirming the table is populated and the join pattern works. However, YouTube fetch calls have also returned zero rows since Feb 20, consistent with the broader blackout described above. Once the blackout is resolved we expect YouTube data to resume normally.
