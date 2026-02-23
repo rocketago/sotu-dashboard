@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-23T16:56:09Z",
-    "last_mcp_pull": "2026-02-20T03:59:51Z",
+    "generated_at": "2026-02-23T19:39:57Z",
+    "last_mcp_pull": "2026-02-23T19:39:57Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
@@ -10,291 +10,42 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 42698,
-    "total_unique_users": 23,
-    "top_category": "General Politics",
+    "total_engagements": 18,
+    "total_unique_users": 3,
+    "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 23,
-    "youtube_events_today": 10,
-    "reddit_events_today": 2,
+    "search_events_today": 0,
+    "reddit_events_today": 0,
+    "youtube_events_today": 3,
     "news_events_today": 0
   },
   "categories": [
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 5,
-      "trending_score": 0,
-      "items": []
-    },
-    {
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 17522,
-      "unique_users": 4,
+      "engagement_count": 10,
+      "unique_users": 2,
       "trending_score": 100,
       "items": [
         {
-          "topic": "Trump's State of the Union 2026 analysis",
-          "query": "Trump's State of the Union 2026: Full Analysis & Fact-Check",
-          "count": 9870,
+          "topic": "Political commentary debate about Trump between Mehdi and Piers Morgan",
+          "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
+          "count": 6,
           "source": "youtube",
           "subreddit": null,
-          "channel": "CNN",
+          "channel": "Zeteo",
           "url": null,
-          "trend": "up"
+          "trend": "stable"
         },
         {
-          "topic": "DOGE federal budget cuts breakdown",
-          "query": "What DOGE Actually Cut This Month | Full Breakdown",
-          "count": 7650,
+          "topic": "Overview of recent Trump administration actions and policies",
+          "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
+          "count": 4,
           "source": "youtube",
           "subreddit": null,
-          "channel": "The Daily Show",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "First black president comedy",
-          "query": "first black president comedy",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Trump trademark airport name",
-          "query": "Trump trademark airport name",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 3,
-      "unique_users": 3,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Iran talks resume Feb 2026",
-          "query": "Iran talks resume Feb 2026",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Israel",
-          "query": "israel",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Iran talks resume amid renewed diplomacy",
-          "query": "Iran talks resume amid renewed diplomacy",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 11179,
-      "unique_users": 4,
-      "trending_score": 64,
-      "items": [
-        {
-          "topic": "Trump tariffs impact on everyday costs",
-          "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
-          "count": 6180,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Bloomberg",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "Federal workers share experiences after DOGE cuts",
-          "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
-          "count": 4990,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "PBS NewsHour",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "CA taxes for part-time residents",
-          "query": "do you have to provide id when filing ca taxes part time resident",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Proving California residency for taxes",
-          "query": "how to prove you're a california resident for your taxes",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "IRS tax refunds",
-          "query": "irs tax refunds",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Taxes for CA non-residents",
-          "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Long term rental tax deductions",
-          "query": "long term rental tax deductions",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Trump tariffs and economy critique",
-          "query": "Trump tariffs and economy critique",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "immigration_policy",
-      "label": "Immigration Policy",
-      "icon": "🛂",
-      "engagement_count": 8570,
-      "unique_users": 2,
-      "trending_score": 49,
-      "items": [
-        {
-          "topic": "Trump deportation campaign update",
-          "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
-          "count": 4850,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "VICE News",
-          "url": null,
-          "trend": "up"
-        },
-        {
-          "topic": "ICE raids — documented first-person accounts",
-          "query": "ICE Raids 2026: Documented Stories From Across America",
-          "count": 3720,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "ProPublica",
-          "url": null,
-          "trend": "up"
-        }
-      ]
-    },
-    {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
-      "engagement_count": 5420,
-      "unique_users": 1,
-      "trending_score": 31,
-      "items": [
-        {
-          "topic": "Nuclear energy debate — is it the answer?",
-          "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
-          "count": 5420,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Wendover Productions",
-          "url": null,
-          "trend": "up"
-        }
-      ]
-    },
-    {
-      "id": "legislative_politics",
-      "label": "Legislative Politics",
-      "icon": "📜",
-      "engagement_count": 1,
-      "unique_users": 1,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Senate hearing for Jeremy Carl",
-          "query": "Senate hearing for Jeremy Carl",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "healthcare_policy",
-      "label": "Healthcare Policy",
-      "icon": "🏥",
-      "engagement_count": 1,
-      "unique_users": 1,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "Systematically reducing healthcare costs",
-          "query": "how could the cost of healthcare systematically reduce",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
+          "channel": "Koga Nja",
           "url": null,
           "trend": "stable"
         }
@@ -304,46 +55,98 @@
       "id": "education_policy",
       "label": "Education Policy",
       "icon": "🎓",
-      "engagement_count": 1,
+      "engagement_count": 8,
       "unique_users": 1,
-      "trending_score": 0,
+      "trending_score": 80,
       "items": [
         {
-          "topic": "Cleveland State University enrollment and budget pressure",
-          "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
-          "count": 1,
-          "source": "search",
+          "topic": "Content creator discusses paying off brother's student loans as personal milestone",
+          "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
+          "count": 8,
+          "source": "youtube",
           "subreddit": null,
-          "channel": null,
+          "channel": "Wootak Kim",
           "url": null,
           "trend": "stable"
         }
       ]
     },
     {
-      "id": "civil_rights",
-      "label": "Civil Rights",
-      "icon": "✊",
-      "engagement_count": 1,
-      "unique_users": 1,
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
       "trending_score": 0,
-      "items": [
-        {
-          "topic": "Zero stat gun",
-          "query": "zero stat gun",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "items": []
     },
     {
       "id": "elections_voting",
       "label": "Elections & Voting",
       "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil Rights",
+      "icon": "✊",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
