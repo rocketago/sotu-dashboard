@@ -6,18 +6,18 @@
   <title>SOTU Rapid Response — Gen Z Political Tracker (Live)</title>
   <style>
     :root {
-      --bg:        #000F1D;
-      --surface:   #051628;
-      --surface2:  #072243;
-      --border:    #0d3060;
+      --bg:        #F0F4F8;
+      --surface:   #FFFFFF;
+      --surface2:  #EEF4FB;
+      --border:    #C8D9EE;
       --accent:    #0DA2E6;
-      --accent2:   #B080C3;
+      --accent2:   #7730AA;
       --warn:      #F9495F;
       --up:        #04B35D;
       --down:      #F9495F;
-      --stable:    #7b9ab0;
-      --text:      #FFFFFF;
-      --muted:     #7b9ab0;
+      --stable:    #4a6a8a;
+      --text:      #072243;
+      --muted:     #5a7a9a;
       --radius:    5px;
     }
 
@@ -34,26 +34,49 @@
 
     /* ── TOP BAR ── */
     header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 28px;
+      background: #FFFFFF;
+      border-bottom: 3px solid transparent;
+      border-image: linear-gradient(90deg, #F9495F 0%, #0DA2E6 100%) 1;
+      padding: 12px 28px;
       display: flex;
       align-items: center;
       gap: 16px;
       position: sticky;
       top: 0;
       z-index: 100;
+      box-shadow: 0 2px 8px rgba(7,34,67,0.07);
     }
 
-    .logo-badge {
-      background: var(--warn);
-      border-radius: 5px;
-      padding: 6px 12px;
-      font-weight: 800;
-      font-size: 13px;
-      letter-spacing: 0.5px;
-      color: #fff;
+    .vot-logo-link {
+      display: flex;
+      align-items: center;
+      flex-shrink: 0;
+      text-decoration: none;
     }
+
+    .vot-logo {
+      height: 38px;
+      width: auto;
+    }
+
+    .fetch-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 7px 14px;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .fetch-btn:hover   { opacity: 0.85; }
+    .fetch-btn:active  { transform: scale(0.97); }
+    .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
     header h1 {
       font-size: 17px;
@@ -105,8 +128,9 @@
 
     /* ── WINDOW BANNER ── */
     .window-banner {
-      background: linear-gradient(90deg, rgba(13,162,230,0.10), rgba(176,128,195,0.06));
-      border-bottom: 1px solid rgba(13,162,230,0.2);
+      background: linear-gradient(90deg, rgba(13,162,230,0.10) 0%, rgba(249,73,95,0.06) 100%);
+      border-bottom: 2px solid transparent;
+      border-image: linear-gradient(90deg, rgba(13,162,230,0.4), rgba(249,73,95,0.25)) 1;
       padding: 8px 28px;
       display: flex;
       align-items: center;
@@ -401,10 +425,10 @@
       flex-shrink: 0;
     }
 
-    .source-search  { background: rgba(13,162,230,0.15);  color: #5dc8f5; border: 1px solid rgba(13,162,230,0.3); }
-    .source-news    { background: rgba(176,128,195,0.15); color: #c8a0d8; border: 1px solid rgba(176,128,195,0.3); }
-    .source-reddit  { background: rgba(249,73,95,0.13);   color: #f97888; border: 1px solid rgba(249,73,95,0.28); }
-    .source-youtube { background: rgba(255,48,48,0.12);   color: #ff6b6b; border: 1px solid rgba(255,48,48,0.28); }
+    .source-search  { background: rgba(13,162,230,0.12);  color: #006fa8; border: 1px solid rgba(13,162,230,0.35); }
+    .source-news    { background: rgba(119,48,170,0.10);  color: #5a1f8a; border: 1px solid rgba(119,48,170,0.3); }
+    .source-reddit  { background: rgba(249,73,95,0.10);   color: #b8192e; border: 1px solid rgba(249,73,95,0.32); }
+    .source-youtube { background: rgba(200,30,30,0.10);   color: #a01010; border: 1px solid rgba(200,30,30,0.3); }
 
     .item-count {
       font-size: 12px;
@@ -707,13 +731,13 @@
     .wc-tooltip {
       position: fixed;
       z-index: 9999;
-      background: #0d1f2e;
+      background: #FFFFFF;
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 10px 13px;
       min-width: 220px;
       max-width: 320px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      box-shadow: 0 8px 32px rgba(7,34,67,0.14);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.12s;
@@ -732,7 +756,7 @@
 
     .wc-tt-item {
       padding: 5px 0;
-      border-top: 1px solid rgba(255,255,255,0.06);
+      border-top: 1px solid rgba(7,34,67,0.08);
     }
 
     .wc-tt-query {
@@ -753,8 +777,8 @@
     }
 
     .wc-tt-src {
-      background: rgba(13,162,230,0.15);
-      color: #5dc8f5;
+      background: rgba(13,162,230,0.12);
+      color: #006fa8;
       border-radius: 3px;
       padding: 1px 5px;
       font-size: 9px;
@@ -861,8 +885,13 @@
 <body>
 
 <header>
-  <div class="logo-badge">VERB AI</div>
+  <a href="https://votersoftomorrow.org" target="_blank" rel="noopener" class="vot-logo-link">
+    <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="vot-logo" />
+  </a>
   <h1>State of the Union — Rapid Response Tracker</h1>
+  <button class="fetch-btn" id="fetch-btn" onclick="triggerFetch()" title="Dispatch the fetch_data workflow via GitHub Actions">
+    ↻ Fetch Data
+  </button>
   <div class="live-pill paused" id="live-pill">
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">PAUSED</span>
@@ -1375,23 +1404,23 @@
 
     document.getElementById('sentiment-gauge').innerHTML = `
       <!-- Background track -->
-      <path d="${bgPath}" fill="none" stroke="#0d3060" stroke-width="20" stroke-linecap="round"/>
+      <path d="${bgPath}" fill="none" stroke="#C8D9EE" stroke-width="20" stroke-linecap="round"/>
 
       <!-- Score fill arc -->
       ${fillPath ? `<path d="${fillPath}" fill="none" stroke="${color}" stroke-width="20" stroke-linecap="round" opacity="0.95"/>` : ''}
 
       <!-- Soft glow -->
-      ${fillPath ? `<path d="${fillPath}" fill="none" stroke="${color}" stroke-width="30" stroke-linecap="round" opacity="0.10"/>` : ''}
+      ${fillPath ? `<path d="${fillPath}" fill="none" stroke="${color}" stroke-width="30" stroke-linecap="round" opacity="0.12"/>` : ''}
 
       <!-- Tick marks: start / mid / end -->
-      <path d="${tick(START)}" stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
-      <path d="${tick(90)}"    stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
-      <path d="${tick(END)}"   stroke="#7b9ab0" stroke-width="2" stroke-linecap="round"/>
+      <path d="${tick(START)}" stroke="#4a6a8a" stroke-width="2" stroke-linecap="round"/>
+      <path d="${tick(90)}"    stroke="#4a6a8a" stroke-width="2" stroke-linecap="round"/>
+      <path d="${tick(END)}"   stroke="#4a6a8a" stroke-width="2" stroke-linecap="round"/>
 
       <!-- Needle -->
       <polygon points="${tip.x.toFixed(1)},${tip.y.toFixed(1)} ${base1.x.toFixed(1)},${base1.y.toFixed(1)} ${base2.x.toFixed(1)},${base2.y.toFixed(1)}"
                fill="${color}" opacity="0.9"/>
-      <circle cx="${CX}" cy="${CY}" r="7" fill="#0d1f2e" stroke="${color}" stroke-width="2"/>
+      <circle cx="${CX}" cy="${CY}" r="7" fill="#FFFFFF" stroke="${color}" stroke-width="2"/>
     `;
 
     // Score shown as styled HTML below the arc — clear and unobstructed
@@ -1405,8 +1434,8 @@
 
   /* ── WORD CLOUD RENDER ── */
   const WC_COLORS = [
-    '#0DA2E6','#B080C3','#04B35D','#5dc8f5','#c8a0d8',
-    '#F9A349','#7b9ab0','#0DA2E6','#B080C3','#04B35D',
+    '#0DA2E6','#7730AA','#04B35D','#0075b0','#5a1f8a',
+    '#cc5500','#3a6a9a','#b8192e','#006644','#0DA2E6',
   ];
 
   // Floating tooltip element (reused for all words)
@@ -1509,7 +1538,7 @@
     const neuPct = totalWeight ? Math.round(neuWeight / totalWeight * 100) : 0;
     document.getElementById('sentiment-meta').innerHTML =
       `<span style="color:#04B35D">▲ Positive tone ${posPct}%</span> &nbsp;·&nbsp;
-       <span style="color:#7b9ab0">— Neutral ${neuPct}%</span> &nbsp;·&nbsp;
+       <span style="color:#4a6a8a">— Neutral ${neuPct}%</span> &nbsp;·&nbsp;
        <span style="color:#F9495F">▼ Negative tone ${negPct}%</span><br>
        Content sentiment · ${totalWeight.toLocaleString()} engagement-weighted signals`;
 
@@ -1782,6 +1811,65 @@
   }
 
 
+  /* ── TRIGGER GITHUB ACTIONS WORKFLOW ── */
+  async function triggerFetch() {
+    const btn = document.getElementById('fetch-btn');
+
+    // Retrieve stored token or prompt for one
+    let token = localStorage.getItem('gh_actions_token');
+    if (!token) {
+      token = prompt(
+        'Enter a GitHub Personal Access Token with repo/actions:write scope.\n' +
+        'It will be stored in localStorage for future use.\n\n' +
+        'Token:'
+      );
+      if (!token || !token.trim()) return;
+      token = token.trim();
+      localStorage.setItem('gh_actions_token', token);
+    }
+
+    btn.disabled = true;
+    btn.textContent = '↺ Dispatching…';
+
+    try {
+      const res = await fetch(
+        'https://api.github.com/repos/rocketago/sotu-dashboard/actions/workflows/auto-update.yml/dispatches',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+
+      if (res.status === 204) {
+        showStatus('Workflow dispatched ✓ — data will refresh in ~30–60 s', 'success');
+        btn.textContent = '✓ Dispatched';
+        setTimeout(() => { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }, 8000);
+        // Re-poll after 45 s to pick up fresh data
+        setTimeout(loadData, 45000);
+      } else if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
+        btn.textContent = '↻ Fetch Data';
+        btn.disabled = false;
+      } else {
+        const body = await res.text().catch(() => '');
+        showStatus(`Dispatch failed (${res.status})${body ? ': ' + body.slice(0, 120) : ''}`, 'error');
+        btn.textContent = '↻ Fetch Data';
+        btn.disabled = false;
+      }
+    } catch (err) {
+      showStatus('Network error: ' + err.message, 'error');
+      btn.textContent = '↻ Fetch Data';
+      btn.disabled = false;
+    }
+  }
+
   /* ── LOAD AUTO-UPDATE STATUS ── */
   async function loadStatus() {
     try {
@@ -1844,18 +1932,18 @@
     ];
     zones.forEach(z => {
       const y1 = yS(z.hi), y2 = yS(z.lo), h = y2 - y1;
-      svg += `<rect x="${PAD.left}" y="${y1.toFixed(1)}" width="${cW}" height="${h.toFixed(1)}" fill="${z.color}" opacity="0.04"/>`;
-      svg += `<text x="${PAD.left + cW + 6}" y="${((y1 + y2) / 2 + 4).toFixed(1)}" fill="${z.color}" font-size="9" font-family="Inter,sans-serif" opacity="0.7">${z.label}</text>`;
+      svg += `<rect x="${PAD.left}" y="${y1.toFixed(1)}" width="${cW}" height="${h.toFixed(1)}" fill="${z.color}" opacity="0.07"/>`;
+      svg += `<text x="${PAD.left + cW + 6}" y="${((y1 + y2) / 2 + 4).toFixed(1)}" fill="${z.color}" font-size="9" font-family="Inter,sans-serif" opacity="0.9">${z.label}</text>`;
     });
 
     // Chart border
-    svg += `<rect x="${PAD.left}" y="${PAD.top}" width="${cW}" height="${cH}" fill="none" stroke="#0d3060" stroke-width="1"/>`;
+    svg += `<rect x="${PAD.left}" y="${PAD.top}" width="${cW}" height="${cH}" fill="none" stroke="#C8D9EE" stroke-width="1"/>`;
 
     // Y gridlines + labels
     [0, 25, 50, 75, 100].forEach(sc => {
       const y = yS(sc);
-      svg += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${PAD.left + cW}" y2="${y.toFixed(1)}" stroke="#0d3060" stroke-width="1" stroke-dasharray="4,4"/>`;
-      svg += `<text x="${(PAD.left - 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#7b9ab0" font-size="11" font-family="Inter,sans-serif">${sc}</text>`;
+      svg += `<line x1="${PAD.left}" y1="${y.toFixed(1)}" x2="${PAD.left + cW}" y2="${y.toFixed(1)}" stroke="#C8D9EE" stroke-width="1" stroke-dasharray="4,4"/>`;
+      svg += `<text x="${(PAD.left - 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#4a6a8a" font-size="11" font-family="Inter,sans-serif">${sc}</text>`;
     });
 
     // X-axis: one tick per day
@@ -1863,9 +1951,9 @@
     while (d <= endDay) {
       const x  = xS(d);
       const xf = x.toFixed(1);
-      svg += `<line x1="${xf}" y1="${(PAD.top + cH).toFixed(1)}" x2="${xf}" y2="${(PAD.top + cH + 5).toFixed(1)}" stroke="#7b9ab0" stroke-width="1"/>`;
+      svg += `<line x1="${xf}" y1="${(PAD.top + cH).toFixed(1)}" x2="${xf}" y2="${(PAD.top + cH + 5).toFixed(1)}" stroke="#4a6a8a" stroke-width="1"/>`;
       const lbl = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-      svg += `<text x="${xf}" y="${(PAD.top + cH + 18).toFixed(1)}" text-anchor="middle" fill="#7b9ab0" font-size="10" font-family="Inter,sans-serif">${lbl}</text>`;
+      svg += `<text x="${xf}" y="${(PAD.top + cH + 18).toFixed(1)}" text-anchor="middle" fill="#4a6a8a" font-size="10" font-family="Inter,sans-serif">${lbl}</text>`;
       d = new Date(d.getTime() + 86400 * 1000);
     }
 
@@ -1882,7 +1970,7 @@
     const nowX = xS(now);
     if (nowX >= PAD.left && nowX <= PAD.left + cW) {
       svg += `<line x1="${nowX.toFixed(1)}" y1="${PAD.top}" x2="${nowX.toFixed(1)}" y2="${(PAD.top + cH).toFixed(1)}" stroke="#0DA2E6" stroke-width="1" stroke-dasharray="3,3" opacity="0.45"/>`;
-      svg += `<text x="${(nowX + 5).toFixed(1)}" y="${(PAD.top + 13).toFixed(1)}" fill="#0DA2E6" font-size="9" font-family="Inter,sans-serif" opacity="0.7">Now</text>`;
+      svg += `<text x="${(nowX + 5).toFixed(1)}" y="${(PAD.top + 13).toFixed(1)}" fill="#0DA2E6" font-size="9" font-family="Inter,sans-serif" opacity="0.9">Now</text>`;
     }
 
     // Score area + line + dots
@@ -1907,12 +1995,12 @@
         mapped.forEach((p, i) => {
           if (i % step !== 0 && i !== mapped.length - 1) return;
           const col = p.score >= 68 ? '#04B35D' : p.score >= 55 ? '#E8CC4A' : p.score >= 38 ? '#F9A349' : '#F9495F';
-          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${col}" stroke="#000F1D" stroke-width="1.5"/>`;
+          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${col}" stroke="#FFFFFF" stroke-width="1.5"/>`;
         });
       }
     } else {
       // Empty state
-      svg += `<text x="${(PAD.left + cW / 2).toFixed(1)}" y="${(PAD.top + cH / 2 + 5).toFixed(1)}" text-anchor="middle" fill="#7b9ab0" font-size="13" font-family="Inter,sans-serif">No historical data yet — scores will appear after the next data refresh.</text>`;
+      svg += `<text x="${(PAD.left + cW / 2).toFixed(1)}" y="${(PAD.top + cH / 2 + 5).toFixed(1)}" text-anchor="middle" fill="#5a7a9a" font-size="13" font-family="Inter,sans-serif">No historical data yet — scores will appear after the next data refresh.</text>`;
     }
 
     svg += '</svg>';
