@@ -1,11 +1,11 @@
 {
-  "last_attempt_at": "2026-02-23T19:23:10Z",
-  "data_returned": false,
-  "last_success_at": "2026-02-19T22:40:01Z",
+  "last_attempt_at": "2026-02-23T19:49:48Z",
+  "data_returned": true,
+  "last_success_at": "2026-02-23T19:49:48Z",
   "counts": {
     "categories": 0,
     "queries": 0,
-    "youtube": 0,
+    "youtube": 3,
     "live_events": 0
   }
 }
