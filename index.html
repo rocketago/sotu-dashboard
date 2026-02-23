@@ -1421,6 +1421,29 @@
     'entire','complete','completely','partial','partially',
     'clear','clearly','key','keys','critical','critically',
     'important','importance','significant','significance',
+    // contractions (apostrophe is preserved by the tokenizer so bare stems don't match)
+    "i'm","i've","i'd","i'll","you're","you've","you'd","you'll",
+    "he's","he'd","he'll","she's","she'd","she'll","it's","it'd",
+    "we're","we've","we'd","we'll","they're","they've","they'd","they'll",
+    "that's","that'd","there's","here's","what's","who's","let's",
+    "can't","won't","don't","doesn't","didn't","isn't","aren't",
+    "wasn't","weren't","hasn't","haven't","hadn't","wouldn't","couldn't","shouldn't",
+    // hyphenated fact-check forms (hyphen kept by tokenizer)
+    'fact-check','fact-checks','fact-checked','fact-checking','fact-checker','fact-checkers',
+    // Q&A / interview framing
+    'answer','answers','answered','answering',
+    'question','questions','questioned','questioning',
+    'ask','asked','asking','asks',
+    // meta-commentary words
+    'discuss','discusses','discussed','discussing',
+    'mention','mentions','mentioned','mentioning',
+    'note','noted','noting','notes',
+    'point','points','pointed','pointing',
+    'highlight','highlights','highlighted','highlighting',
+    'quote','quotes','quoted','quoting',
+    'tonight','today','yesterday','tomorrow','week',
+    'speech','speeches','talk','talks','talking','talked',
+    'viewers','listener','listeners','audience','audiences',
   ]);
 
   /**
