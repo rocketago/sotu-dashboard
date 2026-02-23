@@ -1110,6 +1110,9 @@
 
 <div id="status-bar"></div>
 
+<!-- History chart hover tooltip -->
+<div id="hist-tip" style="display:none;position:fixed;background:#072243;color:#fff;padding:7px 11px;border-radius:7px;font-size:12px;font-family:Inter,sans-serif;pointer-events:none;z-index:200;box-shadow:0 2px 10px rgba(7,34,67,0.18);line-height:1.5"></div>
+
 <script>
   const DATA_URL          = './political_data.json';
   const LIVE_URL          = './live_feed.json';
@@ -1355,6 +1358,69 @@
     'happening','occurred','occur','occurs','situation','situations',
     'amid','issue','issues','problem','problems','concerns','concern',
     'here','heres','amid','amid','amid',
+    // personal narrative / first-person framing
+    'experience','experiences','experienced','experiencing',
+    'perspective','perspectives','perspectival',
+    'account','accounts','first-person',
+    'voice','voices','voicing',
+    'personal','personally',
+    'share','shares','shared','sharing',
+    'testimony','testimonies','witness','witnesses',
+    // campaign / political theater (non-policy)
+    'campaign','campaigns','campaigning','campaigned',
+    'rally','rallies','rallied','rallying',
+    'agenda','agendas','platform','platforms',
+    'comedy','comedian','comedians','comedic',
+    'trademark','trademarks',
+    'name','names','named','naming','rename','renames','renamed',
+    // common headline verbs that carry no policy content
+    'resume','resumes','resumed','resuming',
+    'renewed','renew','renews','renewing',
+    'push','pushes','pushed','pushing',
+    'face','faces','faced','facing',
+    'affect','affects','affected','affecting',
+    'provide','provides','provided','providing',
+    'introduce','introduces','introduced','introducing',
+    'propose','proposes','proposed','proposing',
+    'critique','critiques','critiqued','critiquing',
+    'address','addresses','addressed','addressing',
+    'signal','signals','signaled','signaling',
+    'trigger','triggers','triggered','triggering',
+    'spark','sparks','sparked','sparking',
+    'warn','warns','warned','warning','warnings',
+    'urge','urges','urged','urging',
+    'demand','demands','demanded','demanding',
+    'pledge','pledges','pledged','pledging',
+    'vow','vows','vowed','vowing',
+    'promise','promises','promised','promising',
+    'argue','argues','argued','arguing',
+    'describe','describes','described','describing',
+    'explain','explains','explained','explaining',
+    'suggest','suggests','suggested','suggesting',
+    // quantity / change verbs used as filler
+    'increase','increases','increased','increasing',
+    'decrease','decreases','decreased','decreasing',
+    'expand','expands','expanded','expanding',
+    'reduce','reduces','reduced','reducing',
+    'grow','grows','grew','growing','grown',
+    'rise','rises','rose','rising','risen',
+    'fall','falls','fell','falling','fallen',
+    'drop','drops','dropped','dropping',
+    'shift','shifts','shifted','shifting',
+    'boost','boosts','boosted','boosting',
+    // generic descriptors that add no policy signal
+    'across','around','behind','above','below','near',
+    'toward','towards','beyond','further','further',
+    'possible','possibly','potential','potentially',
+    'expected','unexpected','likely','unlikely',
+    'similar','similarly','different','differently',
+    'specific','specifically','general','generally',
+    'current','currently','recent','recently','former','formerly',
+    'ongoing','upcoming','latest','earlier','previous','next',
+    'multiple','several','various','numerous',
+    'entire','complete','completely','partial','partially',
+    'clear','clearly','key','keys','critical','critically',
+    'important','importance','significant','significance',
   ]);
 
   /**
@@ -2188,7 +2254,7 @@
     // Score area + line + dots
     if (points.length > 0) {
       const mapped = points
-        .map(p => ({ x: xS(new Date(p.ts)), y: yS(p.score), score: p.score }))
+        .map(p => ({ x: xS(new Date(p.ts)), y: yS(p.score), score: p.score, ts: p.ts }))
         .filter(p => p.x >= PAD.left - 1 && p.x <= PAD.left + cW + 1);
 
       if (mapped.length > 0) {
@@ -2207,7 +2273,7 @@
         mapped.forEach((p, i) => {
           if (i % step !== 0 && i !== mapped.length - 1) return;
           const col = p.score >= 68 ? '#04B35D' : p.score >= 55 ? '#E8CC4A' : p.score >= 38 ? '#F9A349' : '#F9495F';
-          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${col}" stroke="#FFFFFF" stroke-width="1.5"/>`;
+          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="${col}" stroke="#FFFFFF" stroke-width="1.5" style="cursor:pointer" data-ts="${p.ts}" data-score="${p.score}" onmouseenter="showHistTip(event)" onmouseleave="hideHistTip()"/>`;
         });
       }
     } else {
@@ -2217,6 +2283,31 @@
 
     svg += '</svg>';
     container.innerHTML = svg;
+  }
+
+  function showHistTip(e) {
+    const el    = e.currentTarget || e.target;
+    const ts    = el.getAttribute('data-ts');
+    const score = parseInt(el.getAttribute('data-score'), 10);
+    const d     = new Date(ts);
+    const label = d.toLocaleString('en-US', {
+      month: 'short', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+      timeZone: 'UTC', hour12: true
+    }) + ' UTC';
+    const zone  = score >= 68 ? 'Positive' : score >= 55 ? 'Cautiously positive'
+                : score >= 44 ? 'Neutral' : score >= 38 ? 'Mixed / cautious' : 'Negative';
+    const col   = score >= 68 ? '#04B35D' : score >= 55 ? '#E8CC4A'
+                : score >= 38 ? '#F9A349' : '#F9495F';
+    const tip   = document.getElementById('hist-tip');
+    tip.innerHTML = `<span style="opacity:.75">${label}</span><br>Score <strong style="color:${col}">${score}</strong>/100 &mdash; ${zone}`;
+    tip.style.display = 'block';
+    tip.style.left = (e.clientX + 14) + 'px';
+    tip.style.top  = (e.clientY - 48) + 'px';
+  }
+
+  function hideHistTip() {
+    document.getElementById('hist-tip').style.display = 'none';
   }
 
   /* ── LOAD DATA ── */
