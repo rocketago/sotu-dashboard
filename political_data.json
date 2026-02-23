@@ -1,12 +1,12 @@
 {
   "meta": {
-    "generated_at": "2026-02-21T06:39:58Z",
+    "generated_at": "2026-02-23T14:06:07Z",
     "last_mcp_pull": "2026-02-20T03:59:51Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
-    "window_label": "Today (Feb 20) · Updated live",
-    "today_start": "2026-02-20T05:00:00Z",
+    "window_label": "Today (Feb 23) · Updated live",
+    "today_start": "2026-02-23T05:00:00Z",
     "refresh_interval_minutes": 5
   },
   "summary": {
