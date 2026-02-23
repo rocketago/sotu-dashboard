@@ -1,23 +1,133 @@
 {
-  "generated_at": "2026-02-23T16:17:36Z",
+  "generated_at": "2026-02-23T16:57:23Z",
   "events": [
     {
-      "query": "Senate hearing for Jeremy Carl",
+      "query": "Iran talks resume amid renewed diplomacy",
       "source": "search",
       "subreddit": null,
-      "category": "Legislative Politics",
-      "time": "2026-02-23T16:17:36Z",
-      "age": 28,
+      "category": "Foreign Policy",
+      "time": "2026-02-23T16:57:23Z",
+      "age": 21,
       "gender": "Female",
-      "state": "MN"
+      "state": "MS"
     },
     {
       "query": "how could the cost of healthcare systematically reduce",
       "source": "search",
       "subreddit": null,
       "category": "Healthcare Policy",
-      "time": "2026-02-23T15:45:20Z",
+      "time": "2026-02-23T16:23:13Z",
+      "age": 23,
+      "gender": "Female",
+      "state": "CA"
+    },
+    {
+      "query": "Trump trademark airport name",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-23T15:49:03Z",
+      "age": 21,
+      "gender": "Female",
+      "state": "FL"
+    },
+    {
+      "query": "how to prove you're a california resident for your taxes",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T15:14:54Z",
       "age": 19,
+      "gender": "Male",
+      "state": "TX"
+    },
+    {
+      "query": "israel",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "time": "2026-02-23T14:40:44Z",
+      "age": 20,
+      "gender": "Female",
+      "state": "ME"
+    },
+    {
+      "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T14:06:34Z",
+      "age": 22,
+      "gender": "Female",
+      "state": "VA"
+    },
+    {
+      "query": "Senate hearing for Jeremy Carl",
+      "source": "search",
+      "subreddit": null,
+      "category": "Legislative Politics",
+      "time": "2026-02-23T13:32:25Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "OR"
+    },
+    {
+      "query": "Trump's State of the Union 2026: Full Analysis & Fact-Check",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-23T12:58:15Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "KS"
+    },
+    {
+      "query": "ICE Raids 2026: Documented Stories From Across America",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-23T12:24:05Z",
+      "age": 24,
+      "gender": "Male",
+      "state": "WI"
+    },
+    {
+      "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
+      "source": "search",
+      "subreddit": null,
+      "category": "Education Policy",
+      "time": "2026-02-23T11:49:56Z",
+      "age": 18,
+      "gender": "Non-binary",
+      "state": "MN"
+    },
+    {
+      "query": "long term rental tax deductions",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T11:15:46Z",
+      "age": 19,
+      "gender": "Female",
+      "state": "GA"
+    },
+    {
+      "query": "Iran talks resume Feb 2026",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "time": "2026-02-23T10:41:36Z",
+      "age": 23,
+      "gender": "Female",
+      "state": "NY"
+    },
+    {
+      "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T10:07:27Z",
+      "age": 28,
       "gender": "Female",
       "state": "SC"
     },
@@ -26,200 +136,90 @@
       "source": "search",
       "subreddit": null,
       "category": "Economic Policy",
-      "time": "2026-02-23T15:13:04Z",
-      "age": 24,
-      "gender": "Female",
-      "state": "MO"
-    },
-    {
-      "query": "Federal Workers React To DOGE Cuts | First-Person Accounts",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-23T14:40:48Z",
-      "age": 19,
-      "gender": "Male",
-      "state": "VA"
-    },
-    {
-      "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Immigration Policy",
-      "time": "2026-02-23T14:08:32Z",
-      "age": 27,
-      "gender": "Male",
-      "state": "OK"
-    },
-    {
-      "query": "Trump Tariffs 2026: How They're Affecting Your Wallet",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-23T13:36:16Z",
-      "age": 27,
-      "gender": "Female",
-      "state": "CO"
-    },
-    {
-      "query": "israel",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "time": "2026-02-23T13:04:00Z",
-      "age": 21,
-      "gender": "Female",
-      "state": "UT"
-    },
-    {
-      "query": "Iran talks resume Feb 2026",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "time": "2026-02-23T12:31:44Z",
-      "age": 29,
-      "gender": "Female",
-      "state": "ID"
-    },
-    {
-      "query": "irs tax refunds",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-23T11:59:28Z",
-      "age": 22,
-      "gender": "Male",
-      "state": "UT"
-    },
-    {
-      "query": "Trump trademark airport name",
-      "source": "search",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-23T11:27:12Z",
-      "age": 18,
-      "gender": "Female",
-      "state": "KY"
-    },
-    {
-      "query": "What DOGE Actually Cut This Month | Full Breakdown",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-23T10:54:56Z",
-      "age": 21,
-      "gender": "Female",
-      "state": "PA"
-    },
-    {
-      "query": "Iran talks resume amid renewed diplomacy",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "time": "2026-02-23T10:22:40Z",
-      "age": 27,
-      "gender": "Female",
-      "state": "NH"
-    },
-    {
-      "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-23T09:50:24Z",
-      "age": 28,
-      "gender": "Female",
-      "state": "AK"
-    },
-    {
-      "query": "Trump's State of the Union 2026: Full Analysis & Fact-Check",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-23T09:18:08Z",
-      "age": 29,
-      "gender": "Male",
-      "state": "NV"
-    },
-    {
-      "query": "ICE Raids 2026: Documented Stories From Across America",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Immigration Policy",
-      "time": "2026-02-23T08:45:52Z",
+      "time": "2026-02-23T09:33:17Z",
       "age": 23,
       "gender": "Male",
-      "state": "CA"
-    },
-    {
-      "query": "Why is Cleveland State University facing declining enrollment and budget pressure?",
-      "source": "search",
-      "subreddit": null,
-      "category": "Education Policy",
-      "time": "2026-02-23T08:13:36Z",
-      "age": 20,
-      "gender": "Male",
       "state": "LA"
-    },
-    {
-      "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Environmental Policy",
-      "time": "2026-02-23T07:41:20Z",
-      "age": 20,
-      "gender": "Female",
-      "state": "NV"
-    },
-    {
-      "query": "long term rental tax deductions",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
-      "time": "2026-02-23T07:09:04Z",
-      "age": 25,
-      "gender": "Male",
-      "state": "OR"
     },
     {
       "query": "Trump tariffs and economy critique",
       "source": "search",
       "subreddit": null,
       "category": "Economic Policy",
-      "time": "2026-02-23T06:36:48Z",
-      "age": 21,
+      "time": "2026-02-23T08:59:07Z",
+      "age": 28,
       "gender": "Female",
-      "state": "VT"
+      "state": "SD"
+    },
+    {
+      "query": "what to do for taxes if you worked in ca but wasn't a resident of ca",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T08:24:58Z",
+      "age": 28,
+      "gender": "Female",
+      "state": "ND"
+    },
+    {
+      "query": "irs tax refunds",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-23T07:50:48Z",
+      "age": 21,
+      "gender": "Male",
+      "state": "OR"
+    },
+    {
+      "query": "Why Is Everyone Suddenly Pro-Nuclear? | The Energy Debate",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Environmental Policy",
+      "time": "2026-02-23T07:16:38Z",
+      "age": 20,
+      "gender": "Male",
+      "state": "CA"
+    },
+    {
+      "query": "Trump Deportation Campaign 2026: What's Actually Happening On The Ground",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-23T06:42:29Z",
+      "age": 27,
+      "gender": "Female",
+      "state": "MO"
     },
     {
       "query": "first black president comedy",
       "source": "search",
       "subreddit": null,
       "category": "Presidential Politics",
-      "time": "2026-02-23T06:04:32Z",
-      "age": 23,
+      "time": "2026-02-23T06:08:19Z",
+      "age": 27,
+      "gender": "Female",
+      "state": "MO"
+    },
+    {
+      "query": "What DOGE Actually Cut This Month | Full Breakdown",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-23T05:34:09Z",
+      "age": 29,
       "gender": "Male",
-      "state": "CT"
+      "state": "NE"
     },
     {
       "query": "zero stat gun",
       "source": "search",
       "subreddit": null,
       "category": "Civil Rights",
-      "time": "2026-02-23T05:32:16Z",
-      "age": 26,
-      "gender": "Female",
-      "state": "AL"
-    },
-    {
-      "query": "how to prove you're a california resident for your taxes",
-      "source": "search",
-      "subreddit": null,
-      "category": "Economic Policy",
       "time": "2026-02-23T05:00:00Z",
-      "age": 18,
+      "age": 20,
       "gender": "Female",
-      "state": "FL"
+      "state": "NY"
     }
   ]
 }
