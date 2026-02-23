@@ -78,6 +78,97 @@
     .fetch-btn:active  { transform: scale(0.97); }
     .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+    /* ── DATA LOADING OVERLAY ── */
+    .data-loading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: rgba(240,244,248,0.92);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-card {
+      background: #FFFFFF;
+      border-radius: 16px;
+      box-shadow: 0 24px 64px rgba(7,34,67,0.14);
+      padding: 48px 56px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+      max-width: 440px;
+      width: 90%;
+      text-align: center;
+    }
+
+    .loading-logo { height: 44px; width: auto; }
+
+    .loading-spinner-wrap {
+      position: relative;
+      width: 72px;
+      height: 72px;
+    }
+
+    .loading-spinner {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 5px solid #C8D9EE;
+      border-top-color: #F9495F;
+      border-right-color: #0DA2E6;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #072243;
+      letter-spacing: -0.2px;
+    }
+
+    .loading-msg {
+      font-size: 13px;
+      color: #5a7a9a;
+      min-height: 18px;
+      transition: opacity 0.3s;
+    }
+
+    .loading-progress {
+      width: 100%;
+      height: 4px;
+      background: #EEF4FB;
+      border-radius: 4px;
+      overflow: hidden;
+    }
+
+    .loading-progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #F9495F, #0DA2E6);
+      border-radius: 4px;
+      width: 0%;
+      transition: width 4s ease;
+    }
+
+    .loading-cancel {
+      font-size: 12px;
+      color: #5a7a9a;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .loading-cancel:hover { color: #072243; }
+
     header h1 {
       font-size: 17px;
       font-weight: 700;
@@ -1811,17 +1902,108 @@
   }
 
 
+  /* ── LOADING OVERLAY ── */
+  let _pollInterval  = null;
+  let _pollTimeout   = null;
+  let _stepTimer     = null;
+
+  // Step messages + their trigger times (seconds after dispatch)
+  const LOAD_STEPS = [
+    [5,   'GitHub Actions runner is starting up…'],
+    [18,  'Connecting to VerbAI MCP…'],
+    [35,  'Querying Gen Z engagement data…'],
+    [55,  'Fetching searches, Reddit & YouTube…'],
+    [80,  'Processing political categories…'],
+    [105, 'Computing sentiment scores…'],
+    [125, 'Writing results to repository…'],
+    [145, 'Snowflake can be slow — still running…'],
+    [170, 'Almost there, hang tight…'],
+  ];
+
+  function showLoadingOverlay(msg) {
+    const overlay = document.getElementById('data-loading-overlay');
+    const msgEl   = document.getElementById('loading-msg');
+    const bar     = document.getElementById('loading-progress-bar');
+    if (msgEl) msgEl.textContent = msg || 'Workflow dispatched — waiting for runner';
+    if (bar)   { bar.style.transition = 'none'; bar.style.width = '0%'; }
+    overlay.style.display = 'flex';
+    // Animate bar to ~80% over 2.5 min (the typical script runtime)
+    requestAnimationFrame(() => {
+      if (bar) { bar.style.transition = 'width 155s cubic-bezier(0.1,0,0.4,1)'; bar.style.width = '82%'; }
+    });
+  }
+
+  function hideLoadingOverlay() {
+    const overlay = document.getElementById('data-loading-overlay');
+    const bar     = document.getElementById('loading-progress-bar');
+    if (bar) { bar.style.transition = 'width 0.5s ease'; bar.style.width = '100%'; }
+    setTimeout(() => { overlay.style.display = 'none'; }, 500);
+    if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
+    if (_pollTimeout)  { clearTimeout(_pollTimeout);   _pollTimeout  = null; }
+    if (_stepTimer)    { clearTimeout(_stepTimer);     _stepTimer    = null; }
+  }
+
+  function cancelLoading() {
+    hideLoadingOverlay();
+    const btn = document.getElementById('fetch-btn');
+    if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
+  }
+
+  function scheduleSteps(startTime) {
+    const msgEl = document.getElementById('loading-msg');
+    function next(idx) {
+      if (idx >= LOAD_STEPS.length) return;
+      const [delay, msg] = LOAD_STEPS[idx];
+      const wait = (startTime + delay * 1000) - Date.now();
+      _stepTimer = setTimeout(() => {
+        if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = msg; msgEl.style.opacity = '1'; }, 180); }
+        next(idx + 1);
+      }, Math.max(wait, 0));
+    }
+    next(0);
+  }
+
+  async function pollForNewData(knownTs) {
+    _pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(DATA_URL + '?_=' + Date.now());
+        if (!res.ok) return;
+        const d = await res.json();
+        const newTs = d.meta && d.meta.generated_at;
+        if (newTs && newTs !== knownTs) {
+          // Fresh data arrived
+          const msgEl = document.getElementById('loading-msg');
+          if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = 'New data ready — loading dashboard…'; msgEl.style.opacity = '1'; }, 180); }
+          clearInterval(_pollInterval); _pollInterval = null;
+          await loadData();
+          setTimeout(() => {
+            hideLoadingOverlay();
+            const btn = document.getElementById('fetch-btn');
+            if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
+            showStatus('Dashboard refreshed with latest data ✓', 'success');
+          }, 600);
+        }
+      } catch (_) { /* network blip — keep polling */ }
+    }, 5000);
+
+    // Give up after 3 minutes
+    _pollTimeout = setTimeout(() => {
+      hideLoadingOverlay();
+      const btn = document.getElementById('fetch-btn');
+      if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
+      showStatus('Timed out waiting for data — check GitHub Actions for status', 'error');
+    }, 180000);
+  }
+
   /* ── TRIGGER GITHUB ACTIONS WORKFLOW ── */
   async function triggerFetch() {
     const btn = document.getElementById('fetch-btn');
 
-    // Retrieve stored token or prompt for one
     let token = localStorage.getItem('gh_actions_token');
     if (!token) {
       token = prompt(
         'Enter a GitHub Personal Access Token with repo/actions:write scope.\n' +
-        'It will be stored in localStorage for future use.\n\n' +
-        'Token:'
+        'It will be stored in localStorage for future use.\n\nToken:'
       );
       if (!token || !token.trim()) return;
       token = token.trim();
@@ -1830,6 +2012,8 @@
 
     btn.disabled = true;
     btn.textContent = '↺ Dispatching…';
+
+    const knownTs = currentData && currentData.meta ? currentData.meta.generated_at : null;
 
     try {
       const res = await fetch(
@@ -1847,11 +2031,10 @@
       );
 
       if (res.status === 204) {
-        showStatus('Workflow dispatched ✓ — data will refresh in ~30–60 s', 'success');
-        btn.textContent = '✓ Dispatched';
-        setTimeout(() => { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }, 8000);
-        // Re-poll after 45 s to pick up fresh data
-        setTimeout(loadData, 45000);
+        const dispatchedAt = Date.now();
+        showLoadingOverlay('Workflow dispatched — waiting for runner to start…');
+        scheduleSteps(dispatchedAt);
+        pollForNewData(knownTs);
       } else if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('gh_actions_token');
         showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
@@ -2059,5 +2242,22 @@
   setInterval(loadData,   SEARCH_REFRESH_MS);
   setInterval(loadData,   REDDIT_REFRESH_MS);
 </script>
+
+<!-- ── DATA LOADING OVERLAY ── -->
+<div id="data-loading-overlay" class="data-loading-overlay" style="display:none">
+  <div class="loading-card">
+    <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="loading-logo" />
+    <div class="loading-spinner-wrap">
+      <div class="loading-spinner"></div>
+    </div>
+    <div class="loading-title">Fetching latest data&hellip;</div>
+    <div class="loading-msg" id="loading-msg">Workflow dispatched — waiting for runner</div>
+    <div class="loading-progress">
+      <div class="loading-progress-bar" id="loading-progress-bar"></div>
+    </div>
+    <button class="loading-cancel" onclick="cancelLoading()">Cancel and dismiss</button>
+  </div>
+</div>
+
 </body>
 </html>
