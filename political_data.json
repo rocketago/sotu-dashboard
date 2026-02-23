@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-23T19:48:19Z",
-    "last_mcp_pull": "2026-02-23T19:48:19Z",
+    "generated_at": "2026-02-23T21:58:27Z",
+    "last_mcp_pull": "2026-02-23T21:58:27Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
@@ -30,7 +30,7 @@
       "trending_score": 100,
       "items": [
         {
-          "topic": "Political commentary debate about Trump and his policies",
+          "topic": "Political debate between journalists regarding Trump administration analysis",
           "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
           "count": 6,
           "source": "youtube",
@@ -40,7 +40,7 @@
           "trend": "stable"
         },
         {
-          "topic": "Overview of Trump's recent actions and policies including cryptocurrency",
+          "topic": "Overview of recent Trump administration actions and cryptocurrency discussion",
           "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
           "count": 4,
           "source": "youtube",
@@ -60,7 +60,7 @@
       "trending_score": 80,
       "items": [
         {
-          "topic": "Personal story about paying off student loans, touching on higher education financing issues",
+          "topic": "Personal story about paying off a brother's student loans as a content creator milestone",
           "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
           "count": 8,
           "source": "youtube",
