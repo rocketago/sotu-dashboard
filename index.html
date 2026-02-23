@@ -107,24 +107,24 @@
 
     .loading-logo { height: 44px; width: auto; }
 
-    .loading-spinner-wrap {
-      position: relative;
-      width: 72px;
-      height: 72px;
+    .flag-spinner {
+      width: 68px;
+      height: auto;
+      display: block;
     }
 
-    .loading-spinner {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      border: 5px solid #C8D9EE;
-      border-top-color: #F9495F;
-      border-right-color: #0DA2E6;
-      animation: spin 1s linear infinite;
+    .flag-base { fill: #C8D9EE; }
+
+    .flag-fill {
+      fill: #F9495F;
+      animation: flag-fill 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
+    @keyframes flag-fill {
+      0%   { clip-path: inset(100% 0% 0% 0%); }
+      60%  { clip-path: inset(0%   0% 0% 0%); }
+      85%  { clip-path: inset(0%   0% 0% 0%); }
+      100% { clip-path: inset(100% 0% 0% 0%); }
     }
 
     .loading-title {
@@ -2426,9 +2426,22 @@
 <div id="data-loading-overlay" class="data-loading-overlay" style="display:none">
   <div class="loading-card">
     <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="loading-logo" />
-    <div class="loading-spinner-wrap">
-      <div class="loading-spinner"></div>
-    </div>
+    <svg class="flag-spinner" viewBox="0 0 60 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <!-- Grey base (always visible) -->
+      <g class="flag-base">
+        <polygon points="22,0 22,8 17,4 5,18 0,18 0,12 14,0"/>
+        <rect x="26" y="0"  width="34" height="12"/>
+        <rect x="0"  y="20" width="60" height="12"/>
+        <rect x="0"  y="40" width="60" height="12"/>
+      </g>
+      <!-- Pink-red fill layer, revealed bottom-to-top -->
+      <g class="flag-fill">
+        <polygon points="22,0 22,8 17,4 5,18 0,18 0,12 14,0"/>
+        <rect x="26" y="0"  width="34" height="12"/>
+        <rect x="0"  y="20" width="60" height="12"/>
+        <rect x="0"  y="40" width="60" height="12"/>
+      </g>
+    </svg>
     <div class="loading-title">Fetching latest data&hellip;</div>
     <div class="loading-msg" id="loading-msg">Workflow dispatched — waiting for runner</div>
     <div class="loading-progress">
