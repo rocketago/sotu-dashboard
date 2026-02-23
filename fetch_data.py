@@ -1006,9 +1006,9 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     random.shuffle(events)
     events = events[:50]
 
-    # Spread timestamps across today (midnight → now)
+    # Spread timestamps across today (ET midnight → now)
     now     = datetime.datetime.utcnow()
-    today_s = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today_s = datetime.datetime.strptime(et_midnight_utc(), "%Y-%m-%dT%H:%M:%SZ")
     span_s  = max(int((now - today_s).total_seconds()), 1)
 
     n = len(events)
@@ -1228,6 +1228,10 @@ def main():
             existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             # Ensure last_mcp_pull key exists for older files that predate this field
             existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
+            # Refresh the date window so the label never shows yesterday's date
+            existing["meta"]["today_start"] = et_midnight_utc()
+            _today_label = datetime.date.today().strftime("%b %-d")
+            existing["meta"]["window_label"] = f"Today ({_today_label}) · Updated live"
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(existing, f, indent=2, ensure_ascii=False)
     else:
