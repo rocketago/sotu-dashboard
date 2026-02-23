@@ -1745,6 +1745,9 @@
         item.query.toLowerCase().includes(query)
       );
 
+      // Hide cards with no items entirely
+      if (cat.items.length === 0) return;
+
       // Hide whole card if filter is active and nothing matches
       if (query && matchItems.length === 0) return;
 
@@ -1773,7 +1776,6 @@
           </div>
 
           <div class="cat-items">
-            ${sparkline(cat.items)}
             ${displayItems.map((item, i) => `
               <div class="item-row expandable"
                    data-item="${escHtml(JSON.stringify(item))}"
