@@ -1174,17 +1174,102 @@
 
   /* ── WORD EXTRACTION from query strings ── */
   const STOPWORDS = new Set([
+    // articles / conjunctions / prepositions / pronouns
     'the','a','an','and','or','but','in','on','at','to','for','of','with','by',
     'from','is','are','was','were','be','been','has','have','had','do','does',
     'did','will','would','could','should','i','he','she','it','we','they','my',
     'your','his','her','its','our','their','this','that','these','those','what',
     'which','who','when','where','why','how','not','no','just','now','up','out',
     'into','so','as','if','about','s','re','ve','ll','t','d','m','amp','gt','lt',
-    'quot','bro','going','got','its','its','been','get','its','can','got','just',
-    'his','her','they','she','he','me','us','him','them','you','we','all','new',
-    'one','two','three','first','last','more','most','some','such','than','then',
-    'into','over','after','before','between','through','during','without','within',
+    'quot','bro','going','got','been','get','can','me','us','him','them','you',
+    'we','all','new','one','two','three','first','last','more','most','some',
+    'such','than','then','over','after','before','between','through','during',
+    'without','within','against','along','despite','except','toward','upon',
+    'either','neither','whether','although','however','because','therefore','though',
+    // generic verbs
+    'say','says','said','make','makes','made','take','takes','took','give','gives',
+    'gave','think','thought','come','came','goes','need','needs','want','wants',
+    'look','looks','work','works','tell','tells','told','ask','asks','seem','seems',
+    'feel','feels','felt','help','helps','try','tries','tried','leave','left','put',
+    'puts','mean','means','meant','keep','keeps','kept','let','lets','show','shows',
+    'hear','heard','start','starts','know','see','like','call','calls','called',
+    'find','found','use','uses','used','move','moves','moved','turn','turns',
+    'run','runs','ran','bring','brings','brought','hold','holds','held',
+    // generic adjectives / adverbs / time words
+    'full','everyday','everyone','somebody','somebody','anyone','nobody','nothing',
+    'something','anything','everything','other','else','both','same','own','real',
+    'whole','right','left','good','bad','big','large','small','high','low','long',
+    'short','old','young','great','well','very','even','ever','only','also','still',
+    'already','yet','again','each','once','twice','often','always','never','ever',
+    'quite','rather','perhaps','maybe','likely','probably','really','actually',
+    // time / quantity nouns
+    'year','years','time','times','day','days','week','weeks','month','months',
+    'lot','lots','much','many','few','little','bit','bits','kind','kinds',
+    'way','ways','place','places','part','parts','thing','things','people','person',
+    // misc filler
+    'may','might','plus','less','any','let','per','per','ago','non','pro','anti',
   ]);
+
+  /**
+   * Canonical synonym map: raw token → display/aggregation term.
+   * Variants of the same political issue are folded into one canonical word so
+   * the cloud shows issue areas rather than scattered synonyms.
+   */
+  const POLITICAL_SYNONYMS = {
+    // immigration
+    immigrant:'immigration', immigrants:'immigration', migrant:'immigration',
+    migrants:'immigration', undocumented:'immigration', deportation:'immigration',
+    deportations:'immigration', deported:'immigration', deport:'immigration',
+    asylum:'immigration', refugee:'immigration', refugees:'immigration',
+    // tariffs / trade
+    tariff:'tariffs', duty:'tariffs', duties:'tariffs', customs:'tariffs',
+    // economy
+    economic:'economy', economies:'economy', gdp:'economy',
+    // inflation
+    inflationary:'inflation',
+    // jobs / unemployment
+    unemployment:'jobs', unemployed:'jobs', employment:'jobs', employed:'jobs',
+    employer:'jobs', employers:'jobs', workforce:'jobs', worker:'workers',
+    wage:'wages', paycheck:'wages', paychecks:'wages', salary:'wages',
+    // taxes
+    tax:'taxes', taxation:'taxes', taxpayer:'taxes', taxpayers:'taxes',
+    taxed:'taxes', irs:'taxes', revenue:'taxes',
+    // healthcare
+    health:'healthcare', insurance:'healthcare', obamacare:'healthcare',
+    uninsured:'healthcare', prescription:'healthcare', medicaid:'medicaid',
+    medicare:'medicare', hospital:'healthcare', hospitals:'healthcare',
+    // guns
+    gun:'guns', firearm:'guns', firearms:'guns', nra:'guns',
+    shooting:'guns', shootings:'guns', guncontrol:'guns',
+    // climate / energy
+    climate:'climate', carbon:'climate', emissions:'climate',
+    renewable:'energy', solar:'energy', nuclear:'energy',
+    // housing
+    rent:'housing', rents:'housing', rental:'housing', mortgage:'housing',
+    mortgages:'housing', homes:'housing', landlord:'housing',
+    // education
+    school:'education', schools:'education', student:'education',
+    students:'education', college:'education', university:'education',
+    universities:'education',
+    // student loans / debt
+    loan:'student loans', loans:'student loans',
+    // military / veterans
+    troops:'military', army:'military', navy:'military', defense:'defense',
+    war:'war', wars:'war', veteran:'veterans',
+    // elections / democracy
+    election:'elections', vote:'elections', voting:'elections',
+    voter:'elections', voters:'elections', ballot:'elections', ballots:'elections',
+    // budget / spending
+    spending:'spending', deficit:'deficit', surplus:'budget',
+    // social security
+    retirement:'social security', pension:'social security', pensions:'social security',
+    // crime
+    crime:'crime', crimes:'crime', criminal:'crime', criminals:'crime',
+    violence:'crime', violent:'crime',
+    // drugs
+    fentanyl:'drugs', opioid:'drugs', opioids:'drugs', overdose:'drugs',
+    overdoses:'drugs', addiction:'drugs',
+  };
 
   function extractWords(data) {
     const freq     = {};
@@ -1198,7 +1283,8 @@
           .split(/\s+/)
           .filter(w => w.length > 2 && !STOPWORDS.has(w) && !/^\d+$/.test(w));
 
-        words.forEach(w => {
+        words.forEach(raw => {
+          const w = POLITICAL_SYNONYMS[raw] || raw;
           freq[w] = (freq[w] || 0) + (item.count || 1);
           if (!contexts[w]) contexts[w] = [];
           // Only add each distinct query once per word

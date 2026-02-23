@@ -1234,6 +1234,8 @@ def main():
             existing["meta"]["window_label"] = f"Today ({_today_label}) · Updated live"
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(existing, f, indent=2, ensure_ascii=False)
+            # Still append a history point so the graph has no gaps on down-days
+            update_history(existing)
     else:
         data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
         with open(OUTPUT_FILE, "w") as f:
