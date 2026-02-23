@@ -1,10 +1,9 @@
 name: Auto-update political data
 
 on:
-  # Schedule disabled — uncomment to re-enable
+  # Schedule disabled — uncomment to re-enable when out of testing mode
   # schedule:
   #   - cron: '*/5 * * * *'
-  # Manual trigger from GitHub UI always available
   workflow_dispatch:
 
 jobs:
