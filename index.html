@@ -1013,7 +1013,7 @@
   <button class="fetch-btn" id="fetch-btn" onclick="triggerFetch()" title="Dispatch the fetch_data workflow via GitHub Actions">
     ↻ Fetch Data
   </button>
-  <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-5-minute auto-update cron">
+  <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-15-minute auto-update cron">
     ⏸ Live Updates: OFF
   </button>
   <div class="live-pill paused" id="live-pill">
@@ -1021,7 +1021,7 @@
     <span id="live-label">PAUSED</span>
     <span id="cron-countdown" class="cron-countdown" hidden></span>
   </div>
-  <div class="refresh-info">Search: 5 min · Reddit: 15 min</div>
+  <div class="refresh-info">Updated every 15 min</div>
 </header>
 
 <div class="window-banner" id="window-banner">
@@ -1152,13 +1152,14 @@
   const STATUS_URL        = './status.json';
   const HISTORY_URL       = './history.json';
   const MCP_STATUS_URL    = './mcp_status.json';
-  const SEARCH_REFRESH_MS = 5  * 60 * 1000;
-  const REDDIT_REFRESH_MS = 15 * 60 * 1000;
+  const LIVE_FEED_URL     = './live_feed.json';
+  const REFRESH_MS        = 15 * 60 * 1000;
 
   let allExpanded    = false;
   let currentData    = null;
   let historyData    = null;
   let mcpStatus      = null;
+  let liveEvents     = [];
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -1908,7 +1909,7 @@
       <div class="stat-card">
         <div class="label">Data Resets</div>
         <div class="value" style="font-size:14px;padding-top:4px;">Midnight</div>
-        <div class="sub">Search: 5 min · Reddit: 15 min</div>
+        <div class="sub">Updated every 15 min</div>
       </div>
     `;
   }
@@ -2021,7 +2022,7 @@
   }
 
   function buildItemDetail(item, catLabel) {
-    const events = [];
+    const events = liveEvents;
 
     // Keywords from the item query (len>=4, skip stopwords) for fuzzy matching
     const keywords = ((item.query || '') + ' ' + (item.topic || ''))
@@ -2244,7 +2245,7 @@
   let _cronCountdownTimer = null;
   let _lastCronBoundary   = null;
 
-  /* Silently dispatch the fetch workflow at each 5-min boundary.
+  /* Silently dispatch the fetch workflow at each 15-min boundary.
      If no token is stored, falls back to a plain loadData() refresh. */
   async function _cronFire() {
     const token = localStorage.getItem('gh_actions_token');
@@ -2281,13 +2282,13 @@
       const el = document.getElementById('cron-countdown');
       if (!el || el.hidden) return;
       const now = Date.now();
-      const INTERVAL = 5 * 60 * 1000;
+      const INTERVAL = 15 * 60 * 1000;
       const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
       const remaining = Math.max(0, nextFire - now);
       const mins = Math.floor(remaining / 60000);
       const secs = Math.floor((remaining % 60000) / 1000);
       el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
-      // Crossed a 5-min boundary — dispatch the workflow
+      // Crossed a 15-min boundary — dispatch the workflow
       if (_lastCronBoundary !== null && nextFire !== _lastCronBoundary) {
         _cronFire();
       }
@@ -2308,8 +2309,8 @@
     btn.classList.toggle('live-on', enabled);
     btn.textContent = enabled ? '▶ Live Updates: ON' : '⏸ Live Updates: OFF';
     btn.title = enabled
-      ? 'Click to disable automatic 5-minute updates'
-      : 'Click to enable automatic 5-minute updates';
+      ? 'Click to disable automatic 15-minute updates'
+      : 'Click to enable automatic 15-minute updates';
     const pill      = document.getElementById('live-pill');
     const liveLabel = document.getElementById('live-label');
     const countdown = document.getElementById('cron-countdown');
@@ -2404,7 +2405,7 @@
 
       if (putRes.status === 200 || putRes.status === 201) {
         updateLiveBtn(newEnabled);
-        showStatus(newEnabled ? 'Live auto-updates enabled (every 5 min)' : 'Live auto-updates disabled', 'success');
+        showStatus(newEnabled ? 'Live auto-updates enabled (every 15 min)' : 'Live auto-updates disabled', 'success');
       } else if (putRes.status === 401 || putRes.status === 403) {
         localStorage.removeItem('gh_actions_token');
         showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
@@ -2434,7 +2435,7 @@
       if (status.auto_update_enabled) {
         pill.classList.remove('paused');
         if (label)  label.textContent  = 'LIVE';
-        if (footer) footer.textContent = 'Refreshes every 5 minutes';
+        if (footer) footer.textContent = 'Refreshes every 15 minutes';
       } else {
         pill.classList.add('paused');
         if (label)  label.textContent  = 'PAUSED';
@@ -2588,16 +2589,19 @@
   async function loadData() {
     try {
       const ts = Date.now();
-      const [dataRes, histRes, mcpStatusRes] = await Promise.all([
+      const [dataRes, histRes, mcpStatusRes, liveFeedRes] = await Promise.all([
         fetch(DATA_URL        + '?_=' + ts),
         fetch(HISTORY_URL     + '?_=' + ts).catch(() => null),
         fetch(MCP_STATUS_URL  + '?_=' + ts).catch(() => null),
+        fetch(LIVE_FEED_URL   + '?_=' + ts).catch(() => null),
       ]);
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
       currentData = data;
       historyData = histRes       ? await histRes.json().catch(()       => null) : null;
       mcpStatus   = mcpStatusRes  ? await mcpStatusRes.json().catch(()  => null) : null;
+      const liveFeedData = liveFeedRes ? await liveFeedRes.json().catch(() => null) : null;
+      liveEvents  = (liveFeedData && liveFeedData.events) ? liveFeedData.events : [];
 
       renderWindowBanner(data);
       renderSummary(data);
@@ -2633,9 +2637,8 @@
   loadStatus();
   loadLiveUpdatesState();
   loadData();
-  setInterval(loadStatus, SEARCH_REFRESH_MS);
-  setInterval(loadData,   SEARCH_REFRESH_MS);
-  setInterval(loadData,   REDDIT_REFRESH_MS);
+  setInterval(loadStatus, REFRESH_MS);
+  setInterval(loadData,   REFRESH_MS);
 </script>
 
 <!-- ── DATA LOADING OVERLAY ── -->
