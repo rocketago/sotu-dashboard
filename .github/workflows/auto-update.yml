@@ -2,8 +2,13 @@ name: Auto-update political data
 
 on:
   schedule:
-    - cron: '*/5 * * * *'
+    - cron: '*/15 * * * *'
   workflow_dispatch:
+
+# One run at a time; new triggers queue rather than cancel.
+concurrency:
+  group: auto-update
+  cancel-in-progress: false
 
 jobs:
   check-enabled:
@@ -46,6 +51,12 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Cache npm downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: npm-claude-cli-${{ runner.os }}
 
       - name: Install Claude CLI (Claude fallback path)
         run: npm install -g @anthropic-ai/claude-code
