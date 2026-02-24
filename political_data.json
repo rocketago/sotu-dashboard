@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T17:38:57Z",
-    "last_mcp_pull": "2026-02-24T17:38:57Z",
+    "generated_at": "2026-02-24T20:54:43Z",
+    "last_mcp_pull": "2026-02-24T20:54:43Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
@@ -10,26 +10,54 @@
     "refresh_interval_minutes": 15
   },
   "summary": {
-    "total_engagements": 17,
-    "total_unique_users": 5,
-    "top_category": "General Politics",
-    "categories_tracked": 11,
+    "total_engagements": 115,
+    "total_unique_users": 8,
+    "top_category": "Presidential Politics",
+    "categories_tracked": 7,
     "data_window": "Sliding 24-hour window · accumulates each run",
-    "search_events_today": 2,
+    "search_events_today": 86,
     "reddit_events_today": 0,
-    "youtube_events_today": 2,
-    "tiktok_search_events_today": 0,
-    "tiktok_watch_events_today": 0,
-    "news_events_today": 4
+    "youtube_events_today": 88,
+    "news_events_today": 0
   },
   "categories": [
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏛️",
+      "engagement_count": 80,
+      "unique_users": 1,
+      "trending_score": 100,
+      "items": [
+        {
+          "topic": "trump",
+          "query": "trump",
+          "count": 76,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Why Trump Might Be a Manchurian Candidate",
+          "query": "Why Trump Might Be a Manchurian Candidate",
+          "count": 4,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Jack Neel",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
     {
       "id": "general_politics",
       "label": "General Politics",
       "icon": "🗳️",
       "engagement_count": 8,
       "unique_users": 2,
-      "trending_score": 100,
+      "trending_score": 10,
       "items": [
         {
           "topic": "Twitter: Last Week Tonight with John Oliver (HBO)",
@@ -54,32 +82,70 @@
       ]
     },
     {
-      "id": "presidential_politics",
-      "label": "Presidential Politics",
-      "icon": "🏛️",
-      "engagement_count": 5,
+      "id": "elections_voting",
+      "label": "Elections & Voting",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 11,
       "unique_users": 1,
-      "trending_score": 62,
+      "trending_score": 14,
       "items": [
         {
-          "topic": "Why Trump Might Be a Manchurian Candidate",
-          "query": "Why Trump Might Be a Manchurian Candidate",
-          "count": 4,
-          "source": "youtube",
+          "topic": "Immigration",
+          "query": "Immigration",
+          "count": 10,
+          "source": "news",
           "subreddit": null,
-          "channel": "Jack Neel",
+          "channel": "CNN",
           "url": null,
           "trend": "stable"
         },
         {
-          "topic": "trump",
-          "query": "trump",
+          "topic": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
+          "query": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
           "count": 1,
-          "source": "search",
+          "source": "news",
           "subreddit": null,
-          "channel": null,
+          "channel": "The New York Times",
           "url": null,
           "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 4,
+      "unique_users": 1,
+      "trending_score": 5,
+      "items": [
+        {
+          "topic": "Congress",
+          "query": "Congress",
+          "count": 4,
+          "source": "news",
+          "subreddit": null,
+          "channel": "Reuters",
+          "url": null,
+          "trend": "up"
         }
       ]
     },
@@ -87,10 +153,20 @@
       "id": "economic_policy",
       "label": "Economic Policy",
       "icon": "💰",
-      "engagement_count": 3,
+      "engagement_count": 6,
       "unique_users": 1,
-      "trending_score": 38,
+      "trending_score": 8,
       "items": [
+        {
+          "topic": "Tariffs",
+          "query": "Tariffs",
+          "count": 3,
+          "source": "news",
+          "subreddit": null,
+          "channel": "Reuters",
+          "url": null,
+          "trend": "up"
+        },
         {
           "topic": "social security benefits february 25",
           "query": "social security benefits february 25",
@@ -124,60 +200,24 @@
       ]
     },
     {
-      "id": "immigration_policy",
-      "label": "Immigration Policy",
-      "icon": "🛂",
-      "engagement_count": 1,
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
+      "engagement_count": 5,
       "unique_users": 1,
-      "trending_score": 12,
+      "trending_score": 6,
       "items": [
         {
-          "topic": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
-          "query": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
-          "count": 1,
+          "topic": "Healthcare",
+          "query": "Healthcare",
+          "count": 5,
           "source": "news",
           "subreddit": null,
-          "channel": "The New York Times",
+          "channel": "AP News",
           "url": null,
           "trend": "stable"
         }
       ]
-    },
-    {
-      "id": "elections_voting",
-      "label": "Elections & Voting",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "legislative_politics",
-      "label": "Legislative Politics",
-      "icon": "📜",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "healthcare_policy",
-      "label": "Healthcare Policy",
-      "icon": "🏥",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
     },
     {
       "id": "education_policy",
@@ -201,10 +241,21 @@
       "id": "civil_rights",
       "label": "Civil Rights",
       "icon": "✊",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
+      "engagement_count": 1,
+      "unique_users": 1,
+      "trending_score": 1,
+      "items": [
+        {
+          "topic": "Abortion",
+          "query": "Abortion",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "CBS News",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
     }
   ]
 }
