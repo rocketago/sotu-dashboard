@@ -586,6 +586,9 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
             result = _parse_json_array(text)
             print(f"[MCP-DIRECT] category_counts: {len(result)} rows")
             return result
+        if mcp_ctx:
+            print("[MCP-DIRECT] category_counts: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] category_counts returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
@@ -776,6 +779,11 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
                 f"→ {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] search_queries: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] search_queries: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
@@ -1044,6 +1052,9 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
             political = _filter_to_political(result)
             print(f"[MCP-DIRECT] live_events: {len(result)} rows → {len(political)} political")
             return _cap_events_per_user(political)
+        if mcp_ctx:
+            print("[MCP-DIRECT] live_events: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] live_events returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
@@ -1127,6 +1138,11 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
                 f"recent={len(recent_rows)} → {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] youtube_videos: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] youtube_videos: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
@@ -1293,6 +1309,11 @@ def fetch_news_articles(since_iso: str, mcp_ctx: tuple | None = None) -> list[di
                 f"recent={len(recent_rows)} → {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] news_articles: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] news_articles: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
