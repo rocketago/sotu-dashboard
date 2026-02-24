@@ -501,11 +501,11 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text is not None:
+        if text:
             result = _parse_json_array(text)
             print(f"[MCP-DIRECT] category_counts: {len(result)} rows")
             return result
-        print("[MCP-DIRECT] category_counts protocol failure — falling back to Claude")
+        print("[MCP-DIRECT] category_counts returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
     return _parse_json_array(text) if text else []
@@ -602,12 +602,12 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text is not None:
+        if text:
             raw = _dedup_query_items(_parse_json_array(text))
             result = [item for item in raw if _is_political_item(item)]
             print(f"[MCP-DIRECT] search_queries: {len(raw)} rows → {len(result)} political")
             return result
-        print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
+        print("[MCP-DIRECT] search_queries returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
     raw = _dedup_query_items(_parse_json_array(text) if text else [])
@@ -817,12 +817,12 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text is not None:
+        if text:
             result = _parse_json_array(text)
             political = _filter_to_political(result)
             print(f"[MCP-DIRECT] live_events: {len(result)} rows → {len(political)} political")
             return _cap_events_per_user(political)
-        print("[MCP-DIRECT] live_events protocol failure — falling back to Claude")
+        print("[MCP-DIRECT] live_events returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
     raw = _parse_json_array(text) if text else []
@@ -880,12 +880,12 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text is not None:
+        if text:
             raw = _dedup_query_items(_parse_json_array(text))
             result = [item for item in raw if _is_political_item(item)]
             print(f"[MCP-DIRECT] youtube_videos: {len(raw)} rows → {len(result)} political")
             return result
-        print("[MCP-DIRECT] youtube_videos protocol failure — falling back to Claude")
+        print("[MCP-DIRECT] youtube_videos returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
     raw = _dedup_query_items(_parse_json_array(text) if text else [])
