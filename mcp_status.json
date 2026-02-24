@@ -1,9 +1,9 @@
 {
-  "last_attempt_at": "2026-02-24T18:21:47",
-  "data_returned": false,
-  "last_success_at": null,
+  "last_attempt_at": "2026-02-24T18:28:39",
+  "data_returned": true,
+  "last_success_at": "2026-02-24T18:28:39",
   "counts": {
-    "categories": 0,
+    "categories": 3,
     "queries": 0,
     "youtube": 0,
     "news": 0,

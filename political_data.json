@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T23:21:47Z",
-    "last_mcp_pull": "2026-02-24T22:50:13Z",
+    "generated_at": "2026-02-24T23:28:39Z",
+    "last_mcp_pull": "2026-02-24T23:28:39Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
@@ -11,16 +11,14 @@
   },
   "summary": {
     "total_engagements": 115,
-    "total_unique_users": 11,
+    "total_unique_users": 12,
     "top_category": "Presidential Politics",
-    "categories_tracked": 11,
+    "categories_tracked": 7,
     "data_window": "Sliding 24-hour window · accumulates each run",
-    "search_events_today": 77,
+    "search_events_today": 86,
     "reddit_events_today": 0,
-    "youtube_events_today": 2,
-    "tiktok_search_events_today": 0,
-    "tiktok_watch_events_today": 0,
-    "news_events_today": 9
+    "youtube_events_today": 88,
+    "news_events_today": 0
   },
   "categories": [
     {
@@ -54,6 +52,54 @@
       ]
     },
     {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 8,
+      "unique_users": 2,
+      "trending_score": 10,
+      "items": [
+        {
+          "topic": "Twitter: Last Week Tonight with John Oliver (HBO)",
+          "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
+          "count": 7,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "LastWeekTonight",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
+          "query": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "elections_voting",
+      "label": "Elections & Voting",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
       "id": "immigration_policy",
       "label": "Immigration Policy",
       "icon": "🛂",
@@ -84,32 +130,22 @@
       ]
     },
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 8,
+      "id": "legislative_politics",
+      "label": "Legislative Politics",
+      "icon": "📜",
+      "engagement_count": 4,
       "unique_users": 1,
-      "trending_score": 10,
+      "trending_score": 5,
       "items": [
         {
-          "topic": "Twitter: Last Week Tonight with John Oliver (HBO)",
-          "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
-          "count": 7,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "LastWeekTonight",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
-          "query": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
-          "count": 1,
+          "topic": "Congress",
+          "query": "Congress",
+          "count": 4,
           "source": "news",
           "subreddit": null,
-          "channel": "The New York Times",
+          "channel": "Reuters",
           "url": null,
-          "trend": "stable"
+          "trend": "up"
         }
       ]
     },
@@ -184,24 +220,22 @@
       ]
     },
     {
-      "id": "legislative_politics",
-      "label": "Legislative Politics",
-      "icon": "📜",
-      "engagement_count": 4,
-      "unique_users": 1,
-      "trending_score": 5,
-      "items": [
-        {
-          "topic": "Congress",
-          "query": "Congress",
-          "count": 4,
-          "source": "news",
-          "subreddit": null,
-          "channel": "Reuters",
-          "url": null,
-          "trend": "up"
-        }
-      ]
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
     },
     {
       "id": "civil_rights",
@@ -222,42 +256,6 @@
           "trend": "stable"
         }
       ]
-    },
-    {
-      "id": "elections_voting",
-      "label": "Elections & Voting",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "education_policy",
-      "label": "Education Policy",
-      "icon": "🎓",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
     }
   ]
 }
