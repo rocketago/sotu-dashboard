@@ -1591,18 +1591,87 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
     return result
 
 
+def _fresh_day_structure() -> dict:
+    """
+    Return a valid empty political_data.json skeleton for a new day.
+    All 11 categories are present with zero counts and no items.
+    Written at midnight ET (or on first detection of a new day) so the
+    dashboard always shows today's window rather than yesterday's data.
+    """
+    midnight    = et_midnight_utc()
+    now_iso     = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    today_label = datetime.date.today().strftime("%b %-d")
+    categories  = [
+        {
+            "id":               meta["id"],
+            "label":            label,
+            "icon":             meta["icon"],
+            "engagement_count": 0,
+            "unique_users":     0,
+            "trending_score":   0,
+            "items":            [],
+        }
+        for label, meta in CATEGORY_META.items()
+    ]
+    return {
+        "meta": {
+            "generated_at":             now_iso,
+            "last_mcp_pull":            None,
+            "demographic":              "Ages 18-29",
+            "data_source":              "VerbAI MCP (Search, YouTube, Reddit events)",
+            "window":                   "today",
+            "window_label":             f"Today ({today_label}) · Updated live",
+            "today_start":              midnight,
+            "refresh_interval_minutes": 5,
+        },
+        "summary": {
+            "total_engagements":    0,
+            "total_unique_users":   0,
+            "top_category":         "N/A",
+            "categories_tracked":   0,
+            "data_window":          "Today from midnight · accumulates throughout the day",
+            "search_events_today":  0,
+            "reddit_events_today":  0,
+            "youtube_events_today": 0,
+            "news_events_today":    0,
+        },
+        "categories": categories,
+    }
+
+
+def _reset_live_feed() -> None:
+    """
+    Overwrite live_feed.json with an empty events list for the new day.
+    Called on every day rollover so yesterday's events don't bleed into today.
+    """
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    with open(LIVE_FEED_FILE, "w") as f:
+        json.dump({"generated_at": now_iso, "day_start": et_midnight_utc(), "events": []},
+                  f, indent=2)
+    print("[INFO] Reset live_feed.json for new day.")
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
     # Always fetch the full day from midnight ET.
-    #
-    # Incremental cursors (last_success_at → now) caused persistent zero-return
-    # runs: VerbAI's data has an ~8 h ingestion lag, so the cursor quickly
-    # advances past the latest available event and stays there forever.
-    # A full-day fetch is idempotent — each run returns the same snapshot of
-    # today's events — and merge_into_structure deduplicates within it.
     since_iso = et_midnight_utc()
     print(f"[INFO] Full-day fetch since midnight ET: {since_iso}")
+
+    # ── Detect day rollover before the fetch ──────────────────────────────────
+    # Read the stored today_start once; compare after fetching to decide whether
+    # to reset or update.  ISO strings compare lexicographically = chronologically.
+    existing_today_start = ""
+    if OUTPUT_FILE.exists():
+        try:
+            with open(OUTPUT_FILE) as f:
+                existing_today_start = json.load(f)["meta"].get("today_start", "")
+        except Exception:
+            pass
+    is_new_day = existing_today_start < since_iso
+
+    if is_new_day:
+        print(f"[INFO] Day rollover detected (stored={existing_today_start}, new={since_iso})")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -1633,24 +1702,32 @@ def main():
 
     # ── Write outputs ─────────────────────────────────────────────────────────
     if not categories_raw and not queries_raw and not youtube_raw:
-        print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
-        # Update generated_at (= last action run) but leave last_mcp_pull untouched.
-        if OUTPUT_FILE.exists():
-            with open(OUTPUT_FILE) as f:
-                existing = json.load(f)
-            existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-            # Ensure last_mcp_pull key exists for older files that predate this field
-            existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
-            # Refresh the date window so the label never shows yesterday's date
-            existing["meta"]["today_start"] = et_midnight_utc()
-            _today_label = datetime.date.today().strftime("%b %-d")
-            existing["meta"]["window_label"] = f"Today ({_today_label}) · Updated live"
+        if is_new_day:
+            # Day has rolled over but VerbAI has no data yet (normal early-morning
+            # behaviour given the ~8 h ingestion lag).  Reset both outputs to empty
+            # so yesterday's data is never shown under today's date label.
+            print("[INFO] Day rollover — writing empty structure for today.")
+            data = _fresh_day_structure()
             with open(OUTPUT_FILE, "w") as f:
-                json.dump(existing, f, indent=2, ensure_ascii=False)
-            # Still append a history point so the graph has no gaps on down-days
-            update_history(existing)
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            _reset_live_feed()
+            # No history point — zero data means nothing meaningful to record.
+        else:
+            # Same day, VerbAI temporarily unavailable — update timestamp only.
+            print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
+            if OUTPUT_FILE.exists():
+                with open(OUTPUT_FILE) as f:
+                    existing = json.load(f)
+                existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
+                with open(OUTPUT_FILE, "w") as f:
+                    json.dump(existing, f, indent=2, ensure_ascii=False)
+                update_history(existing)
     else:
-        # Full-day fetch always produces the definitive today snapshot — overwrite.
+        # VerbAI returned data — write the full today snapshot.
+        if is_new_day:
+            # First successful fetch of the day: reset live feed before writing.
+            _reset_live_feed()
         data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)

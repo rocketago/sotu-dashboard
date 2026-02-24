@@ -1,220 +1,57 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T02:04:58Z",
-    "last_mcp_pull": "2026-02-24T00:51:51Z",
+    "generated_at": "2026-02-24T05:41:05Z",
+    "last_mcp_pull": null,
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
     "window_label": "Today (Feb 24) · Updated live",
-    "today_start": "2026-02-23T05:00:00Z",
+    "today_start": "2026-02-24T05:00:00Z",
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 51,
-    "total_unique_users": 10,
-    "top_category": "General Politics",
-    "categories_tracked": 11,
+    "total_engagements": 0,
+    "total_unique_users": 0,
+    "top_category": "N/A",
+    "categories_tracked": 0,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 4,
+    "search_events_today": 0,
     "reddit_events_today": 0,
-    "youtube_events_today": 10,
+    "youtube_events_today": 0,
     "news_events_today": 0
   },
   "categories": [
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 12,
-      "unique_users": 4,
-      "trending_score": 100,
-      "items": [
-        {
-          "topic": "Bollywood music video from the film 2 States",
-          "query": "Man mast magan..💗💗 #song #music #bollywood  #arijitsingh",
-          "count": 5,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "AashiRai__002",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Bollywood music video featuring Alia Bhatt",
-          "query": "Mast Magan ft. Alia Bhatt",
-          "count": 5,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Nehal",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Music compilation featuring Bollywood songs",
-          "query": "collecting underrated songs - 2/20 #mast magan #aliabhatt #alia #arjunkapoor #2states",
-          "count": 1,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Snikitha",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Bollywood wedding song compilation",
-          "query": "Man Mast Magan- ||Alia Bhatt, Arjun Kapoor||  Wedding Songs||",
-          "count": 1,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "All In One #Deep",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "foreign_policy",
-      "label": "Foreign Policy",
-      "icon": "🌍",
-      "engagement_count": 12,
-      "unique_users": 2,
-      "trending_score": 100,
-      "items": [
-        {
-          "topic": "Video about technology and development in China featuring 3D printing",
-          "query": "China is living in the Future , 3D printer in the Mall",
-          "count": 9,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "BLACKOUT CLUB",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "lionel richie we are the world china gala",
-          "query": "lionel richie we are the world china gala",
-          "count": 2,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "live in iran",
-          "query": "live in iran",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 11,
-      "unique_users": 1,
-      "trending_score": 92,
-      "items": [
-        {
-          "topic": "Political debate between Mehdi Hasan and Piers Morgan about Trump",
-          "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
-          "count": 6,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Zeteo",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Analysis of recent Trump administration actions and cryptocurrency",
-          "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
-          "count": 4,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Koga Nja",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "cnn kamala harris",
-          "query": "cnn kamala harris",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
     },
     {
-      "id": "education_policy",
-      "label": "Education Policy",
-      "icon": "🎓",
-      "engagement_count": 8,
-      "unique_users": 1,
-      "trending_score": 67,
-      "items": [
-        {
-          "topic": "Personal story about paying off student loans",
-          "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
-          "count": 8,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Wootak Kim",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 4,
-      "unique_users": 1,
-      "trending_score": 33,
-      "items": [
-        {
-          "topic": "Marketing technology tutorial about budget allocation using AI",
-          "query": "Moby AI: The Smartest Way to Allocate Your Marketing Budget (9:16)",
-          "count": 4,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "Triple Whale",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "environmental_policy",
-      "label": "Environmental Policy",
-      "icon": "🌿",
-      "engagement_count": 4,
-      "unique_users": 1,
-      "trending_score": 33,
-      "items": [
-        {
-          "topic": "Family comedy content featuring energy drink sponsorship",
-          "query": "A mistake @c4energy #c4partner #memes #meme #family #mom #brother",
-          "count": 4,
-          "source": "youtube",
-          "subreddit": null,
-          "channel": "theplumpcover",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
     },
     {
       "id": "elections_voting",
       "label": "Elections & Voting",
       "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "foreign_policy",
+      "label": "Foreign Policy",
+      "icon": "🌍",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
@@ -239,9 +76,36 @@
       "items": []
     },
     {
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
       "id": "healthcare_policy",
       "label": "Healthcare Policy",
       "icon": "🏥",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "environmental_policy",
+      "label": "Environmental Policy",
+      "icon": "🌿",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
