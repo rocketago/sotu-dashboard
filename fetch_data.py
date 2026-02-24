@@ -7,8 +7,8 @@ writes political_data.json for the dashboard to consume.
 Run manually:
     python3 fetch_data.py
 
-Or schedule with cron every 5 minutes:
-    */5 * * * * cd /path/to/dashboard && python3 fetch_data.py >> fetch.log 2>&1
+Or schedule with cron every 15 minutes:
+    */15 * * * * cd /path/to/dashboard && python3 fetch_data.py >> fetch.log 2>&1
 
 Data path (fastest → cheapest):
   1. Direct HTTP to VerbAI MCP endpoint (requires VERBAI_TOKEN, $0 Anthropic tokens, <15s)
@@ -38,6 +38,11 @@ VERBAI_MCP_URL = (
     "/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS"
     "/mcp-servers/VERB_AI_MCP_SERVER"
 )
+
+# Fixed 24-hour window anchor — the dashboard accumulates data from this point forward.
+# Each calendar day in ET (midnight → midnight) forms one 24-hour window; the first
+# window begins here.  Subsequent windows start at Feb 25, Feb 26 … midnight ET.
+WINDOW_ANCHOR = "2026-02-24T00:00:00"   # 12:00 am ET Feb 24 (NTZ, Eastern Time)
 
 # ── Category metadata (icons, ids) ──────────────────────────────────────────
 CATEGORY_META = {
@@ -1474,7 +1479,7 @@ def merge_into_structure(
             "window":        "today",
             "window_label":  f"Today ({today_label}) · Updated live",
             "today_start":   et_midnight_utc(),
-            "refresh_interval_minutes": 5,
+            "refresh_interval_minutes": 15,
         },
         "summary": {
             "total_engagements":    total_eng,
@@ -1674,7 +1679,7 @@ def update_history(data: dict) -> None:
     Append the current AFINN text-sentiment score to history.json.
     Score is engagement-count-weighted over all items' topic+query text,
     matching the JS formula in index.html exactly.
-    Keeps at most 2016 entries (~7 days at 5-min intervals).
+    Keeps at most 2016 entries (~21 days at 15-min intervals).
     """
     all_items = [
         item
@@ -1900,7 +1905,7 @@ def _fresh_day_structure() -> dict:
             "window":                   "today",
             "window_label":             f"Today ({today_label}) · Updated live",
             "today_start":              midnight,
-            "refresh_interval_minutes": 5,
+            "refresh_interval_minutes": 15,
         },
         "summary": {
             "total_engagements":    0,
@@ -1931,16 +1936,54 @@ def _reset_live_feed() -> None:
     print("[INFO] Reset live_feed.json for new day.")
 
 
+def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
+    """
+    Merge new_events into live_feed.json and write it back.
+
+    If reset=True (new 24-hour window), discard existing events and write only the
+    new ones.  Otherwise read the existing events, prepend the new ones, deduplicate
+    by (time, query[:60]), sort newest-first, and cap at 300 events.
+    """
+    existing: list[dict] = []
+    if not reset and LIVE_FEED_FILE.exists():
+        try:
+            with open(LIVE_FEED_FILE) as f:
+                existing = json.load(f).get("events", [])
+        except Exception:
+            pass
+
+    seen: set[tuple] = set()
+    merged: list[dict] = []
+    for e in list(new_events) + existing:   # new events take priority (prepended)
+        key = (e.get("time", ""), (e.get("query") or "")[:60])
+        if key not in seen:
+            seen.add(key)
+            merged.append(e)
+
+    merged.sort(key=lambda e: e.get("time", ""), reverse=True)
+    merged = merged[:300]
+
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    with open(LIVE_FEED_FILE, "w") as f:
+        json.dump(
+            {"generated_at": now_iso, "day_start": et_midnight_utc(), "events": merged},
+            f, indent=2,
+        )
+    print(f"[OK] Wrote live_feed.json — {len(merged)} events "
+          f"({'reset' if reset else 'accumulated'}).")
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    # Always fetch the full day from midnight ET.
-    since_iso = et_midnight_utc()
-    print(f"[INFO] Full-day fetch since midnight ET: {since_iso}")
+    # ── Window anchor & cursor ────────────────────────────────────────────────
+    # midnight: the start of the current 24-hour window (today 00:00 ET).
+    # since_iso: where this fetch begins — midnight on the first run of the day,
+    #            last_success_at on subsequent runs (incremental to reduce MCP load).
+    midnight      = et_midnight_utc()
+    since_iso, is_incremental = get_fetch_cursor()
 
-    # ── Detect day rollover before the fetch ──────────────────────────────────
-    # Read the stored today_start once; compare after fetching to decide whether
-    # to reset or update.  ISO strings compare lexicographically = chronologically.
+    # ── Detect day rollover (compare stored window_start against today's midnight) ──
     existing_today_start = ""
     if OUTPUT_FILE.exists():
         try:
@@ -1948,10 +1991,15 @@ def main():
                 existing_today_start = json.load(f)["meta"].get("today_start", "")
         except Exception:
             pass
-    is_new_day = existing_today_start < since_iso
+    is_new_day = existing_today_start < midnight   # always compare against midnight
 
     if is_new_day:
-        print(f"[INFO] Day rollover detected (stored={existing_today_start}, new={since_iso})")
+        print(f"[INFO] New 24h window — stored={existing_today_start}, anchor={midnight}")
+        since_iso     = midnight   # full-day fetch for the new window
+        is_incremental = False
+    else:
+        mode = "incremental" if is_incremental else "full-day"
+        print(f"[INFO] Fetch mode={mode}, since={since_iso}")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -1965,45 +2013,47 @@ def main():
 
     # ── Fetch data sets ───────────────────────────────────────────────────────
     if mcp_ctx:
-        # Direct MCP: run sequentially (one session, calls are fast)
-        categories_raw    = fetch_category_counts(since_iso, mcp_ctx)
-        queries_raw       = fetch_search_queries(since_iso, mcp_ctx)
-        youtube_raw       = fetch_youtube_videos(since_iso, mcp_ctx)
-        news_raw          = fetch_news_articles(since_iso, mcp_ctx)
-        tiktok_watch_raw  = fetch_tiktok_watch_videos(since_iso, mcp_ctx)
+        # Direct MCP: sequential (one session); live events fetched last
+        categories_raw   = fetch_category_counts(since_iso, mcp_ctx)
+        queries_raw      = fetch_search_queries(since_iso, mcp_ctx)
+        youtube_raw      = fetch_youtube_videos(since_iso, mcp_ctx)
+        news_raw         = fetch_news_articles(since_iso, mcp_ctx)
+        tiktok_watch_raw = fetch_tiktok_watch_videos(since_iso, mcp_ctx)
+        live_events_raw  = fetch_live_events(since_iso, mcp_ctx)
     else:
-        # Claude fallback: run subprocesses in parallel (max time = slowest one)
-        print("[INFO] Running 5 Claude queries in parallel (timeout=600s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
-            f_cats        = pool.submit(fetch_category_counts,    since_iso, None)
-            f_queries     = pool.submit(fetch_search_queries,     since_iso, None)
-            f_youtube     = pool.submit(fetch_youtube_videos,     since_iso, None)
-            f_news        = pool.submit(fetch_news_articles,      since_iso, None)
+        # Claude fallback: subprocesses in parallel
+        print("[INFO] Running 6 Claude queries in parallel (timeout=600s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            f_cats        = pool.submit(fetch_category_counts,     since_iso, None)
+            f_queries     = pool.submit(fetch_search_queries,      since_iso, None)
+            f_youtube     = pool.submit(fetch_youtube_videos,      since_iso, None)
+            f_news        = pool.submit(fetch_news_articles,       since_iso, None)
             f_tiktok_wtch = pool.submit(fetch_tiktok_watch_videos, since_iso, None)
+            f_live        = pool.submit(fetch_live_events,         since_iso, None)
             categories_raw   = f_cats.result()
             queries_raw      = f_queries.result()
             youtube_raw      = f_youtube.result()
             news_raw         = f_news.result()
             tiktok_watch_raw = f_tiktok_wtch.result()
+            live_events_raw  = f_live.result()
 
     # Merge TikTok watch video titles into queries (same shape: query/count/source/category)
     queries_raw = list(queries_raw or []) + list(tiktok_watch_raw or [])
 
     # ── Write outputs ─────────────────────────────────────────────────────────
-    # Note: queries_raw already includes tiktok_watch_raw merged above.
-    if not categories_raw and not queries_raw and not youtube_raw and not news_raw:
+    any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
+
+    if not any_data:
         if is_new_day:
-            # Day has rolled over but VerbAI has no data yet (normal early-morning
-            # behaviour given the ~8 h ingestion lag).  Reset both outputs to empty
-            # so yesterday's data is never shown under today's date label.
-            print("[INFO] Day rollover — writing empty structure for today.")
+            # New window, no data yet (normal given ~8h ingestion lag).
+            # Write an empty skeleton so the dashboard shows today's date.
+            print("[INFO] New window — writing empty structure (no data yet).")
             data = _fresh_day_structure()
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
             _reset_live_feed()
-            # No history point — zero data means nothing meaningful to record.
         else:
-            # Same day, VerbAI temporarily unavailable — update timestamp only.
+            # Transient VerbAI outage — keep existing file, advance timestamp only.
             print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
             if OUTPUT_FILE.exists():
                 with open(OUTPUT_FILE) as f:
@@ -2014,21 +2064,41 @@ def main():
                     json.dump(existing, f, indent=2, ensure_ascii=False)
                 update_history(existing)
     else:
-        # VerbAI returned data — write the full today snapshot.
-        if is_new_day:
-            # First successful fetch of the day: reset live feed before writing.
-            _reset_live_feed()
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+        if is_incremental and not is_new_day and OUTPUT_FILE.exists():
+            # Accumulate new events into the existing day's snapshot.
+            try:
+                with open(OUTPUT_FILE) as f:
+                    existing_data = json.load(f)
+            except Exception:
+                existing_data = _fresh_day_structure()
+            new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+            data = accumulate_into_existing(existing_data, new_snapshot)
+        else:
+            # Full-day fetch (first run of window or day rollover).
+            data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
               f"{data['summary']['total_engagements']} engagements across "
-              f"{data['summary']['categories_tracked']} categories "
-              f"(YouTube: {data['summary']['youtube_events_today']} videos).")
+              f"{data['summary']['categories_tracked']} categories.")
+
+        # ── Live events: seed from categories if VerbAI returned nothing ──────
+        if not live_events_raw and LIVE_FEED_FILE.exists():
+            try:
+                with open(LIVE_FEED_FILE) as f:
+                    existing_events = json.load(f).get("events", [])
+            except Exception:
+                existing_events = []
+            if not existing_events:
+                live_events_raw = seed_events_from_categories(data)
+                print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events from categories.")
+        _append_live_events(live_events_raw or [], reset=is_new_day)
+
+        # ── Sentiment history (persists across 24h resets) ────────────────────
         update_history(data)
 
     # ── Write MCP status (every run, data or not) ─────────────────────────────
-    any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
     tiktok_watch_count = sum(1 for q in (queries_raw or []) if q.get("source") == "tiktok_watch")
     write_mcp_status(
         data_returned=any_data,
@@ -2038,6 +2108,7 @@ def main():
             "youtube":      len(youtube_raw),
             "news":         len(news_raw),
             "tiktok_watch": tiktok_watch_count,
+            "live_events":  len(live_events_raw or []),
         },
     )
 
