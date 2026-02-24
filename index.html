@@ -2242,6 +2242,38 @@
 
   /* ── Cron countdown timer ── */
   let _cronCountdownTimer = null;
+  let _lastCronBoundary   = null;
+
+  /* Silently dispatch the fetch workflow at each 5-min boundary.
+     If no token is stored, falls back to a plain loadData() refresh. */
+  async function _cronFire() {
+    const token = localStorage.getItem('gh_actions_token');
+    if (!token) { loadData(); return; }
+    const knownTs = currentData && currentData.meta ? currentData.meta.generated_at : null;
+    try {
+      const res = await fetch(
+        'https://api.github.com/repos/rocketago/sotu-dashboard/actions/workflows/auto-update.yml/dispatches',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token,
+            'Accept': 'application/vnd.github+json',
+            'X-GitHub-Api-Version': '2022-11-28',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ ref: 'main' }),
+        }
+      );
+      if (res.status === 204) {
+        pollForNewData(knownTs);
+      } else if (res.status === 401 || res.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        loadData();
+      } else {
+        loadData(); // dispatch failed — at least refresh from cached JSON
+      }
+    } catch (_) { loadData(); }
+  }
 
   function startCronCountdown() {
     stopCronCountdown();
@@ -2255,6 +2287,11 @@
       const mins = Math.floor(remaining / 60000);
       const secs = Math.floor((remaining % 60000) / 1000);
       el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
+      // Crossed a 5-min boundary — dispatch the workflow
+      if (_lastCronBoundary !== null && nextFire !== _lastCronBoundary) {
+        _cronFire();
+      }
+      _lastCronBoundary = nextFire;
     }
     tick();
     _cronCountdownTimer = setInterval(tick, 1000);
@@ -2262,6 +2299,7 @@
 
   function stopCronCountdown() {
     if (_cronCountdownTimer) { clearInterval(_cronCountdownTimer); _cronCountdownTimer = null; }
+    _lastCronBoundary = null;
   }
 
   function updateLiveBtn(enabled) {
