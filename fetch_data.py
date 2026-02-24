@@ -200,7 +200,13 @@ def _normalize_category(raw: str) -> str:
 
 
 def et_midnight_utc() -> str:
-    """Return the ISO UTC timestamp for midnight Eastern Time today."""
+    """Return the ISO Eastern Time timestamp for midnight ET today (NTZ, no Z suffix).
+
+    EVENT_TIME in Snowflake is TIMESTAMP_NTZ stored in Eastern Time.  Passing a
+    UTC-expressed literal (e.g. '…05:00:00Z') causes Snowflake to strip the 'Z'
+    and treat the value as ET, shifting the cutoff to 5 AM ET instead of midnight.
+    We therefore return a plain ET NTZ string so WHERE clauses compare correctly.
+    """
     now_utc = datetime.datetime.now(datetime.timezone.utc)
     # EDT Apr–Oct (UTC-4), EST Nov–Mar (UTC-5)
     et_hours = 4 if 4 <= now_utc.month <= 10 else 5
@@ -208,9 +214,8 @@ def et_midnight_utc() -> str:
     midnight_et = datetime.datetime.combine(
         now_utc.astimezone(et_tz).date(),
         datetime.time.min,
-        tzinfo=et_tz,
     )
-    return midnight_et.astimezone(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return midnight_et.strftime("%Y-%m-%dT%H:%M:%S")
 
 
 # ── Direct MCP HTTP path ─────────────────────────────────────────────────────
@@ -842,11 +847,14 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
     Returns list of dicts with keys: time, query, source, subreddit, category, age, gender, state.
     Per-user capping (max 3 events per person) is applied after retrieval.
     """
-    # Mid-point of today's window: used to split queries across the full day
-    since_dt = datetime.datetime.strptime(live_since_iso, "%Y-%m-%dT%H:%M:%SZ")
-    now_dt   = datetime.datetime.utcnow()
-    mid_dt   = since_dt + (now_dt - since_dt) / 2
-    mid_iso  = mid_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Mid-point of today's window: used to split queries across the full day.
+    # live_since_iso is ET NTZ (no Z suffix); compute now in ET for consistent arithmetic.
+    since_dt  = datetime.datetime.strptime(live_since_iso, "%Y-%m-%dT%H:%M:%S")
+    _now_utc  = datetime.datetime.now(datetime.timezone.utc)
+    _et_hours = 4 if 4 <= _now_utc.month <= 10 else 5
+    now_dt    = (_now_utc - datetime.timedelta(hours=_et_hours)).replace(tzinfo=None)
+    mid_dt    = since_dt + (now_dt - since_dt) / 2
+    mid_iso  = mid_dt.strftime("%Y-%m-%dT%H:%M:%S")
 
     reddit_subreddits = (
         "LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
@@ -1251,10 +1259,13 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     random.shuffle(events)
     events = events[:50]
 
-    # Spread timestamps across today (ET midnight → now)
-    now     = datetime.datetime.utcnow()
-    today_s = datetime.datetime.strptime(et_midnight_utc(), "%Y-%m-%dT%H:%M:%SZ")
-    span_s  = max(int((now - today_s).total_seconds()), 1)
+    # Spread timestamps across today (ET midnight → now).
+    # et_midnight_utc() returns a plain ET NTZ string, so compute "now" in ET too.
+    _now_utc  = datetime.datetime.now(datetime.timezone.utc)
+    _et_hours = 4 if 4 <= _now_utc.month <= 10 else 5
+    now       = (_now_utc - datetime.timedelta(hours=_et_hours)).replace(tzinfo=None)
+    today_s   = datetime.datetime.strptime(et_midnight_utc(), "%Y-%m-%dT%H:%M:%S")
+    span_s    = max(int((now - today_s).total_seconds()), 1)
 
     n = len(events)
     for i, ev in enumerate(events):
