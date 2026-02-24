@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T05:32:23Z",
-    "last_mcp_pull": "2026-02-24T03:47:27Z",
+    "generated_at": "2026-02-24T05:41:05Z",
+    "last_mcp_pull": null,
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
@@ -10,12 +10,12 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 2,
-    "total_unique_users": 2,
-    "top_category": "Presidential Politics",
-    "categories_tracked": 11,
+    "total_engagements": 0,
+    "total_unique_users": 0,
+    "top_category": "N/A",
+    "categories_tracked": 0,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 2,
+    "search_events_today": 0,
     "reddit_events_today": 0,
     "youtube_events_today": 0,
     "news_events_today": 0
@@ -25,31 +25,10 @@
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 2,
-      "unique_users": 2,
-      "trending_score": 100,
-      "items": [
-        {
-          "topic": "Kamala Harris news coverage",
-          "query": "cnn kamala harris",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Kristi Noem news coverage",
-          "query": "cnn kristi noem",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
     },
     {
       "id": "general_politics",

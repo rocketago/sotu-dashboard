@@ -1,45 +1,5 @@
 {
-  "generated_at": "2026-02-24T00:52:50Z",
-  "events": [
-    {
-      "time": "2026-02-23T15:55:14Z",
-      "query": "lionel richie we are the world china gala",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "age": 21,
-      "gender": "Male",
-      "state": "NY"
-    },
-    {
-      "time": "2026-02-23T15:55:09Z",
-      "query": "cnn kamala harris",
-      "source": "search",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "age": 21,
-      "gender": "Male",
-      "state": "NY"
-    },
-    {
-      "time": "2026-02-23T15:53:27Z",
-      "query": "lionel richie we are the world china gala",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "age": 21,
-      "gender": "Male",
-      "state": "NY"
-    },
-    {
-      "time": "2026-02-23T14:59:28Z",
-      "query": "live in iran",
-      "source": "search",
-      "subreddit": null,
-      "category": "Foreign Policy",
-      "age": 23,
-      "gender": "Female",
-      "state": "IL"
-    }
-  ]
+  "generated_at": "2026-02-24T05:41:05Z",
+  "day_start": "2026-02-24T05:00:00Z",
+  "events": []
 }
