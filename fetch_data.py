@@ -1737,8 +1737,15 @@ def write_mcp_status(data_returned: bool, counts: dict) -> None:
     """
     Write mcp_status.json recording every MCP attempt and whether data came back.
     Preserves last_success_at from the previous file when data_returned is False.
+
+    Timestamps are stored as ET NTZ (no Z suffix) — the same convention used by
+    _current_window_start() and Snowflake EVENT_TIME (TIMESTAMP_NTZ in ET).
+    A Z-suffixed UTC literal passed to Snowflake has the Z stripped and is then
+    misread as ET, shifting the query window by 5 hours.
     """
-    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    _now_utc = datetime.datetime.now(datetime.timezone.utc)
+    _et_hours = 4 if 4 <= _now_utc.month <= 10 else 5
+    now_iso = (_now_utc - datetime.timedelta(hours=_et_hours)).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S")
     last_success = now_iso if data_returned else None
     if not data_returned and MCP_STATUS_FILE.exists():
         try:
