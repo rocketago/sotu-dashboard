@@ -38,6 +38,7 @@ jobs:
     needs: check-enabled
     if: needs.check-enabled.outputs.should_run == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
+    timeout-minutes: 10   # cron fires every 15 min — must finish well inside that window
     permissions:
       contents: write
 

@@ -2155,11 +2155,16 @@
           const msgEl = document.getElementById('loading-msg');
           if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = 'New data ready — loading dashboard…'; msgEl.style.opacity = '1'; }, 180); }
           clearInterval(_pollInterval); _pollInterval = null;
+          _clearCronRun();
+          const fireQueued = _cronQueued;
+          _cronQueued = false;
           await loadData();
           setTimeout(() => {
             hideLoadingOverlay();
             showStatus('Dashboard refreshed with latest data ✓', 'success');
           }, 600);
+          // If a boundary was crossed while the run was active, dispatch that queued run now
+          if (fireQueued) setTimeout(_cronFire, 1000);
         }
       } catch (_) { /* network blip — keep polling */ }
     }, 5000);
@@ -2177,12 +2182,31 @@
   /* ── Cron countdown timer ── */
   let _cronCountdownTimer = null;
   let _lastCronBoundary   = null;
+  let _cronRunActive      = false;  // true from dispatch until new data arrives (or safety timeout)
+  let _cronQueued         = false;  // one boundary crossed while active — fire once run ends
+  let _cronRunTimer       = null;   // 12-min safety valve
+
+  function _clearCronRun() {
+    _cronRunActive = false;
+    if (_cronRunTimer) { clearTimeout(_cronRunTimer); _cronRunTimer = null; }
+  }
 
   /* Silently dispatch the fetch workflow at each 15-min boundary.
      If no token is stored, falls back to a plain loadData() refresh. */
   async function _cronFire() {
+    if (_cronRunActive) return;               // guard — should not be reachable
+    _cronRunActive = true;
+    _cronQueued    = false;                   // consume the queued slot
+    // 12-min safety valve: if CI never produces new data, unblock the timer
+    if (_cronRunTimer) clearTimeout(_cronRunTimer);
+    _cronRunTimer = setTimeout(() => {
+      _cronRunActive = false;
+      _cronRunTimer  = null;
+      _cronQueued    = false;                 // stale after 12 min — discard
+    }, 12 * 60 * 1000);
+
     const token = localStorage.getItem('gh_actions_token');
-    if (!token) { loadData(); return; }
+    if (!token) { _clearCronRun(); loadData(); return; }
     const knownTs = currentData && currentData.meta ? currentData.meta.generated_at : null;
     try {
       const res = await fetch(
@@ -2202,11 +2226,13 @@
         pollForNewData(knownTs);
       } else if (res.status === 401 || res.status === 403) {
         localStorage.removeItem('gh_actions_token');
+        _clearCronRun();
         loadData();
       } else {
+        _clearCronRun();
         loadData(); // dispatch failed — at least refresh from cached JSON
       }
-    } catch (_) { loadData(); }
+    } catch (_) { _clearCronRun(); loadData(); }
   }
 
   function startCronCountdown() {
@@ -2217,10 +2243,13 @@
       const now = Date.now();
       const INTERVAL = 15 * 60 * 1000;
       const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
-      // While a run is in progress, show "queued" and suppress new dispatches.
-      // Keep _lastCronBoundary current so we don't double-fire once the run ends.
-      if (_pollInterval !== null) {
-        el.textContent = '· queued';
+      // While a run is in progress, hold the countdown and accept at most one
+      // queued dispatch (fired as soon as the current run produces new data).
+      if (_cronRunActive) {
+        el.textContent = '· Queued';
+        if (_lastCronBoundary !== null && nextFire !== _lastCronBoundary) {
+          _cronQueued = true;   // cap at 1 — ignore further boundary crossings
+        }
         _lastCronBoundary = nextFire;
         return;
       }
@@ -2241,6 +2270,8 @@
   function stopCronCountdown() {
     if (_cronCountdownTimer) { clearInterval(_cronCountdownTimer); _cronCountdownTimer = null; }
     _lastCronBoundary = null;
+    _clearCronRun();
+    _cronQueued = false;
   }
 
   function updateLiveBtn(enabled) {
