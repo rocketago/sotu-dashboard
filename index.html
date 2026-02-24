@@ -1849,7 +1849,7 @@
 
     // Build today label dynamically from browser time
     const todayStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
-    document.getElementById('window-label').textContent = `📅 ${todayStr} · Live from midnight`;
+    document.getElementById('window-label').textContent = `📅 ${todayStr} · Last 24h · Live`;
 
     // Show last action run + last MCP data pull timestamps
     function fmtEST(iso) {

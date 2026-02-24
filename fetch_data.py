@@ -39,9 +39,10 @@ VERBAI_MCP_URL = (
     "/mcp-servers/VERB_AI_MCP_SERVER"
 )
 
-# Fixed 24-hour window anchor — the dashboard accumulates data from this point forward.
-# Each calendar day in ET (midnight → midnight) forms one 24-hour window; the first
-# window begins here.  Subsequent windows start at Feb 25, Feb 26 … midnight ET.
+# Fixed 24-hour sliding window anchor.  The dashboard accumulates data from this
+# point forward; each cron run fetches only new events since the last run and merges
+# them in.  The window start slides: max(WINDOW_ANCHOR, now_ET − 24h), so at any
+# moment exactly the last 24 hours of data are shown.
 WINDOW_ANCHOR = "2026-02-24T00:00:00"   # 12:00 am ET Feb 24 (NTZ, Eastern Time)
 
 # ── Category metadata (icons, ids) ──────────────────────────────────────────
@@ -223,6 +224,25 @@ def et_midnight_utc() -> str:
         datetime.time.min,
     )
     return midnight_et.strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def _current_window_start() -> str:
+    """Return the start of the current 24-hour sliding window (NTZ, ET-anchored).
+
+    Result = max(WINDOW_ANCHOR, now_ET − 24 h).
+
+    During the first 24 hours after WINDOW_ANCHOR, the anchor itself is returned
+    so the window covers everything from Feb 24 midnight ET onward.  After that
+    the window slides forward so the dashboard always shows the most recent 24 h.
+
+    Uses the same NTZ / Eastern Time convention as et_midnight_utc() so it can
+    be used directly in Snowflake WHERE clauses.
+    """
+    now_utc  = datetime.datetime.now(datetime.timezone.utc)
+    et_hours = 4 if 4 <= now_utc.month <= 10 else 5
+    now_et   = (now_utc - datetime.timedelta(hours=et_hours)).replace(tzinfo=None)
+    ago_24h  = (now_et - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")
+    return max(WINDOW_ANCHOR, ago_24h)
 
 
 # ── Direct MCP HTTP path ─────────────────────────────────────────────────────
@@ -1476,9 +1496,9 @@ def merge_into_structure(
             "last_mcp_pull": last_mcp_pull,
             "demographic":   "Ages 18-29",
             "data_source":   "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
-            "window":        "today",
-            "window_label":  f"Today ({today_label}) · Updated live",
-            "today_start":   et_midnight_utc(),
+            "window":        "rolling_24h",
+            "window_label":  "Last 24h · Updated live",
+            "today_start":   _current_window_start(),
             "refresh_interval_minutes": 15,
         },
         "summary": {
@@ -1486,7 +1506,7 @@ def merge_into_structure(
             "total_unique_users":   sum(c["unique_users"] for c in categories),
             "top_category":         top_cat,
             "categories_tracked":   len(categories),
-            "data_window":          "Today from midnight · accumulates throughout the day",
+            "data_window":          "Sliding 24-hour window · accumulates each run",
             "search_events_today":        search_today,
             "reddit_events_today":        reddit_today,
             "youtube_events_today":       youtube_today,
@@ -1743,23 +1763,23 @@ def get_fetch_cursor() -> tuple[str, bool]:
     """
     Return (since_iso, is_incremental).
 
-    On the first run of the day (or after a gap since midnight) returns
-    (midnight_ET_utc, False) so the fetch covers the whole day from scratch.
+    On the first run ever (or after a gap longer than 24h) returns
+    (_current_window_start(), False) so the full 24-hour window is fetched.
 
-    On subsequent runs within the same day returns (last_success_at, True)
-    so only genuinely new events are fetched and merged into the existing file.
+    On subsequent runs returns (last_success_at, True) so only genuinely new
+    events are fetched and accumulated into the existing snapshot.
     """
-    midnight = et_midnight_utc()
+    window_start = _current_window_start()
     if MCP_STATUS_FILE.exists():
         try:
             with open(MCP_STATUS_FILE) as f:
                 status = json.load(f)
             last_success = status.get("last_success_at") or ""
-            if last_success > midnight:           # same day, after midnight
+            if last_success >= window_start:   # within our 24-hour window
                 return last_success, True
         except Exception:
             pass
-    return midnight, False
+    return window_start, False
 
 
 def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
@@ -1848,14 +1868,14 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
     result["meta"] = dict(existing.get("meta", {}))
     result["meta"]["generated_at"]  = now_iso
     result["meta"]["last_mcp_pull"] = now_iso
-    result["meta"]["window_label"]  = f"Today ({today_label}) · Updated live"
-    result["meta"]["today_start"]   = et_midnight_utc()
+    result["meta"]["window_label"]  = "Last 24h · Updated live"
+    result["meta"]["today_start"]   = _current_window_start()
     result["summary"] = {
         "total_engagements":    total_eng,
         "total_unique_users":   sum(c.get("unique_users", 0) for c in categories),
         "top_category":         top_cat,
         "categories_tracked":   len([c for c in categories if c.get("engagement_count", 0) > 0]),
-        "data_window":          "Today from midnight · accumulates throughout the day",
+        "data_window":          "Sliding 24-hour window · accumulates each run",
         "search_events_today":  sum(
             c.get("engagement_count", 0) for c in categories
             if any(i.get("source") == "search" for i in c.get("items", []))
@@ -1876,12 +1896,10 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
 
 def _fresh_day_structure() -> dict:
     """
-    Return a valid empty political_data.json skeleton for a new day.
+    Return a valid empty political_data.json skeleton for the current window.
     All 11 categories are present with zero counts and no items.
-    Written at midnight ET (or on first detection of a new day) so the
-    dashboard always shows today's window rather than yesterday's data.
+    Written on the very first run (before any data arrives from VerbAI).
     """
-    midnight    = et_midnight_utc()
     now_iso     = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     today_label = datetime.date.today().strftime("%b %-d")
     categories  = [
@@ -1902,9 +1920,9 @@ def _fresh_day_structure() -> dict:
             "last_mcp_pull":            None,
             "demographic":              "Ages 18-29",
             "data_source":              "VerbAI MCP (Search, YouTube, Reddit events)",
-            "window":                   "today",
-            "window_label":             f"Today ({today_label}) · Updated live",
-            "today_start":              midnight,
+            "window":                   "rolling_24h",
+            "window_label":             "Last 24h · Updated live",
+            "today_start":              _current_window_start(),
             "refresh_interval_minutes": 15,
         },
         "summary": {
@@ -1912,7 +1930,7 @@ def _fresh_day_structure() -> dict:
             "total_unique_users":   0,
             "top_category":         "N/A",
             "categories_tracked":   0,
-            "data_window":          "Today from midnight · accumulates throughout the day",
+            "data_window":          "Sliding 24-hour window · accumulates each run",
             "search_events_today":        0,
             "reddit_events_today":        0,
             "youtube_events_today":       0,
@@ -1931,7 +1949,7 @@ def _reset_live_feed() -> None:
     """
     now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(LIVE_FEED_FILE, "w") as f:
-        json.dump({"generated_at": now_iso, "day_start": et_midnight_utc(), "events": []},
+        json.dump({"generated_at": now_iso, "day_start": _current_window_start(), "events": []},
                   f, indent=2)
     print("[INFO] Reset live_feed.json for new day.")
 
@@ -1966,7 +1984,7 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
     now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(LIVE_FEED_FILE, "w") as f:
         json.dump(
-            {"generated_at": now_iso, "day_start": et_midnight_utc(), "events": merged},
+            {"generated_at": now_iso, "day_start": _current_window_start(), "events": merged},
             f, indent=2,
         )
     print(f"[OK] Wrote live_feed.json — {len(merged)} events "
@@ -1976,30 +1994,15 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    # ── Window anchor & cursor ────────────────────────────────────────────────
-    # midnight: the start of the current 24-hour window (today 00:00 ET).
-    # since_iso: where this fetch begins — midnight on the first run of the day,
-    #            last_success_at on subsequent runs (incremental to reduce MCP load).
-    midnight      = et_midnight_utc()
+    # ── Sliding 24-hour window cursor ───────────────────────────────────────
+    # since_iso: where this fetch begins.
+    #   • First run / gap longer than 24h → window_start = max(WINDOW_ANCHOR, now−24h)
+    #   • Subsequent runs → last_success_at  (incremental, reduces MCP load)
+    # No midnight reset: the window slides continuously so there is always
+    # exactly 24 hours of data in the snapshot.
     since_iso, is_incremental = get_fetch_cursor()
-
-    # ── Detect day rollover (compare stored window_start against today's midnight) ──
-    existing_today_start = ""
-    if OUTPUT_FILE.exists():
-        try:
-            with open(OUTPUT_FILE) as f:
-                existing_today_start = json.load(f)["meta"].get("today_start", "")
-        except Exception:
-            pass
-    is_new_day = existing_today_start < midnight   # always compare against midnight
-
-    if is_new_day:
-        print(f"[INFO] New 24h window — stored={existing_today_start}, anchor={midnight}")
-        since_iso     = midnight   # full-day fetch for the new window
-        is_incremental = False
-    else:
-        mode = "incremental" if is_incremental else "full-day"
-        print(f"[INFO] Fetch mode={mode}, since={since_iso}")
+    mode = "incremental" if is_incremental else "full (first run or gap)"
+    print(f"[INFO] Fetch mode={mode}, since={since_iso}")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -2044,28 +2047,19 @@ def main():
     any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
 
     if not any_data:
-        if is_new_day:
-            # New window, no data yet (normal given ~8h ingestion lag).
-            # Write an empty skeleton so the dashboard shows today's date.
-            print("[INFO] New window — writing empty structure (no data yet).")
-            data = _fresh_day_structure()
+        # Transient VerbAI outage — keep existing file, advance timestamp only.
+        print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
+        if OUTPUT_FILE.exists():
+            with open(OUTPUT_FILE) as f:
+                existing = json.load(f)
+            existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+            existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
             with open(OUTPUT_FILE, "w") as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            _reset_live_feed()
-        else:
-            # Transient VerbAI outage — keep existing file, advance timestamp only.
-            print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
-            if OUTPUT_FILE.exists():
-                with open(OUTPUT_FILE) as f:
-                    existing = json.load(f)
-                existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-                existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
-                with open(OUTPUT_FILE, "w") as f:
-                    json.dump(existing, f, indent=2, ensure_ascii=False)
-                update_history(existing)
+                json.dump(existing, f, indent=2, ensure_ascii=False)
+            update_history(existing)
     else:
-        if is_incremental and not is_new_day and OUTPUT_FILE.exists():
-            # Accumulate new events into the existing day's snapshot.
+        if is_incremental and OUTPUT_FILE.exists():
+            # Accumulate new window into the existing snapshot.
             try:
                 with open(OUTPUT_FILE) as f:
                     existing_data = json.load(f)
@@ -2074,7 +2068,7 @@ def main():
             new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
             data = accumulate_into_existing(existing_data, new_snapshot)
         else:
-            # Full-day fetch (first run of window or day rollover).
+            # First run or gap: build fresh snapshot from the window start.
             data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
 
         with open(OUTPUT_FILE, "w") as f:
@@ -2083,7 +2077,7 @@ def main():
               f"{data['summary']['total_engagements']} engagements across "
               f"{data['summary']['categories_tracked']} categories.")
 
-        # ── Live events: seed from categories if VerbAI returned nothing ──────
+        # ── Live events: seed synthetically if VerbAI returned nothing ────────
         if not live_events_raw and LIVE_FEED_FILE.exists():
             try:
                 with open(LIVE_FEED_FILE) as f:
@@ -2092,10 +2086,10 @@ def main():
                 existing_events = []
             if not existing_events:
                 live_events_raw = seed_events_from_categories(data)
-                print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events from categories.")
-        _append_live_events(live_events_raw or [], reset=is_new_day)
+                print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events.")
+        _append_live_events(live_events_raw or [], reset=not is_incremental)
 
-        # ── Sentiment history (persists across 24h resets) ────────────────────
+        # ── Sentiment history: persists forever across window slides ──────────
         update_history(data)
 
     # ── Write MCP status (every run, data or not) ─────────────────────────────
