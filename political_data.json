@@ -1,30 +1,31 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T14:57:39Z",
-    "last_mcp_pull": "2026-02-24T14:57:39Z",
+    "generated_at": "2026-02-24T16:08:09Z",
+    "last_mcp_pull": "2026-02-24T16:08:09Z",
     "demographic": "Ages 18-29",
-    "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
+    "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok Search, News events)",
     "window": "today",
     "window_label": "Today (Feb 24) · Updated live",
     "today_start": "2026-02-24T00:00:00",
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 154799,
-    "total_unique_users": 1,
-    "top_category": "Presidential Politics",
+    "total_engagements": 154808,
+    "total_unique_users": 10,
+    "top_category": "General Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 0,
+    "search_events_today": 3,
     "reddit_events_today": 0,
     "youtube_events_today": 1,
-    "news_events_today": 0
+    "tiktok_search_events_today": 0,
+    "news_events_today": 6
   },
   "categories": [
     {
-      "id": "presidential_politics",
-      "label": "Presidential Politics",
-      "icon": "🏛️",
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
       "engagement_count": 154799,
       "unique_users": 1,
       "trending_score": 100,
@@ -42,13 +43,134 @@
       ]
     },
     {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 4,
+      "unique_users": 4,
       "trending_score": 0,
-      "items": []
+      "items": [
+        {
+          "topic": "social security benefits february 25",
+          "query": "social security benefits february 25",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
+          "query": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
+          "query": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "CBS News",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Trump warns countries that 'play games' with US trade deals will face higher tariffs",
+          "query": "Trump warns countries that 'play games' with US trade deals will face higher tariffs",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "Reuters",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏛️",
+      "engagement_count": 2,
+      "unique_users": 2,
+      "trending_score": 0,
+      "items": [
+        {
+          "topic": "trump",
+          "query": "trump",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Judges Grow Angry Over Trump Administration Violating Their Orders",
+          "query": "Judges Grow Angry Over Trump Administration Violating Their Orders",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 2,
+      "unique_users": 2,
+      "trending_score": 0,
+      "items": [
+        {
+          "topic": "what does ice stand for",
+          "query": "what does ice stand for",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Trump Administration Live Updates: ICE Whistle-Blower Calls Training for New Agents 'Deficient' and 'Broken'",
+          "query": "Trump Administration Live Updates: ICE Whistle-Blower Calls Training for New Agents 'Deficient' and 'Broken'",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "up"
+        }
+      ]
+    },
+    {
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
+      "engagement_count": 1,
+      "unique_users": 1,
+      "trending_score": 0,
+      "items": [
+        {
+          "topic": "Doge HIV Funding",
+          "query": "Doge HIV Funding",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
     },
     {
       "id": "elections_voting",
@@ -69,36 +191,9 @@
       "items": []
     },
     {
-      "id": "immigration_policy",
-      "label": "Immigration Policy",
-      "icon": "🛂",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
       "id": "legislative_politics",
       "label": "Legislative Politics",
       "icon": "📜",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "healthcare_policy",
-      "label": "Healthcare Policy",
-      "icon": "🏥",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,

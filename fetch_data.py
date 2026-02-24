@@ -398,12 +398,18 @@ def _call_verbai_with_fallbacks(
 def run_verb_ai_query(prompt: str) -> str | None:
     """
     Call the VerbAI MCP tool via the Claude CLI and return the text result.
-    Timeout raised to 300s to accommodate cold Snowflake query starts.
+
+    Uses claude-haiku for faster token generation and a 600s timeout to
+    accommodate CLI startup + MCP initialisation + Snowflake cold-start.
+    --max-turns 5 caps the internal agent loop so the process cannot spin
+    indefinitely if Cortex Analyst returns sparse results.
     """
     cmd = [
         "claude",
         "--print",
         "--dangerously-skip-permissions",
+        "--model", "claude-haiku-4-5-20251001",
+        "--max-turns", "5",
         prompt,
     ]
     try:
@@ -411,7 +417,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
             cmd,
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=600,
         )
         print(f"[CLAUDE] exit={result.returncode} "
               f"stdout={len(result.stdout)}b stderr={len(result.stderr)}b")
@@ -639,11 +645,40 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
             ),
         ]
 
+        # ── TikTok search history (DONATIONS_EVENTS_DYM) ─────────────────────
+        # NOTE: The VerbAI/Cortex Analyst semantic model does not currently expose
+        # the search_term JSON field inside DONATIONS_EVENTS_DYM.DATA for the
+        # search_history event type.  These prompts will return 0 rows until VerbAI
+        # updates the semantic model to include that dimension.  The infrastructure
+        # is wired up and ready — no code change needed once the model is updated.
+        tiktok_search_prompts = [
+            (
+                f"What are the top political TikTok search terms by users aged 18 to 29 "
+                f"since {since_iso}? Query the DONATIONS_EVENTS_DYM table where "
+                f"EVENT_TYPE = 'search_history' and PLATFORM = 'tiktok'. The DATA column "
+                f"is JSON containing a search_term field. Filter for political terms: "
+                f"Trump, DOGE, immigration, tariffs, Congress, federal, healthcare, Ukraine, "
+                f"climate change, abortion, gun control, student debt, social security. "
+                f"Return JSON: [{{\"query\": str, \"count\": int, \"category\": str, "
+                f"\"source\": \"tiktok_search\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Categories: {_CAT_ENUM}."
+            ),
+            (
+                f"Top political searches on TikTok since {since_iso}. "
+                f"Use DONATIONS_EVENTS_DYM where EVENT_TYPE='search_history' and PLATFORM='tiktok'. "
+                f"Filter DATA field for political keywords (Trump, immigration, tariffs, DOGE, Congress). "
+                f"Return JSON: [{{\"query\": str, \"count\": int}}]"
+            ),
+        ]
+
         search_rows = _call_verbai_with_fallbacks(
             search_prompts, tool_name, session_id, url, token, label="search"
         )
         reddit_rows = _call_verbai_with_fallbacks(
             reddit_prompts, tool_name, session_id, url, token, label="reddit"
+        )
+        tiktok_search_rows = _call_verbai_with_fallbacks(
+            tiktok_search_prompts, tool_name, session_id, url, token, label="tiktok-search"
         )
 
         # Ensure source field is set (fallback prompts may omit it)
@@ -651,14 +686,17 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
             r.setdefault("source", "search")
         for r in reddit_rows:
             r.setdefault("source", "reddit")
+        for r in tiktok_search_rows:
+            r.setdefault("source", "tiktok_search")
 
-        combined = search_rows + reddit_rows
+        combined = search_rows + reddit_rows + tiktok_search_rows
         if combined:
             raw = _dedup_query_items(combined)
             result = [item for item in raw if _is_political_item(item)]
             print(
                 f"[MCP-DIRECT] search_queries: search={len(search_rows)} "
-                f"reddit={len(reddit_rows)} → {len(result)} political"
+                f"reddit={len(reddit_rows)} tiktok={len(tiktok_search_rows)} "
+                f"→ {len(result)} political"
             )
             return result
         print("[MCP-DIRECT] search_queries: all attempts sparse — falling back to Claude")
@@ -667,17 +705,20 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     # Claude's internal agent loop can call VerbAI multiple times.  The prompt
     # tells it to probe first and refine rather than firing one rigid query.
     claude_prompt = (
-        f"You have the VerbAI tool.  Find political search and Reddit data for "
+        f"You have the VerbAI tool.  Find political search, Reddit, and TikTok search data for "
         f"18-29 year olds since {since_iso}.\n\n"
         f"Work iteratively:\n"
         f"1. Query SEARCH events for political topics — Trump, immigration, tariffs, "
         f"DOGE, federal workers, Congress, healthcare, Ukraine, climate.\n"
         f"2. Query REDDIT posts from political subreddits — r/politics, r/conservative, "
         f"r/liberal, r/politicaldiscussion, r/economics, r/immigration, r/supremecourt.\n"
-        f"3. If a query returns no data, try a broader phrasing or slightly wider time window.\n"
-        f"4. Combine all results.\n\n"
+        f"3. Query DONATIONS_EVENTS_DYM where EVENT_TYPE='search_history' and PLATFORM='tiktok' "
+        f"for political search terms (Trump, immigration, tariffs, DOGE, Congress, healthcare). "
+        f"The DATA column is JSON with a search_term field.\n"
+        f"4. If a query returns no data, try a broader phrasing or slightly wider time window.\n"
+        f"5. Combine all results.\n\n"
         f"Once done, output ONLY a raw JSON array (no markdown):\n"
-        f"[{{\"query\": str, \"count\": int, \"source\": \"search\"|\"reddit\", "
+        f"[{{\"query\": str, \"count\": int, \"source\": \"search\"|\"reddit\"|\"tiktok_search\", "
         f"\"subreddit\": str|null, \"category\": str, \"trend\": \"up\"|\"down\"|\"stable\"}}]\n"
         f"Categories: {_CAT_ENUM}."
     )
@@ -1033,6 +1074,101 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     return result
 
 
+def fetch_news_articles(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
+    """
+    Query political news articles read by 18-29 year-olds from NEWS_EVENTS_FLAT_DYM.
+
+    Direct MCP path: two VerbAI calls — most-read articles first, then most-recent.
+    Each has a broader fallback prompt.
+
+    Returns list of dicts with keys: query (article title), count, source ('news'),
+    channel (news outlet), category, trend.
+    """
+    if mcp_ctx:
+        tool_name, session_id, url, token = mcp_ctx
+
+        popular_prompts = [
+            (
+                f"What are the most-read political news articles by users aged 18 to 29 "
+                f"since {since_iso}? Query NEWS_EVENTS_FLAT_DYM joined with AGENT_SYNC on USER_ID. "
+                f"Filter where YEAR(CURRENT_DATE) - YEAR_OF_BIRTH BETWEEN 18 AND 29 and "
+                f"title or keywords contain: Trump, DOGE, immigration, tariffs, Congress, "
+                f"federal, healthcare, Ukraine, climate, abortion, gun control, student debt, "
+                f"social security, supreme court. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int, "
+                f"\"category\": str, \"source\": \"news\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Use NEWS_OUTLET as the channel field. "
+                f"Categories: {_CAT_ENUM}. Use 'General Politics' only if no other fits."
+            ),
+            (
+                f"Top political news articles read today since {since_iso} from NEWS_EVENTS_FLAT_DYM. "
+                f"US politics, Trump, government, elections, policy topics. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int}}]"
+            ),
+        ]
+
+        recent_prompts = [
+            (
+                f"What political news articles have users aged 18 to 29 read most recently "
+                f"since {since_iso}? Query NEWS_EVENTS_FLAT_DYM joined with AGENT_SYNC. "
+                f"Filter for users aged 18-29 and articles with political keywords in title or keywords. "
+                f"Order by EVENT_TIME descending. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int, "
+                f"\"category\": str, \"source\": \"news\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Use NEWS_OUTLET as the channel field. Categories: {_CAT_ENUM}."
+            ),
+            (
+                f"Most recently read political news from NEWS_EVENTS_FLAT_DYM since {since_iso}. "
+                f"US government, Trump, Congress, immigration, elections. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int}}]"
+            ),
+        ]
+
+        popular_rows = _call_verbai_with_fallbacks(
+            popular_prompts, tool_name, session_id, url, token, label="news-popular"
+        )
+        recent_rows = _call_verbai_with_fallbacks(
+            recent_prompts, tool_name, session_id, url, token, label="news-recent"
+        )
+
+        for r in popular_rows + recent_rows:
+            r.setdefault("source", "news")
+
+        combined = popular_rows + recent_rows
+        if combined:
+            raw = _dedup_query_items(combined)
+            result = [item for item in raw if _is_political_item(item)]
+            print(
+                f"[MCP-DIRECT] news_articles: popular={len(popular_rows)} "
+                f"recent={len(recent_rows)} → {len(result)} political"
+            )
+            return result
+        print("[MCP-DIRECT] news_articles: all attempts sparse — falling back to Claude")
+
+    # ── Claude subprocess: exploratory prompt that permits iteration ──────────
+    claude_prompt = (
+        f"You have the VerbAI tool.  Find political news articles read by "
+        f"18-29 year olds since {since_iso}.\n\n"
+        f"Work iteratively:\n"
+        f"1. Query NEWS_EVENTS_FLAT_DYM joined with AGENT_SYNC on USER_ID for users aged 18-29. "
+        f"Filter for articles with political keywords in TITLE or KEYWORDS: "
+        f"Trump, immigration, tariffs, DOGE, Congress, federal workers, "
+        f"healthcare, Ukraine, climate, abortion, supreme court.\n"
+        f"2. Also query for most recently read political articles (order by EVENT_TIME DESC).\n"
+        f"3. If a query returns no data, try a broader phrasing or wider time window.\n"
+        f"4. Combine both result sets.\n\n"
+        f"Once done, output ONLY a raw JSON array (no markdown):\n"
+        f"[{{\"query\": str, \"channel\": str, \"count\": int, "
+        f"\"source\": \"news\", \"category\": str, \"trend\": \"up\"|\"down\"|\"stable\"}}]\n"
+        f"Use NEWS_OUTLET as the channel field. Categories: {_CAT_ENUM}."
+    )
+    text = run_verb_ai_query(claude_prompt)
+    raw = _dedup_query_items(_parse_json_array(text) if text else [])
+    result = [item for item in raw if _is_political_item(item)]
+    print(f"[INFO] news_articles: {len(raw)} rows → {len(result)} political")
+    return result
+
+
 def _dedup_items(items: list[dict]) -> list[dict]:
     """
     Remove near-duplicate items within a category.
@@ -1042,11 +1178,11 @@ def _dedup_items(items: list[dict]) -> list[dict]:
       into one with the higher count kept.
     - Max 2 items per subreddit (Reddit) or channel (YouTube).
     """
-    # 1. Deduplicate search and YouTube items by title prefix
+    # 1. Deduplicate search/TikTok-search/YouTube/news items by title prefix
     seen_prefix: dict[str, int] = {}   # prefix -> index in result
     result: list[dict] = []
     for item in sorted(items, key=lambda x: -x.get("count", 0)):
-        if item.get("source") in ("search", "youtube"):
+        if item.get("source") in ("search", "youtube", "tiktok_search", "news"):
             prefix = " ".join(item.get("query", "").lower().split())[:35]
             if prefix in seen_prefix:
                 # Accumulate count into the existing item
@@ -1055,12 +1191,12 @@ def _dedup_items(items: list[dict]) -> list[dict]:
             seen_prefix[prefix] = len(result)
         result.append(item)
 
-    # 2. Cap at 2 items per subreddit (Reddit) or channel (YouTube)
+    # 2. Cap at 2 items per subreddit (Reddit) or channel (YouTube/news)
     group_count: dict[str, int] = {}
     filtered: list[dict] = []
     for item in sorted(result, key=lambda x: -x.get("count", 0)):
         group = item.get("subreddit") or item.get("channel")
-        if group and item.get("source") in ("reddit", "youtube"):
+        if group and item.get("source") in ("reddit", "youtube", "news"):
             if group_count.get(group, 0) >= 2:
                 continue
             group_count[group] = group_count.get(group, 0) + 1
@@ -1072,16 +1208,17 @@ def merge_into_structure(
     categories_raw: list,
     queries_raw: list,
     youtube_raw: list | None = None,
+    news_raw: list | None = None,
 ) -> dict:
     """
-    Merge VerbAI query results (search, Reddit, YouTube) into the dashboard
+    Merge VerbAI query results (search, Reddit, YouTube, News) into the dashboard
     JSON structure.  Falls back to existing file data if API data is missing.
 
     Engagement counts are ALWAYS derived from the items returned by
-    fetch_search_queries / fetch_youtube_videos (not from the separate
-    fetch_category_counts call).  The two calls categorise independently and
-    create count/item mismatches when used together, so category_counts is only
-    consulted when no items at all were returned.
+    fetch_search_queries / fetch_youtube_videos / fetch_news_articles (not from
+    the separate fetch_category_counts call).  The two calls categorise
+    independently and create count/item mismatches when used together, so
+    category_counts is only consulted when no items at all were returned.
     """
     # Load existing data as fallback
     existing = {}
@@ -1091,7 +1228,7 @@ def merge_into_structure(
 
     # ── Step 1: Place each item into its category ──────────────────────────
     query_map: dict[str, list] = {k: [] for k in CATEGORY_META}
-    all_items = list(queries_raw or []) + list(youtube_raw or [])
+    all_items = list(queries_raw or []) + list(youtube_raw or []) + list(news_raw or [])
     for q in all_items:
         raw_label = q.get("category", "General Politics")
         cat_label = _normalize_category(raw_label)
@@ -1192,12 +1329,14 @@ def merge_into_structure(
     today_label = datetime.date.today().strftime("%b %-d")
 
     # Count today's events by source from items
-    search_today  = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
-    reddit_today  = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
-    youtube_today = sum(1 for c in categories for i in c["items"] if i.get("source") == "youtube")
+    search_today       = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
+    reddit_today       = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
+    youtube_today      = sum(1 for c in categories for i in c["items"] if i.get("source") == "youtube")
+    tiktok_srch_today  = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "tiktok_search")
+    news_today         = sum(1 for c in categories for i in c["items"] if i.get("source") == "news")
 
     # Preserve last_mcp_pull: advance it when any fetch returned real data
-    got_mcp_data = bool(categories_raw) or bool(queries_raw) or bool(youtube_raw)
+    got_mcp_data = bool(categories_raw) or bool(queries_raw) or bool(youtube_raw) or bool(news_raw)
     last_mcp_pull = now_iso if got_mcp_data else existing.get("meta", {}).get("last_mcp_pull")
 
     return {
@@ -1205,7 +1344,7 @@ def merge_into_structure(
             "generated_at":  now_iso,
             "last_mcp_pull": last_mcp_pull,
             "demographic":   "Ages 18-29",
-            "data_source":   "VerbAI MCP (Search, YouTube, Reddit events)",
+            "data_source":   "VerbAI MCP (Search, YouTube, Reddit, TikTok Search, News events)",
             "window":        "today",
             "window_label":  f"Today ({today_label}) · Updated live",
             "today_start":   et_midnight_utc(),
@@ -1217,10 +1356,11 @@ def merge_into_structure(
             "top_category":         top_cat,
             "categories_tracked":   len(categories),
             "data_window":          "Today from midnight · accumulates throughout the day",
-            "search_events_today":  search_today,
-            "reddit_events_today":  reddit_today,
-            "youtube_events_today": youtube_today,
-            "news_events_today":    0,
+            "search_events_today":        search_today,
+            "reddit_events_today":        reddit_today,
+            "youtube_events_today":       youtube_today,
+            "tiktok_search_events_today": tiktok_srch_today,
+            "news_events_today":          news_today,
         },
         "categories": categories,
     }
@@ -1700,19 +1840,22 @@ def main():
         categories_raw = fetch_category_counts(since_iso, mcp_ctx)
         queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
         youtube_raw    = fetch_youtube_videos(since_iso, mcp_ctx)
+        news_raw       = fetch_news_articles(since_iso, mcp_ctx)
     else:
         # Claude fallback: run subprocesses in parallel (max time = slowest one)
-        print("[INFO] Running 3 Claude queries in parallel (timeout=300s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
+        print("[INFO] Running 4 Claude queries in parallel (timeout=600s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
             f_cats    = pool.submit(fetch_category_counts, since_iso, None)
             f_queries = pool.submit(fetch_search_queries,  since_iso, None)
             f_youtube = pool.submit(fetch_youtube_videos,  since_iso, None)
+            f_news    = pool.submit(fetch_news_articles,   since_iso, None)
             categories_raw = f_cats.result()
             queries_raw    = f_queries.result()
             youtube_raw    = f_youtube.result()
+            news_raw       = f_news.result()
 
     # ── Write outputs ─────────────────────────────────────────────────────────
-    if not categories_raw and not queries_raw and not youtube_raw:
+    if not categories_raw and not queries_raw and not youtube_raw and not news_raw:
         if is_new_day:
             # Day has rolled over but VerbAI has no data yet (normal early-morning
             # behaviour given the ~8 h ingestion lag).  Reset both outputs to empty
@@ -1739,7 +1882,7 @@ def main():
         if is_new_day:
             # First successful fetch of the day: reset live feed before writing.
             _reset_live_feed()
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
+        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
@@ -1749,13 +1892,14 @@ def main():
         update_history(data)
 
     # ── Write MCP status (every run, data or not) ─────────────────────────────
-    any_data = bool(categories_raw or queries_raw or youtube_raw)
+    any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
     write_mcp_status(
         data_returned=any_data,
         counts={
             "categories": len(categories_raw),
             "queries":    len(queries_raw),
             "youtube":    len(youtube_raw),
+            "news":       len(news_raw),
         },
     )
 

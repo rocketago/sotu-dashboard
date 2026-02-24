@@ -1,5 +1,105 @@
 {
-  "generated_at": "2026-02-24T05:41:05Z",
-  "day_start": "2026-02-24T05:00:00Z",
-  "events": []
+  "generated_at": "2026-02-24T16:08:09Z",
+  "events": [
+    {
+      "query": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T11:08:09Z",
+      "age": 28,
+      "gender": "Female",
+      "state": "NY"
+    },
+    {
+      "query": "Why Trump Might Be a Manchurian Candidate",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "General Politics",
+      "time": "2026-02-24T09:53:54Z",
+      "age": 27,
+      "gender": "Female",
+      "state": "KS"
+    },
+    {
+      "query": "Trump Administration Live Updates: ICE Whistle-Blower Calls Training for New Agents 'Deficient' and 'Broken'",
+      "source": "news",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-24T08:39:40Z",
+      "age": 21,
+      "gender": "Male",
+      "state": "ND"
+    },
+    {
+      "query": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T07:25:26Z",
+      "age": 21,
+      "gender": "Male",
+      "state": "OH"
+    },
+    {
+      "query": "what does ice stand for",
+      "source": "search",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-24T06:11:11Z",
+      "age": 18,
+      "gender": "Male",
+      "state": "VA"
+    },
+    {
+      "query": "Trump warns countries that 'play games' with US trade deals will face higher tariffs",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T04:56:57Z",
+      "age": 22,
+      "gender": "Female",
+      "state": "RI"
+    },
+    {
+      "query": "trump",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-24T03:42:43Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "SC"
+    },
+    {
+      "query": "Doge HIV Funding",
+      "source": "news",
+      "subreddit": null,
+      "category": "Healthcare Policy",
+      "time": "2026-02-24T02:28:28Z",
+      "age": 28,
+      "gender": "Female",
+      "state": "SD"
+    },
+    {
+      "query": "Judges Grow Angry Over Trump Administration Violating Their Orders",
+      "source": "news",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-24T01:14:14Z",
+      "age": 25,
+      "gender": "Female",
+      "state": "NV"
+    },
+    {
+      "query": "social security benefits february 25",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T00:00:00Z",
+      "age": 24,
+      "gender": "Female",
+      "state": "WY"
+    }
+  ]
 }
