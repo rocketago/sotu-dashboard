@@ -1,10 +1,10 @@
 {
-  "last_attempt_at": "2026-02-24T05:32:23Z",
-  "data_returned": false,
-  "last_success_at": "2026-02-24T03:47:27Z",
+  "last_attempt_at": "2026-02-24T14:57:39Z",
+  "data_returned": true,
+  "last_success_at": "2026-02-24T14:57:39Z",
   "counts": {
     "categories": 0,
     "queries": 0,
-    "youtube": 0
+    "youtube": 1
   }
 }
