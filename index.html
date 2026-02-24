@@ -2217,6 +2217,13 @@
       const now = Date.now();
       const INTERVAL = 15 * 60 * 1000;
       const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
+      // While a run is in progress, show "queued" and suppress new dispatches.
+      // Keep _lastCronBoundary current so we don't double-fire once the run ends.
+      if (_pollInterval !== null) {
+        el.textContent = '· queued';
+        _lastCronBoundary = nextFire;
+        return;
+      }
       const remaining = Math.max(0, nextFire - now);
       const mins = Math.floor(remaining / 60000);
       const secs = Math.floor((remaining % 60000) / 1000);
