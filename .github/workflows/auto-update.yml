@@ -46,6 +46,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+          token: ${{ github.token }}   # ensures push credentials are configured
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -59,6 +60,7 @@ jobs:
           key: npm-claude-cli-${{ runner.os }}
 
       - name: Install Claude CLI (Claude fallback path)
+        continue-on-error: true   # primary path is direct HTTP; CLI is best-effort
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Configure VerbAI MCP (Claude fallback path)
@@ -80,11 +82,11 @@ jobs:
         run: |
           git config user.name  "Claude Auto-Update"
           git config user.email "noreply@anthropic.com"
-          git add political_data.json history.json mcp_status.json
+          git add political_data.json history.json mcp_status.json live_feed.json
           # Only commit if something changed
           if git diff --cached --quiet; then
             echo "No changes — skipping commit."
           else
             git commit -m "chore: auto-update data [$(date -u '+%Y-%m-%dT%H:%M:%SZ')]"
-            git push
+            git push origin HEAD:${{ github.ref_name }}
           fi
