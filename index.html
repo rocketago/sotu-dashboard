@@ -235,6 +235,13 @@
       animation: none;
     }
 
+    .cron-countdown {
+      font-weight: 400;
+      opacity: 0.8;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.02em;
+    }
+
     .refresh-info {
       font-size: 12px;
       color: var(--muted);
@@ -1012,6 +1019,7 @@
   <div class="live-pill paused" id="live-pill">
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">PAUSED</span>
+    <span id="cron-countdown" class="cron-countdown" hidden></span>
   </div>
   <div class="refresh-info">Search: 5 min · Reddit: 15 min</div>
 </header>
@@ -2232,6 +2240,30 @@
   /* ── LIVE UPDATES TOGGLE ── */
   const GH_CONTENTS_URL = 'https://api.github.com/repos/rocketago/sotu-dashboard/contents/cron_enabled.json';
 
+  /* ── Cron countdown timer ── */
+  let _cronCountdownTimer = null;
+
+  function startCronCountdown() {
+    stopCronCountdown();
+    function tick() {
+      const el = document.getElementById('cron-countdown');
+      if (!el || el.hidden) return;
+      const now = Date.now();
+      const INTERVAL = 5 * 60 * 1000;
+      const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
+      const remaining = Math.max(0, nextFire - now);
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
+    }
+    tick();
+    _cronCountdownTimer = setInterval(tick, 1000);
+  }
+
+  function stopCronCountdown() {
+    if (_cronCountdownTimer) { clearInterval(_cronCountdownTimer); _cronCountdownTimer = null; }
+  }
+
   function updateLiveBtn(enabled) {
     const btn = document.getElementById('live-toggle-btn');
     if (!btn) return;
@@ -2242,8 +2274,13 @@
       : 'Click to enable automatic 5-minute updates';
     const pill      = document.getElementById('live-pill');
     const liveLabel = document.getElementById('live-label');
+    const countdown = document.getElementById('cron-countdown');
     if (pill)      pill.classList.toggle('paused', !enabled);
     if (liveLabel) liveLabel.textContent = enabled ? 'LIVE' : 'PAUSED';
+    if (countdown) {
+      countdown.hidden = !enabled;
+      if (enabled) startCronCountdown(); else stopCronCountdown();
+    }
     const fetchBtn = document.getElementById('fetch-btn');
     if (fetchBtn) {
       fetchBtn.disabled = enabled;
