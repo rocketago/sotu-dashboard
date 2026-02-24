@@ -59,25 +59,6 @@
       width: auto;
     }
 
-    .fetch-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: 8px;
-      color: #fff;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      padding: 7px 14px;
-      transition: opacity 0.15s, transform 0.1s;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-
-    .fetch-btn:hover   { opacity: 0.85; }
-    .fetch-btn:active  { transform: scale(0.97); }
-    .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-
     /* ── LIVE UPDATES TOGGLE ── */
     .live-toggle-btn {
       background: transparent;
@@ -1010,9 +991,6 @@
     <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="vot-logo" />
   </a>
   <h1>State of the Union — Rapid Response Tracker</h1>
-  <button class="fetch-btn" id="fetch-btn" onclick="triggerFetch()" title="Dispatch the fetch_data workflow via GitHub Actions">
-    ↻ Fetch Data
-  </button>
   <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-15-minute auto-update cron">
     ⏸ Live Updates: OFF
   </button>
@@ -1851,7 +1829,7 @@
     const todayStr = new Date().toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     document.getElementById('window-label').textContent = `📅 ${todayStr} · Last 24h · Live`;
 
-    // Show last action run + last MCP data pull timestamps
+    // Format a UTC ISO string as ET
     function fmtEST(iso) {
       return new Date(iso).toLocaleString('en-US', {
         timeZone: 'America/New_York',
@@ -1860,20 +1838,39 @@
         timeZoneName: 'short',
       });
     }
-    const runStr  = m.generated_at ? `Action run: ${fmtEST(m.generated_at)}` : '';
 
-    // MCP pull status — sourced from mcp_status.json written by fetch_data.py on every run.
-    // Falls back to last_mcp_pull from political_data.json meta for older deploys without mcp_status.json.
+    // Format an ET NTZ string (like "2026-02-24T00:00:00") as a readable ET time.
+    // The value is wall-clock ET; adding the ET→UTC offset gives us a real UTC timestamp.
+    function fmtETNtz(ntz) {
+      if (!ntz) return '';
+      const month = parseInt(ntz.substring(5, 7));
+      const etOffsetH = (month >= 4 && month <= 10) ? 4 : 5;   // EDT=4, EST=5
+      const utcMs = new Date(ntz + 'Z').getTime() + etOffsetH * 3600 * 1000;
+      return new Date(utcMs).toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short', day: 'numeric',
+        hour: 'numeric', minute: '2-digit',
+        timeZoneName: 'short',
+      });
+    }
+
+    // Data window: from today_start to now
+    const windowStr = m.today_start
+      ? `📊 Data window: ${fmtETNtz(m.today_start)} → now`
+      : '';
+
+    // Most recent pull (cron run)
     let pullStr = '';
     if (mcpStatus && mcpStatus.last_attempt_at) {
       const noData = mcpStatus.data_returned === false;
-      const flag   = noData ? ' ⚠️ No data returned' : '';
-      pullStr = `Last MCP pull: ${fmtEST(mcpStatus.last_attempt_at)}${flag}`;
-    } else {
-      const pullTs = m.last_mcp_pull;
-      if (pullTs) pullStr = `Last MCP pull: ${fmtEST(pullTs)}`;
+      const flag   = noData ? ' ⚠️ no data' : '';
+      pullStr = `🕐 Last pull: ${fmtEST(mcpStatus.last_attempt_at)}${flag}`;
+    } else if (m.last_mcp_pull) {
+      pullStr = `🕐 Last pull: ${fmtEST(m.last_mcp_pull)}`;
     }
-    document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
+
+    document.getElementById('window-desc').textContent =
+      [windowStr, pullStr].filter(Boolean).join('   ·   ');
     document.getElementById('source-counts').innerHTML = `
       <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
       <span>▶ ${(s.youtube_events_today || 0).toLocaleString()} YouTube videos</span>
@@ -1894,22 +1891,22 @@
       <div class="stat-card">
         <div class="label">Unique Users</div>
         <div class="value">${s.total_unique_users.toLocaleString()}</div>
-        <div class="sub">Active today</div>
+        <div class="sub">Last 24h</div>
       </div>
       <div class="stat-card">
         <div class="label">Top Category</div>
         <div class="value" style="font-size:15px;padding-top:4px;">${s.top_category}</div>
-        <div class="sub">Most activity today</div>
+        <div class="sub">Most active last 24h</div>
       </div>
       <div class="stat-card">
         <div class="label">Categories</div>
         <div class="value">${s.categories_tracked}</div>
-        <div class="sub">Tracked today</div>
+        <div class="sub">Active last 24h</div>
       </div>
       <div class="stat-card">
-        <div class="label">Data Resets</div>
-        <div class="value" style="font-size:14px;padding-top:4px;">Midnight</div>
-        <div class="sub">Updated every 15 min</div>
+        <div class="label">Data Window</div>
+        <div class="value" style="font-size:14px;padding-top:4px;">24h Rolling</div>
+        <div class="sub">Slides forward each run</div>
       </div>
     `;
   }
@@ -2130,8 +2127,6 @@
 
   function cancelLoading() {
     hideLoadingOverlay();
-    const btn = document.getElementById('fetch-btn');
-    if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
   }
 
   function scheduleSteps(startTime) {
@@ -2163,8 +2158,6 @@
           await loadData();
           setTimeout(() => {
             hideLoadingOverlay();
-            const btn = document.getElementById('fetch-btn');
-            if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
             showStatus('Dashboard refreshed with latest data ✓', 'success');
           }, 600);
         }
@@ -2174,68 +2167,8 @@
     // Give up after 3 minutes
     _pollTimeout = setTimeout(() => {
       hideLoadingOverlay();
-      const btn = document.getElementById('fetch-btn');
-      if (btn) { btn.textContent = '↻ Fetch Data'; btn.disabled = false; }
       showStatus('Timed out waiting for data — check GitHub Actions for status', 'error');
     }, 180000);
-  }
-
-  /* ── TRIGGER GITHUB ACTIONS WORKFLOW ── */
-  async function triggerFetch() {
-    const btn = document.getElementById('fetch-btn');
-
-    let token = localStorage.getItem('gh_actions_token');
-    if (!token) {
-      token = prompt(
-        'Enter a GitHub Personal Access Token with repo/actions:write scope.\n' +
-        'It will be stored in localStorage for future use.\n\nToken:'
-      );
-      if (!token || !token.trim()) return;
-      token = token.trim();
-      localStorage.setItem('gh_actions_token', token);
-    }
-
-    btn.disabled = true;
-    btn.textContent = '↺ Dispatching…';
-
-    const knownTs = currentData && currentData.meta ? currentData.meta.generated_at : null;
-
-    try {
-      const res = await fetch(
-        'https://api.github.com/repos/rocketago/sotu-dashboard/actions/workflows/auto-update.yml/dispatches',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ ref: 'main' }),
-        }
-      );
-
-      if (res.status === 204) {
-        const dispatchedAt = Date.now();
-        showLoadingOverlay('Workflow dispatched — waiting for runner to start…');
-        scheduleSteps(dispatchedAt);
-        pollForNewData(knownTs);
-      } else if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('gh_actions_token');
-        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
-        btn.textContent = '↻ Fetch Data';
-        btn.disabled = false;
-      } else {
-        const body = await res.text().catch(() => '');
-        showStatus(`Dispatch failed (${res.status})${body ? ': ' + body.slice(0, 120) : ''}`, 'error');
-        btn.textContent = '↻ Fetch Data';
-        btn.disabled = false;
-      }
-    } catch (err) {
-      showStatus('Network error: ' + err.message, 'error');
-      btn.textContent = '↻ Fetch Data';
-      btn.disabled = false;
-    }
   }
 
   /* ── LIVE UPDATES TOGGLE ── */
@@ -2320,13 +2253,7 @@
       countdown.hidden = !enabled;
       if (enabled) startCronCountdown(); else stopCronCountdown();
     }
-    const fetchBtn = document.getElementById('fetch-btn');
-    if (fetchBtn) {
-      fetchBtn.disabled = enabled;
-      fetchBtn.title = enabled
-        ? 'Disable live updates to fetch manually'
-        : 'Dispatch the fetch_data workflow via GitHub Actions';
-    }
+
   }
 
   async function loadLiveUpdatesState() {
