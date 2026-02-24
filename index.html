@@ -1541,7 +1541,7 @@
 
     data.categories.forEach(cat => {
       cat.items.forEach(item => {
-        const raw = (item.query || '') + ' ' + (item.topic || '');
+        const raw = (item.query || '');
         const words = raw.toLowerCase()
           .replace(/[^a-z0-9\s'-]/g, ' ')
           .split(/\s+/)
