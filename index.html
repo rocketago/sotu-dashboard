@@ -2255,10 +2255,15 @@
 
   async function loadLiveUpdatesState() {
     try {
-      const res = await fetch('./cron_enabled.json?_=' + Date.now());
+      const headers = {};
+      const tok = localStorage.getItem('gh_actions_token');
+      if (tok) headers['Authorization'] = 'token ' + tok;
+      const res = await fetch(GH_CONTENTS_URL + '?_=' + Date.now(), { headers });
       if (!res.ok) return;
       const d = await res.json();
-      updateLiveBtn(!!d.enabled);
+      const content = atob(d.content.replace(/\n/g, ''));
+      const data = JSON.parse(content);
+      updateLiveBtn(!!data.enabled);
     } catch (e) { /* silently ignore — button stays in default off state */ }
   }
 
