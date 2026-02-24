@@ -617,47 +617,52 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
 # Lowercase → canonical label lookup built once at import time
 _CANONICAL_CATEGORY: dict[str, str] = {k.lower(): k for k in CATEGORY_META}
 
-# Subreddits that are by definition SOTU-relevant US politics
-_POLITICAL_SUBREDDITS: frozenset[str] = frozenset({
-    "politics", "politicaldiscussion", "conservative", "liberal",
-    "neutralpolitics", "economics", "economy", "environment", "climate",
-    "healthcare", "immigration", "supremecourt", "law", "progressive",
-    "democrats", "republican", "political_humor", "libertarian",
-    "uspolitics", "americanpolitics",
-    # worldnews/news excluded — too much non-US content slips through
-})
-
-# Keywords anchoring content to US politics relevant to the SOTU
-_POLITICAL_KEYWORDS: frozenset[str] = frozenset({
+# Keywords that alone are sufficient to identify US political content.
+_STRONG_POLITICAL_KEYWORDS: frozenset[str] = frozenset({
     # Trump administration
-    "trump", "white house", "maga", "executive order", "administration",
+    "trump", "white house", "maga", "executive order",
     # Congress / legislation
     "congress", "senate", "house of representatives", "filibuster",
     "legislation", "democrat", "republican",
     # DOGE / federal spending
     "doge", "elon musk", "federal worker", "federal employee",
     "federal budget", "government efficiency", "spending cut",
-    # Economy
+    # Economy (US-specific)
     "tariff", "tariffs", "trade war", "inflation", "unemployment",
-    "economy",
     # Immigration
     "immigration", "deportation", "ice raid", "daca",
     "undocumented", "migrant",
-    # Foreign policy (US-relevant)
-    "ukraine", "russia", "nato", "china", "taiwan", "iran", "israel",
-    "gaza", "middle east", "north korea", "sancti",
     # Domestic policy
     "healthcare", "medicare", "medicaid", "obamacare", "aca",
     "abortion", "gun control", "gun violence", "second amendment",
     "supreme court", "social security", "student debt",
     "climate change", "climate policy",
     # Budget / debt
-    "deficit", "debt ceiling", "federal budget", "appropriations",
+    "deficit", "debt ceiling", "appropriations",
     # SOTU-specific
     "state of the union", "sotu", "address to congress",
     # US political figures
     "biden", "kamala", "harris", "rubio", "noem", "hegseth",
     "gabbard", "patel",
+    # Sanctions (usually in US foreign policy context)
+    "sanction", "sanctions",
+})
+
+# Country / region names that are only political if paired with a second signal.
+# Bare mentions ("live in china", "lionel richie china gala") are filtered out.
+_COUNTRY_KEYWORDS: frozenset[str] = frozenset({
+    "ukraine", "russia", "nato", "china", "taiwan", "iran", "israel",
+    "gaza", "middle east", "north korea",
+})
+
+# Second-tier signals: combined with a country keyword they confirm political context.
+_COUNTRY_CONTEXT_KEYWORDS: frozenset[str] = frozenset({
+    "war", "missile", "military", "soldier", "bomb", "attack",
+    "policy", "aid", "deal", "treaty", "alliance", "conflict", "nuclear",
+    "diplomat", "minister", "president", "election", "coup", "protest",
+    "weapon", "troops", "invasion", "occupied", "ceasefire",
+    "parliament", "foreign", "bilateral", "tariff", "tariffs",
+    "trade", "sanction", "sanctions",
 })
 
 # Phrases that disqualify an item even if it passes a keyword check —
@@ -672,23 +677,47 @@ _SOTU_BLOCKLIST: tuple[str, ...] = (
 )
 
 
+def _kw_in(keyword: str, clean_padded: str) -> bool:
+    """True if keyword appears as a whole word/phrase in clean_padded text.
+
+    clean_padded must be the output of `' ' + _CLEAN_RE.sub(' ', text.lower()) + ' '`
+    (non-alpha chars replaced with spaces, padded with leading/trailing spaces).
+    Matching `' keyword '` ensures 'maga' doesn't fire on 'magan', etc.
+    Multi-word keywords work naturally: ' trade war ' matches in ' china trade war '.
+    """
+    return f" {keyword} " in clean_padded
+
+
 def _is_political_item(item: dict) -> bool:
     """
     Return True if this item is SOTU-relevant US politics.
-    Applies a blocklist first, then requires a SOTU keyword match.
-    Reddit items from known US political subreddits pass with just a keyword.
+
+    Two-tier matching (word-boundary aware — 'maga' will NOT match 'magan'):
+    - Tier 1 (strong): any whole-word match from _STRONG_POLITICAL_KEYWORDS → pass.
+    - Tier 2 (country): a country/region name alone is NOT enough.  It must be
+      accompanied by at least one word from _COUNTRY_CONTEXT_KEYWORDS to confirm
+      the item is about US foreign / geopolitical policy, not travel or culture
+      content that happens to mention "china" or "iran".
+
+    Blocklist is applied first regardless.
     """
-    text = (item.get("query") or item.get("topic") or "").lower()
+    raw  = (item.get("query") or item.get("topic") or "").lower()
+    # Replace all non-alpha chars with spaces; pad for whole-word boundary checks
+    text = " " + _CLEAN_RE.sub(" ", raw) + " "
 
     # Blocklist: drop known irrelevant content regardless of other signals
-    if any(phrase in text for phrase in _SOTU_BLOCKLIST):
+    if any(phrase in raw for phrase in _SOTU_BLOCKLIST):
         return False
 
-    if item.get("source") == "reddit":
-        sub = (item.get("subreddit") or "").lower()
-        if sub in _POLITICAL_SUBREDDITS:
-            return any(kw in text for kw in _POLITICAL_KEYWORDS)
-    return any(kw in text for kw in _POLITICAL_KEYWORDS)
+    # Tier 1: unambiguous US political keyword → immediate pass
+    if any(_kw_in(kw, text) for kw in _STRONG_POLITICAL_KEYWORDS):
+        return True
+
+    # Tier 2: country/region name needs a second political-context word
+    if any(_kw_in(kw, text) for kw in _COUNTRY_KEYWORDS):
+        return any(_kw_in(kw, text) for kw in _COUNTRY_CONTEXT_KEYWORDS)
+
+    return False
 
 
 def _filter_to_political(events: list[dict]) -> list[dict]:
@@ -1463,11 +1492,15 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    since_iso, is_incremental = get_fetch_cursor()
-    midnight = et_midnight_utc()
-    print(
-        f"[INFO] {'Incremental fetch since ' + since_iso if is_incremental else 'Full-day fetch since midnight ET'}"
-    )
+    # Always fetch the full day from midnight ET.
+    #
+    # Incremental cursors (last_success_at → now) caused persistent zero-return
+    # runs: VerbAI's data has an ~8 h ingestion lag, so the cursor quickly
+    # advances past the latest available event and stays there forever.
+    # A full-day fetch is idempotent — each run returns the same snapshot of
+    # today's events — and merge_into_structure deduplicates within it.
+    since_iso = et_midnight_utc()
+    print(f"[INFO] Full-day fetch since midnight ET: {since_iso}")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -1515,23 +1548,8 @@ def main():
             # Still append a history point so the graph has no gaps on down-days
             update_history(existing)
     else:
-        new_data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
-        midnight = et_midnight_utc()
-        if is_incremental and OUTPUT_FILE.exists():
-            try:
-                with open(OUTPUT_FILE) as f:
-                    existing = json.load(f)
-                if existing.get("meta", {}).get("today_start", "") >= midnight:
-                    data = accumulate_into_existing(existing, new_data)
-                    print("[INFO] Incremental run — merged new events into existing data.")
-                else:
-                    data = new_data  # stale file from yesterday — start fresh
-                    print("[INFO] Stale file detected — starting fresh for today.")
-            except Exception as e:
-                print(f"[WARN] Could not merge into existing data: {e}. Starting fresh.")
-                data = new_data
-        else:
-            data = new_data
+        # Full-day fetch always produces the definitive today snapshot — overwrite.
+        data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
