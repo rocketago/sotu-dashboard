@@ -1,7 +1,7 @@
 {
   "last_attempt_at": "2026-02-24T15:54:43",
   "data_returned": true,
-  "last_success_at": "2026-02-24T15:54:43",
+  "last_success_at": null,
   "counts": {
     "categories": 0,
     "queries": 2,

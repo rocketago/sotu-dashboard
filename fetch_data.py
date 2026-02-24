@@ -586,6 +586,9 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
             result = _parse_json_array(text)
             print(f"[MCP-DIRECT] category_counts: {len(result)} rows")
             return result
+        if mcp_ctx:
+            print("[MCP-DIRECT] category_counts: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] category_counts returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
@@ -776,6 +779,11 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
                 f"→ {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] search_queries: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] search_queries: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
@@ -1044,6 +1052,9 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
             political = _filter_to_political(result)
             print(f"[MCP-DIRECT] live_events: {len(result)} rows → {len(political)} political")
             return _cap_events_per_user(political)
+        if mcp_ctx:
+            print("[MCP-DIRECT] live_events: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] live_events returned empty — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
@@ -1127,6 +1138,11 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
                 f"recent={len(recent_rows)} → {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] youtube_videos: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] youtube_videos: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
@@ -1293,6 +1309,11 @@ def fetch_news_articles(since_iso: str, mcp_ctx: tuple | None = None) -> list[di
                 f"recent={len(recent_rows)} → {len(result)} political"
             )
             return result
+        # MCP session was active but returned no data — Claude queries the same
+        # VerbAI source and will also return nothing.  Skip the subprocess.
+        if mcp_ctx:
+            print("[MCP-DIRECT] news_articles: sparse (MCP active) — skipping Claude fallback")
+            return []
         print("[MCP-DIRECT] news_articles: all attempts sparse — falling back to Claude")
 
     # ── Claude subprocess: exploratory prompt that permits iteration ──────────
@@ -1736,7 +1757,14 @@ def update_history(data: dict) -> None:
 def write_mcp_status(data_returned: bool, counts: dict) -> None:
     """
     Write mcp_status.json recording every MCP attempt and whether data came back.
-    Preserves last_success_at from the previous file when data_returned is False.
+
+    When data_returned is False, last_success_at is cleared (set to None) so
+    that get_fetch_cursor() triggers a fresh full-window rebuild on the next run.
+    This prevents the cursor from getting stranded past the latest available
+    data — VerbAI tables can lag by hours, so the run-time cursor may leap past
+    the data's max EVENT_TIME, causing every subsequent incremental query to find
+    zero rows indefinitely.  A full rebuild from window_start always catches
+    whatever data IS available, regardless of the lag.
 
     Timestamps are stored as ET NTZ (no Z suffix) — the same convention used by
     _current_window_start() and Snowflake EVENT_TIME (TIMESTAMP_NTZ in ET).
@@ -1747,13 +1775,6 @@ def write_mcp_status(data_returned: bool, counts: dict) -> None:
     _et_hours = 4 if 4 <= _now_utc.month <= 10 else 5
     now_iso = (_now_utc - datetime.timedelta(hours=_et_hours)).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S")
     last_success = now_iso if data_returned else None
-    if not data_returned and MCP_STATUS_FILE.exists():
-        try:
-            with open(MCP_STATUS_FILE) as f:
-                prev = json.load(f)
-            last_success = prev.get("last_success_at")
-        except Exception:
-            pass
     status = {
         "last_attempt_at": now_iso,
         "data_returned":   data_returned,
