@@ -2244,6 +2244,13 @@
     const liveLabel = document.getElementById('live-label');
     if (pill)      pill.classList.toggle('paused', !enabled);
     if (liveLabel) liveLabel.textContent = enabled ? 'LIVE' : 'PAUSED';
+    const fetchBtn = document.getElementById('fetch-btn');
+    if (fetchBtn) {
+      fetchBtn.disabled = enabled;
+      fetchBtn.title = enabled
+        ? 'Disable live updates to fetch manually'
+        : 'Dispatch the fetch_data workflow via GitHub Actions';
+    }
   }
 
   async function loadLiveUpdatesState() {
