@@ -2023,13 +2023,22 @@ def main():
 
     # ── Fetch data sets ───────────────────────────────────────────────────────
     if mcp_ctx:
-        # Direct MCP: sequential (one session); live events fetched last
-        categories_raw   = fetch_category_counts(since_iso, mcp_ctx)
-        queries_raw      = fetch_search_queries(since_iso, mcp_ctx)
-        youtube_raw      = fetch_youtube_videos(since_iso, mcp_ctx)
-        news_raw         = fetch_news_articles(since_iso, mcp_ctx)
-        tiktok_watch_raw = fetch_tiktok_watch_videos(since_iso, mcp_ctx)
-        live_events_raw  = fetch_live_events(since_iso, mcp_ctx)
+        # Direct MCP: parallel — Snowflake cold-starts can take 60-90s each,
+        # running sequentially stacks them (6 × 2 min = 12+ min wall time).
+        print("[INFO] Running 6 direct MCP queries in parallel...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+            f_cats        = pool.submit(fetch_category_counts,     since_iso, mcp_ctx)
+            f_queries     = pool.submit(fetch_search_queries,      since_iso, mcp_ctx)
+            f_youtube     = pool.submit(fetch_youtube_videos,      since_iso, mcp_ctx)
+            f_news        = pool.submit(fetch_news_articles,       since_iso, mcp_ctx)
+            f_tiktok_wtch = pool.submit(fetch_tiktok_watch_videos, since_iso, mcp_ctx)
+            f_live        = pool.submit(fetch_live_events,         since_iso, mcp_ctx)
+            categories_raw   = f_cats.result()
+            queries_raw      = f_queries.result()
+            youtube_raw      = f_youtube.result()
+            news_raw         = f_news.result()
+            tiktok_watch_raw = f_tiktok_wtch.result()
+            live_events_raw  = f_live.result()
     else:
         # Claude fallback: subprocesses in parallel
         print("[INFO] Running 6 Claude queries in parallel (timeout=600s each)...")
