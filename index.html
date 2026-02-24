@@ -2244,26 +2244,35 @@
       if (!el || el.hidden) return;
       const now = Date.now();
       const INTERVAL = 15 * 60 * 1000;
+      // nextFire = the upcoming 15-min wall-clock mark (advances once now crosses it).
       const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
-      // Detect a 15-min boundary crossing.
-      if (_lastCronBoundary !== null && nextFire !== _lastCronBoundary) {
-        if (_cronRunActive || _cronQueued) {
-          _cronQueued = true;   // run in progress — queue one dispatch, cap at 1
-        } else {
-          _cronFire();          // no run active — fire immediately
-        }
-      }
-      _lastCronBoundary = nextFire;
-      // A dispatch is queued and waiting for the current run to finish — freeze.
+      // Initialise target on first call.
+      if (_lastCronBoundary === null) _lastCronBoundary = nextFire;
+
+      // Count toward the stored target so the display reaches 0:00 before we
+      // fire — using nextFire directly would skip 0:00 because nextFire has
+      // already advanced to the next mark by the time the boundary is crossed.
+      const remaining = Math.max(0, _lastCronBoundary - now);
+
+      // Render first so the user sees 0:00 before the workflow is dispatched.
       if (_cronQueued) {
         el.textContent = '· Queued';
-        return;
+      } else {
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
       }
-      // Normal countdown (runs whether or not a workflow is in progress).
-      const remaining = Math.max(0, nextFire - now);
-      const mins = Math.floor(remaining / 60000);
-      const secs = Math.floor((remaining % 60000) / 1000);
-      el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
+
+      // Detect boundary crossing: nextFire advances past _lastCronBoundary
+      // the tick after now >= _lastCronBoundary (i.e. remaining just hit 0).
+      if (nextFire !== _lastCronBoundary) {
+        _lastCronBoundary = nextFire;   // advance target for the next countdown
+        if (_cronRunActive || _cronQueued) {
+          _cronQueued = true;           // cap at one queued dispatch
+        } else {
+          _cronFire();
+        }
+      }
     }
     tick();
     _cronCountdownTimer = setInterval(tick, 1000);

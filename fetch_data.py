@@ -2030,14 +2030,12 @@ def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
     # ── Sliding 24-hour window cursor ───────────────────────────────────────
-    # since_iso: where this fetch begins.
-    #   • First run / gap longer than 24h → window_start = max(WINDOW_ANCHOR, now−24h)
-    #   • Subsequent runs → last_success_at  (incremental, reduces MCP load)
-    # No midnight reset: the window slides continuously so there is always
-    # exactly 24 hours of data in the snapshot.
-    since_iso, is_incremental = get_fetch_cursor()
-    mode = "incremental" if is_incremental else "full (first run or gap)"
-    print(f"[INFO] Fetch mode={mode}, since={since_iso}")
+    # Always query the full 24-hour window anchored at _current_window_start()
+    # so each run produces a fresh, self-consistent snapshot.  The sliding
+    # window (max(WINDOW_ANCHOR, now−24h)) naturally drops data that has aged
+    # out — no accumulation or cursor tracking needed.
+    since_iso = _current_window_start()
+    print(f"[INFO] Fetch mode=full (sliding 24h window), since={since_iso}")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -2102,31 +2100,10 @@ def main():
                 json.dump(existing, f, indent=2, ensure_ascii=False)
             update_history(existing)
     else:
-        if is_incremental and OUTPUT_FILE.exists():
-            # Accumulate new window into the existing snapshot.
-            try:
-                with open(OUTPUT_FILE) as f:
-                    existing_data = json.load(f)
-            except Exception:
-                existing_data = _fresh_day_structure()
-            new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
-            data = accumulate_into_existing(existing_data, new_snapshot)
-        else:
-            # Full-window fetch (cursor was reset or first run of the day).
-            # If existing data is on hand, accumulate rather than wipe so that
-            # items gathered by earlier runs are not lost.  Counts use max()
-            # semantics (not sum()) because the new snapshot covers the same
-            # window — re-adding would inflate totals.
-            if OUTPUT_FILE.exists():
-                try:
-                    with open(OUTPUT_FILE) as f:
-                        existing_data = json.load(f)
-                except Exception:
-                    existing_data = _fresh_day_structure()
-                new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
-                data = accumulate_into_existing(existing_data, new_snapshot, full_window=True)
-            else:
-                data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+        # Always build a fresh snapshot from the full 24-hour window.
+        # The sliding window in _current_window_start() ensures old data drops
+        # off naturally; no accumulation is needed.
+        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
 
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
