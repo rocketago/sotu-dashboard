@@ -1757,7 +1757,14 @@ def update_history(data: dict) -> None:
 def write_mcp_status(data_returned: bool, counts: dict) -> None:
     """
     Write mcp_status.json recording every MCP attempt and whether data came back.
-    Preserves last_success_at from the previous file when data_returned is False.
+
+    When data_returned is False, last_success_at is cleared (set to None) so
+    that get_fetch_cursor() triggers a fresh full-window rebuild on the next run.
+    This prevents the cursor from getting stranded past the latest available
+    data — VerbAI tables can lag by hours, so the run-time cursor may leap past
+    the data's max EVENT_TIME, causing every subsequent incremental query to find
+    zero rows indefinitely.  A full rebuild from window_start always catches
+    whatever data IS available, regardless of the lag.
 
     Timestamps are stored as ET NTZ (no Z suffix) — the same convention used by
     _current_window_start() and Snowflake EVENT_TIME (TIMESTAMP_NTZ in ET).
@@ -1768,13 +1775,6 @@ def write_mcp_status(data_returned: bool, counts: dict) -> None:
     _et_hours = 4 if 4 <= _now_utc.month <= 10 else 5
     now_iso = (_now_utc - datetime.timedelta(hours=_et_hours)).replace(tzinfo=None).strftime("%Y-%m-%dT%H:%M:%S")
     last_success = now_iso if data_returned else None
-    if not data_returned and MCP_STATUS_FILE.exists():
-        try:
-            with open(MCP_STATUS_FILE) as f:
-                prev = json.load(f)
-            last_success = prev.get("last_success_at")
-        except Exception:
-            pass
     status = {
         "last_attempt_at": now_iso,
         "data_returned":   data_returned,
