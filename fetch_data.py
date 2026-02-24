@@ -80,7 +80,7 @@ _SQL_INCLUDE_BLOCK = (
     "OR col ILIKE '%federal budget%' OR col ILIKE '%spending cut%' "
     "OR col ILIKE '%tariff%' OR col ILIKE '%trade war%' "
     "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' "
-    "OR col ILIKE '%immigration%' OR col ILIKE '%border%' OR col ILIKE '%deportation%' "
+    "OR col ILIKE '%immigration%' OR col ILIKE '%deportation%' "
     "OR col ILIKE '%ice raid%' OR col ILIKE '%daca%' OR col ILIKE '%migrant%' "
     "OR col ILIKE '%ukraine%' OR col ILIKE '%russia%' OR col ILIKE '%nato%' "
     "OR col ILIKE '%china%' OR col ILIKE '%iran%' OR col ILIKE '%israel%' "
@@ -88,12 +88,13 @@ _SQL_INCLUDE_BLOCK = (
     "OR col ILIKE '%healthcare%' OR col ILIKE '%medicare%' OR col ILIKE '%medicaid%' "
     "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%gun control%' "
     "OR col ILIKE '%supreme court%' OR col ILIKE '%social security%' "
-    "OR col ILIKE '%student loan%' OR col ILIKE '%climate%' OR col ILIKE '%energy%' "
-    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' OR col ILIKE '%budget%' "
+    "OR col ILIKE '%student debt%' "
+    "OR col ILIKE '%climate change%' OR col ILIKE '%climate policy%' "
+    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' "
     "OR col ILIKE '%state of the union%' OR col ILIKE '%sotu%' "
     "OR col ILIKE '%address to congress%' "
     "OR col ILIKE '%biden%' OR col ILIKE '%kamala%' OR col ILIKE '%rubio%' "
-    "OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
+    "OR col ILIKE '%noem%' OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
 )
 
 
@@ -583,29 +584,29 @@ _POLITICAL_KEYWORDS: frozenset[str] = frozenset({
     "trump", "white house", "maga", "executive order", "administration",
     # Congress / legislation
     "congress", "senate", "house of representatives", "filibuster",
-    "legislation", "bill", "vote", "democrat", "republican",
+    "legislation", "democrat", "republican",
     # DOGE / federal spending
     "doge", "elon musk", "federal worker", "federal employee",
     "federal budget", "government efficiency", "spending cut",
     # Economy
-    "tariff", "tariffs", "trade war", "inflation", "jobs", "unemployment",
-    "economy", "gdp", "recession", "stock market", "interest rate",
-    # Immigration / border
-    "immigration", "border", "deportation", "ice raid", "daca",
-    "asylum", "undocumented", "migrant",
+    "tariff", "tariffs", "trade war", "inflation", "unemployment",
+    "economy",
+    # Immigration
+    "immigration", "deportation", "ice raid", "daca",
+    "undocumented", "migrant",
     # Foreign policy (US-relevant)
     "ukraine", "russia", "nato", "china", "taiwan", "iran", "israel",
     "gaza", "middle east", "north korea", "sancti",
     # Domestic policy
     "healthcare", "medicare", "medicaid", "obamacare", "aca",
     "abortion", "gun control", "gun violence", "second amendment",
-    "supreme court", "social security", "student loan", "education",
-    "climate", "energy", "oil", "nuclear",
+    "supreme court", "social security", "student debt",
+    "climate change", "climate policy",
     # Budget / debt
-    "deficit", "debt ceiling", "budget", "appropriations",
+    "deficit", "debt ceiling", "federal budget", "appropriations",
     # SOTU-specific
     "state of the union", "sotu", "address to congress",
-    # Other US political figures
+    # US political figures
     "biden", "kamala", "harris", "rubio", "noem", "hegseth",
     "gabbard", "patel",
 })
