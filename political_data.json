@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T00:37:35Z",
-    "last_mcp_pull": "2026-02-24T00:37:35Z",
+    "generated_at": "2026-02-24T00:46:11Z",
+    "last_mcp_pull": "2026-02-24T00:46:11Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit events)",
     "window": "today",
@@ -10,24 +10,164 @@
     "refresh_interval_minutes": 5
   },
   "summary": {
-    "total_engagements": 4,
-    "total_unique_users": 3,
-    "top_category": "Foreign Policy",
+    "total_engagements": 51,
+    "total_unique_users": 11,
+    "top_category": "General Politics",
     "categories_tracked": 11,
     "data_window": "Today from midnight · accumulates throughout the day",
     "search_events_today": 4,
     "reddit_events_today": 0,
-    "youtube_events_today": 0,
+    "youtube_events_today": 10,
     "news_events_today": 0
   },
   "categories": [
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 29,
+      "unique_users": 7,
+      "trending_score": 100,
+      "items": [
+        {
+          "topic": "Video about 3D printing technology in Chinese shopping malls",
+          "query": "China is living in the Future , 3D printer in the Mall",
+          "count": 9,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "BLACKOUT CLUB",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood romantic song from the movie 2 States",
+          "query": "Man mast magan..💗💗 #song #music #bollywood  #arijitsingh",
+          "count": 5,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "AashiRai__002",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood romantic song featuring actress Alia Bhatt",
+          "query": "Mast Magan ft. Alia Bhatt",
+          "count": 5,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Nehal",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Comedy meme video featuring C4 energy drink",
+          "query": "A mistake @c4energy #c4partner #memes #meme #family #mom #brother",
+          "count": 4,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "theplumpcover",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "AI tool demonstration for optimizing marketing budget allocation",
+          "query": "Moby AI: The Smartest Way to Allocate Your Marketing Budget (9:16)",
+          "count": 4,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Triple Whale",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Bollywood wedding song from the movie 2 States",
+          "query": "Man Mast Magan- ||Alia Bhatt, Arjun Kapoor||  Wedding Songs||",
+          "count": 1,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "All In One #Deep",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Music compilation video featuring underrated Bollywood songs",
+          "query": "collecting underrated songs - 2/20 #mast magan #aliabhatt #alia #arjunkapoor #2states",
+          "count": 1,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Snikitha",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏛️",
+      "engagement_count": 11,
+      "unique_users": 1,
+      "trending_score": 38,
+      "items": [
+        {
+          "topic": "Political debate about Trump between Mehdi Hasan and Piers Morgan",
+          "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
+          "count": 6,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Zeteo",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Analysis of Trump administration policies and their implications",
+          "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
+          "count": 4,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Koga Nja",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "cnn kamala harris",
+          "query": "cnn kamala harris",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "education_policy",
+      "label": "Education Policy",
+      "icon": "🎓",
+      "engagement_count": 8,
+      "unique_users": 1,
+      "trending_score": 28,
+      "items": [
+        {
+          "topic": "Personal story about paying off a family member's student loan debt",
+          "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
+          "count": 8,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Wootak Kim",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
     {
       "id": "foreign_policy",
       "label": "Foreign Policy",
       "icon": "🌍",
       "engagement_count": 3,
       "unique_users": 2,
-      "trending_score": 100,
+      "trending_score": 10,
       "items": [
         {
           "topic": "lionel richie we are the world china gala",
@@ -50,35 +190,6 @@
           "trend": "stable"
         }
       ]
-    },
-    {
-      "id": "presidential_politics",
-      "label": "Presidential Politics",
-      "icon": "🏛️",
-      "engagement_count": 1,
-      "unique_users": 1,
-      "trending_score": 33,
-      "items": [
-        {
-          "topic": "cnn kamala harris",
-          "query": "cnn kamala harris",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
     },
     {
       "id": "elections_voting",
@@ -120,15 +231,6 @@
       "id": "healthcare_policy",
       "label": "Healthcare Policy",
       "icon": "🏥",
-      "engagement_count": 0,
-      "unique_users": 0,
-      "trending_score": 0,
-      "items": []
-    },
-    {
-      "id": "education_policy",
-      "label": "Education Policy",
-      "icon": "🎓",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
