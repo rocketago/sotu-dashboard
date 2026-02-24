@@ -1810,18 +1810,22 @@ def get_fetch_cursor() -> tuple[str, bool]:
     return window_start, False
 
 
-def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
+def accumulate_into_existing(existing: dict, new_data: dict, full_window: bool = False) -> dict:
     """
     Merge new_data (produced by merge_into_structure for a cursor window) into
     the existing political_data.json produced earlier today.
 
     Rules:
-    - engagement_count per category: summed (new events add to the running total)
+    - engagement_count per category: summed for incremental windows (new events
+                                     add to the running total); max() for
+                                     full-window rebuilds (same window re-queried
+                                     — avoids double-counting)
     - unique_users per category:     take the max (avoids double-counting users
                                      who appear in multiple windows)
     - items (query strings / videos): matched by lowercased query prefix;
-                                      counts are accumulated for known items,
-                                      genuinely new items are appended
+                                      counts are accumulated (sum) for incremental
+                                      windows; max() for full-window rebuilds;
+                                      genuinely new items are always appended
     - items list per category:       re-sorted by count, deduped, capped at 30
     - summary + metadata:            recomputed from the merged totals
     """
@@ -1841,9 +1845,10 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
     for new_cat in new_data.get("categories", []):
         label = new_cat["label"]
         if label in cat_by_label:
+            existing_eng = cat_by_label[label].get("engagement_count", 0)
+            new_eng      = new_cat.get("engagement_count", 0)
             cat_by_label[label]["engagement_count"] = (
-                cat_by_label[label].get("engagement_count", 0)
-                + new_cat.get("engagement_count", 0)
+                max(existing_eng, new_eng) if full_window else existing_eng + new_eng
             )
             cat_by_label[label]["unique_users"] = max(
                 cat_by_label[label].get("unique_users", 0),
@@ -1852,8 +1857,10 @@ def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
             for new_item in new_cat.get("items", []):
                 key = (label, (new_item.get("query") or "").lower().strip()[:80])
                 if key in item_idx:
+                    existing_cnt = item_idx[key].get("count", 0)
+                    new_cnt      = new_item.get("count", 0)
                     item_idx[key]["count"] = (
-                        item_idx[key].get("count", 0) + new_item.get("count", 0)
+                        max(existing_cnt, new_cnt) if full_window else existing_cnt + new_cnt
                     )
                 else:
                     new_item = dict(new_item)
@@ -2105,8 +2112,21 @@ def main():
             new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
             data = accumulate_into_existing(existing_data, new_snapshot)
         else:
-            # First run or gap: build fresh snapshot from the window start.
-            data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+            # Full-window fetch (cursor was reset or first run of the day).
+            # If existing data is on hand, accumulate rather than wipe so that
+            # items gathered by earlier runs are not lost.  Counts use max()
+            # semantics (not sum()) because the new snapshot covers the same
+            # window — re-adding would inflate totals.
+            if OUTPUT_FILE.exists():
+                try:
+                    with open(OUTPUT_FILE) as f:
+                        existing_data = json.load(f)
+                except Exception:
+                    existing_data = _fresh_day_structure()
+                new_snapshot = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+                data = accumulate_into_existing(existing_data, new_snapshot, full_window=True)
+            else:
+                data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
 
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
