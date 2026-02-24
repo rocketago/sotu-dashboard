@@ -1,75 +1,45 @@
 {
-  "generated_at": "2026-02-23T22:11:00Z",
+  "generated_at": "2026-02-24T00:38:38Z",
   "events": [
     {
-      "query": "Mast Magan ft. Alia Bhatt",
-      "source": "youtube",
+      "time": "2026-02-23T15:55:14Z",
+      "query": "lionel richie we are the world china gala",
+      "source": "search",
       "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-23T22:11:00Z",
-      "age": 18,
-      "gender": "Female",
-      "state": "MN"
-    },
-    {
-      "query": "ALL THE NEW TRUMP : FROM GOOD TO BAD AND $ZBCN",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-23T19:19:10Z",
-      "age": 24,
-      "gender": "Female",
-      "state": "IN"
-    },
-    {
-      "query": "Mehdi to Piers Morgan: 'You have Trump denial syndrome'",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "Presidential Politics",
-      "time": "2026-02-23T16:27:20Z",
-      "age": 22,
-      "gender": "Non-binary",
-      "state": "FL"
-    },
-    {
-      "query": "Man Mast Magan- ||Alia Bhatt, Arjun Kapoor||  Wedding Songs||",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-23T13:35:30Z",
-      "age": 28,
-      "gender": "Female",
-      "state": "IL"
-    },
-    {
-      "query": "Man mast magan..💗💗 #song #music #bollywood  #arijitsingh",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-23T10:43:40Z",
-      "age": 25,
-      "gender": "Male",
-      "state": "MT"
-    },
-    {
-      "query": "collecting underrated songs - 2/20 #mast magan #aliabhatt #alia #arjunkapoor #2states",
-      "source": "youtube",
-      "subreddit": null,
-      "category": "General Politics",
-      "time": "2026-02-23T07:51:50Z",
+      "category": "Foreign Policy",
       "age": 21,
       "gender": "Male",
-      "state": "ME"
+      "state": "NY"
     },
     {
-      "query": "I paid my brother's student loans. Every creator has 'made it' moments they dream of. This was mine.",
-      "source": "youtube",
+      "time": "2026-02-23T15:55:09Z",
+      "query": "cnn kamala harris",
+      "source": "search",
       "subreddit": null,
-      "category": "Education Policy",
-      "time": "2026-02-23T05:00:00Z",
-      "age": 24,
+      "category": "Presidential Politics",
+      "age": 21,
       "gender": "Male",
-      "state": "VT"
+      "state": "NY"
+    },
+    {
+      "time": "2026-02-23T15:53:27Z",
+      "query": "lionel richie we are the world china gala",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "age": 21,
+      "gender": "Male",
+      "state": "NY"
+    },
+    {
+      "time": "2026-02-23T14:59:28Z",
+      "query": "live in iran",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "age": 23,
+      "gender": "Female",
+      "state": "IL"
     }
   ]
 }
