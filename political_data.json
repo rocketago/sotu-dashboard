@@ -1,42 +1,83 @@
 {
   "meta": {
-    "generated_at": "2026-02-24T16:57:42Z",
-    "last_mcp_pull": "2026-02-24T16:08:09Z",
+    "generated_at": "2026-02-24T17:38:57Z",
+    "last_mcp_pull": "2026-02-24T17:38:57Z",
     "demographic": "Ages 18-29",
-    "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok Search, News events)",
-    "window": "today",
-    "window_label": "Today (Feb 24) · Updated live",
+    "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
+    "window": "rolling_24h",
+    "window_label": "Last 24h · Updated live",
     "today_start": "2026-02-24T00:00:00",
-    "refresh_interval_minutes": 5
+    "refresh_interval_minutes": 15
   },
   "summary": {
-    "total_engagements": 154808,
-    "total_unique_users": 10,
+    "total_engagements": 17,
+    "total_unique_users": 5,
     "top_category": "General Politics",
     "categories_tracked": 11,
-    "data_window": "Today from midnight · accumulates throughout the day",
-    "search_events_today": 3,
+    "data_window": "Sliding 24-hour window · accumulates each run",
+    "search_events_today": 2,
     "reddit_events_today": 0,
-    "youtube_events_today": 1,
+    "youtube_events_today": 2,
     "tiktok_search_events_today": 0,
-    "news_events_today": 6
+    "tiktok_watch_events_today": 0,
+    "news_events_today": 4
   },
   "categories": [
     {
       "id": "general_politics",
       "label": "General Politics",
       "icon": "🗳️",
-      "engagement_count": 154799,
-      "unique_users": 1,
+      "engagement_count": 8,
+      "unique_users": 2,
       "trending_score": 100,
+      "items": [
+        {
+          "topic": "Twitter: Last Week Tonight with John Oliver (HBO)",
+          "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
+          "count": 7,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "LastWeekTonight",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
+          "query": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
+          "count": 1,
+          "source": "news",
+          "subreddit": null,
+          "channel": "The New York Times",
+          "url": null,
+          "trend": "stable"
+        }
+      ]
+    },
+    {
+      "id": "presidential_politics",
+      "label": "Presidential Politics",
+      "icon": "🏛️",
+      "engagement_count": 5,
+      "unique_users": 1,
+      "trending_score": 62,
       "items": [
         {
           "topic": "Why Trump Might Be a Manchurian Candidate",
           "query": "Why Trump Might Be a Manchurian Candidate",
-          "count": 154799,
+          "count": 4,
           "source": "youtube",
           "subreddit": null,
           "channel": "Jack Neel",
+          "url": null,
+          "trend": "stable"
+        },
+        {
+          "topic": "trump",
+          "query": "trump",
+          "count": 1,
+          "source": "search",
+          "subreddit": null,
+          "channel": null,
           "url": null,
           "trend": "stable"
         }
@@ -46,9 +87,9 @@
       "id": "economic_policy",
       "label": "Economic Policy",
       "icon": "💰",
-      "engagement_count": 4,
-      "unique_users": 4,
-      "trending_score": 0,
+      "engagement_count": 3,
+      "unique_users": 1,
+      "trending_score": 38,
       "items": [
         {
           "topic": "social security benefits february 25",
@@ -79,46 +120,6 @@
           "channel": "CBS News",
           "url": null,
           "trend": "stable"
-        },
-        {
-          "topic": "Trump warns countries that 'play games' with US trade deals will face higher tariffs",
-          "query": "Trump warns countries that 'play games' with US trade deals will face higher tariffs",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "Reuters",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "presidential_politics",
-      "label": "Presidential Politics",
-      "icon": "🏛️",
-      "engagement_count": 2,
-      "unique_users": 2,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "trump",
-          "query": "trump",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Judges Grow Angry Over Trump Administration Violating Their Orders",
-          "query": "Judges Grow Angry Over Trump Administration Violating Their Orders",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "The New York Times",
-          "url": null,
-          "trend": "stable"
         }
       ]
     },
@@ -126,43 +127,13 @@
       "id": "immigration_policy",
       "label": "Immigration Policy",
       "icon": "🛂",
-      "engagement_count": 2,
-      "unique_users": 2,
-      "trending_score": 0,
-      "items": [
-        {
-          "topic": "what does ice stand for",
-          "query": "what does ice stand for",
-          "count": 1,
-          "source": "search",
-          "subreddit": null,
-          "channel": null,
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Trump Administration Live Updates: ICE Whistle-Blower Calls Training for New Agents 'Deficient' and 'Broken'",
-          "query": "Trump Administration Live Updates: ICE Whistle-Blower Calls Training for New Agents 'Deficient' and 'Broken'",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "The New York Times",
-          "url": null,
-          "trend": "up"
-        }
-      ]
-    },
-    {
-      "id": "healthcare_policy",
-      "label": "Healthcare Policy",
-      "icon": "🏥",
       "engagement_count": 1,
       "unique_users": 1,
-      "trending_score": 0,
+      "trending_score": 12,
       "items": [
         {
-          "topic": "Doge HIV Funding",
-          "query": "Doge HIV Funding",
+          "topic": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
+          "query": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
           "count": 1,
           "source": "news",
           "subreddit": null,
@@ -194,6 +165,15 @@
       "id": "legislative_politics",
       "label": "Legislative Politics",
       "icon": "📜",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
