@@ -345,6 +345,49 @@ def _call_verbai_agent(
     return None
 
 
+# Canonical category enumeration used in prompts — single source of truth.
+_CAT_ENUM = (
+    "Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
+    "Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
+    "Education Policy, Environmental Policy, Civil Rights"
+)
+
+
+def _call_verbai_with_fallbacks(
+    prompts: list[str],
+    tool_name: str,
+    session_id: str | None,
+    url: str,
+    token: str,
+    label: str = "query",
+    min_rows: int = 3,
+) -> list[dict]:
+    """
+    Thinking loop for direct MCP VerbAI calls.
+
+    Tries each prompt in turn; stops as soon as >= min_rows rows are returned.
+    Always keeps the best (largest) result set seen across all attempts so that
+    partial data from attempt 1 is not discarded if attempt 2 is also sparse.
+
+    Using focused, single-topic prompts (one per call) lets Cortex Analyst
+    generate clean targeted SQL instead of trying to handle a prompt that
+    embeds four raw SQL queries.
+    """
+    best: list[dict] = []
+    for i, prompt in enumerate(prompts):
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        rows = _parse_json_array(text) if text else []
+        print(f"[REFINE:{label}] attempt {i + 1}/{len(prompts)} → {len(rows)} rows")
+        if len(rows) > len(best):
+            best = rows
+        if len(best) >= min_rows:
+            print(f"[REFINE:{label}] sufficient data — stopping loop")
+            break
+        if i < len(prompts) - 1:
+            print(f"[REFINE:{label}] sparse — trying next prompt")
+    return best
+
+
 # ── Claude subprocess fallback ────────────────────────────────────────────────
 
 def run_verb_ai_query(prompt: str) -> str | None:
@@ -535,81 +578,105 @@ def _dedup_query_items(items: list[dict]) -> list[dict]:
 def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
     Query political search queries and Reddit posts for 18-29 year-olds.
-    Runs four queries per call — two ordered by total engagement count and
-    two ordered by recency (MAX EVENT_TIME) — so both sustained trends and
-    late-breaking topics are captured across the full day.
+
+    Direct MCP path (thinking loop): two separate VerbAI calls — one for search
+    events, one for Reddit posts — each with a focused natural-language primary
+    prompt and a broader fallback.  Cortex Analyst generates cleaner SQL from
+    single-topic prompts than from a prompt containing multiple embedded SQL blocks.
+
+    Claude subprocess path: an exploratory prompt that explicitly permits Claude
+    to call VerbAI multiple times, inspect results, and refine before answering.
+
     Returns list of dicts with keys: query, topic, count, source, subreddit, category, trend.
     """
-    prompt = (
-        f"Use the Snowflake database tool to get a comprehensive picture of political "
-        f"engagement for 18-29 year-olds since {since_iso}. "
-        f"Run FOUR SQL queries — popular topics AND recently active topics for both "
-        f"search and Reddit — then merge all results into one JSON array:\n\n"
-        f"QUERY 1 — top political search queries by total engagement:\n"
-        f"SELECT s.QUERY, COUNT(*) AS count "
-        f"FROM SEARCH_EVENTS_FLAT_DYM s "
-        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
-        f"WHERE s.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND {_sql_kw('s.QUERY')}"
-        f"GROUP BY s.QUERY ORDER BY count DESC LIMIT 150;\n\n"
-        f"QUERY 2 — most recently active political search queries (catches late-breaking topics):\n"
-        f"SELECT s.QUERY, COUNT(*) AS count "
-        f"FROM SEARCH_EVENTS_FLAT_DYM s "
-        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
-        f"WHERE s.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND {_sql_kw('s.QUERY')}"
-        f"GROUP BY s.QUERY ORDER BY MAX(s.EVENT_TIME) DESC LIMIT 100;\n\n"
-        f"QUERY 3 — top political Reddit posts by total engagement:\n"
-        f"SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT "
-        f"FROM REDDIT_EVENTS_FLAT_DYM r "
-        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
-        f"WHERE r.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'neutralpolitics','geopolitics','economics','economy','environment',"
-        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
-        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR {_sql_include('r.TITLE')}) "
-        f"{_sql_exclude('r.TITLE')}"
-        f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 150;\n\n"
-        f"QUERY 4 — most recently active political Reddit posts:\n"
-        f"SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT "
-        f"FROM REDDIT_EVENTS_FLAT_DYM r "
-        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
-        f"WHERE r.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'neutralpolitics','geopolitics','economics','economy','environment',"
-        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
-        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR {_sql_include('r.TITLE')}) "
-        f"{_sql_exclude('r.TITLE')}"
-        f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY MAX(r.EVENT_TIME) DESC LIMIT 100;\n\n"
-        f"For each item assign the ONE most relevant category from this exact list: "
-        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
-        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
-        f"Education Policy, Environmental Policy, Civil Rights. "
-        f"Use 'General Politics' only if no other category fits. "
-        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
-        f"query, topic, count, source ('search' or 'reddit'), subreddit (null if search), "
-        f"category, trend ('up', 'down', or 'stable'). "
-        f"Include ALL results from all four queries (up to ~500 items total); "
-        f"deduplicate by query text keeping the higher count when the same query appears twice."
-    )
-
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
-        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text:
-            raw = _dedup_query_items(_parse_json_array(text))
-            result = [item for item in raw if _is_political_item(item)]
-            print(f"[MCP-DIRECT] search_queries: {len(raw)} rows → {len(result)} political")
-            return result
-        print("[MCP-DIRECT] search_queries returned empty — falling back to Claude")
 
-    text = run_verb_ai_query(prompt)
+        # ── Search events: focused prompts, progressively broader ─────────────
+        search_prompts = [
+            # Attempt 1: targeted with age filter, both popularity and recency
+            (
+                f"What are the top political search queries by users aged 18 to 29 "
+                f"since {since_iso}? Include both most-searched and most-recently searched. "
+                f"Topics: Trump, DOGE, immigration, tariffs, Congress, federal workers, "
+                f"healthcare, Ukraine, climate change, student debt, social security. "
+                f"Return JSON: [{{\"query\": str, \"count\": int, \"category\": str, "
+                f"\"source\": \"search\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Categories: {_CAT_ENUM}. Use 'General Politics' only if no other fits."
+            ),
+            # Attempt 2: drop explicit age, simpler phrasing — may generate better SQL
+            (
+                f"Show me the top US political search queries since {since_iso}. "
+                f"Include any searches about Trump, Congress, immigration, tariffs, "
+                f"DOGE, or government policy. "
+                f"Return JSON: [{{\"query\": str, \"count\": int}}]"
+            ),
+        ]
+
+        # ── Reddit posts: focused prompts, progressively broader ──────────────
+        reddit_prompts = [
+            # Attempt 1: targeted with age filter and explicit subreddit list
+            (
+                f"What are the top political Reddit posts by users aged 18 to 29 "
+                f"since {since_iso}? Include both most-engaged and most-recent posts. "
+                f"Focus on r/politics, r/politicaldiscussion, r/conservative, r/liberal, "
+                f"r/neutralpolitics, r/economics, r/immigration, r/supremecourt, "
+                f"r/progressive, r/democrats, r/republican. "
+                f"Return JSON: [{{\"query\": str, \"count\": int, \"subreddit\": str, "
+                f"\"category\": str, \"source\": \"reddit\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Categories: {_CAT_ENUM}. Use 'General Politics' only if no other fits."
+            ),
+            # Attempt 2: broader — any US politics discussion on Reddit
+            (
+                f"Top US political Reddit discussions since {since_iso}. "
+                f"Any subreddit covering politics, government, elections, or policy. "
+                f"Return JSON: [{{\"query\": str, \"subreddit\": str, \"count\": int}}]"
+            ),
+        ]
+
+        search_rows = _call_verbai_with_fallbacks(
+            search_prompts, tool_name, session_id, url, token, label="search"
+        )
+        reddit_rows = _call_verbai_with_fallbacks(
+            reddit_prompts, tool_name, session_id, url, token, label="reddit"
+        )
+
+        # Ensure source field is set (fallback prompts may omit it)
+        for r in search_rows:
+            r.setdefault("source", "search")
+        for r in reddit_rows:
+            r.setdefault("source", "reddit")
+
+        combined = search_rows + reddit_rows
+        if combined:
+            raw = _dedup_query_items(combined)
+            result = [item for item in raw if _is_political_item(item)]
+            print(
+                f"[MCP-DIRECT] search_queries: search={len(search_rows)} "
+                f"reddit={len(reddit_rows)} → {len(result)} political"
+            )
+            return result
+        print("[MCP-DIRECT] search_queries: all attempts sparse — falling back to Claude")
+
+    # ── Claude subprocess: exploratory prompt that permits iteration ──────────
+    # Claude's internal agent loop can call VerbAI multiple times.  The prompt
+    # tells it to probe first and refine rather than firing one rigid query.
+    claude_prompt = (
+        f"You have the VerbAI tool.  Find political search and Reddit data for "
+        f"18-29 year olds since {since_iso}.\n\n"
+        f"Work iteratively:\n"
+        f"1. Query SEARCH events for political topics — Trump, immigration, tariffs, "
+        f"DOGE, federal workers, Congress, healthcare, Ukraine, climate.\n"
+        f"2. Query REDDIT posts from political subreddits — r/politics, r/conservative, "
+        f"r/liberal, r/politicaldiscussion, r/economics, r/immigration, r/supremecourt.\n"
+        f"3. If a query returns no data, try a broader phrasing or slightly wider time window.\n"
+        f"4. Combine all results.\n\n"
+        f"Once done, output ONLY a raw JSON array (no markdown):\n"
+        f"[{{\"query\": str, \"count\": int, \"source\": \"search\"|\"reddit\", "
+        f"\"subreddit\": str|null, \"category\": str, \"trend\": \"up\"|\"down\"|\"stable\"}}]\n"
+        f"Categories: {_CAT_ENUM}."
+    )
+    text = run_verb_ai_query(claude_prompt)
     raw = _dedup_query_items(_parse_json_array(text) if text else [])
     return [item for item in raw if _is_political_item(item)]
 
@@ -863,60 +930,95 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
 def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
     Query political YouTube videos watched by 18-29 year-olds since since_iso.
-    Runs two queries — by total view count and by recency — so both sustained
-    viral videos and newly trending content are captured across the full day.
+
+    Direct MCP path (thinking loop): two VerbAI calls with focused prompts —
+    most-watched videos first, then most-recently-watched.  Each has a broader
+    fallback prompt tried automatically when results are sparse.
+
+    Claude subprocess path: exploratory prompt that permits iterative querying.
+
     Returns list of dicts with keys: query (video title), topic, count, source
     ('youtube'), channel, category, trend.
     """
-    prompt = (
-        f"Use the Snowflake database tool to find political YouTube videos "
-        f"watched by 18-29 year-olds since {since_iso}. "
-        f"Run TWO SQL queries — most-watched and most-recently-watched — "
-        f"to capture both all-day trends and late-breaking content:\n\n"
-        f"QUERY 1 — top political YouTube videos by total views:\n"
-        f"SELECT y.VIDEO_TITLE AS query, y.CHANNEL AS channel, "
-        f"COUNT(*) AS count, COUNT(DISTINCT y.USER_ID) AS users "
-        f"FROM YOUTUBE_EVENTS_FLAT_DYM y "
-        f"JOIN AGENT_SYNC a ON y.USER_ID = a.USER_ID "
-        f"WHERE y.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND {_sql_kw('y.VIDEO_TITLE')}"
-        f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
-        f"ORDER BY count DESC LIMIT 150;\n\n"
-        f"QUERY 2 — most recently watched political YouTube videos (catches new uploads):\n"
-        f"SELECT y.VIDEO_TITLE AS query, y.CHANNEL AS channel, "
-        f"COUNT(*) AS count, COUNT(DISTINCT y.USER_ID) AS users "
-        f"FROM YOUTUBE_EVENTS_FLAT_DYM y "
-        f"JOIN AGENT_SYNC a ON y.USER_ID = a.USER_ID "
-        f"WHERE y.EVENT_TIME >= '{since_iso}' "
-        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND {_sql_kw('y.VIDEO_TITLE')}"
-        f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
-        f"ORDER BY MAX(y.EVENT_TIME) DESC LIMIT 100;\n\n"
-        f"For each video assign the ONE most relevant category from this exact list: "
-        f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
-        f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
-        f"Education Policy, Environmental Policy, Civil Rights. "
-        f"Use 'General Politics' only if no other category fits. "
-        f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
-        f"query (video title), topic (one-sentence description), count, "
-        f"source (always 'youtube'), channel (YouTube channel name), "
-        f"category, trend ('up', 'down', or 'stable'). "
-        f"Include ALL results from both queries (up to ~250 items); "
-        f"deduplicate by video title keeping the higher count."
-    )
-
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
-        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
-        if text:
-            raw = _dedup_query_items(_parse_json_array(text))
-            result = [item for item in raw if _is_political_item(item)]
-            print(f"[MCP-DIRECT] youtube_videos: {len(raw)} rows → {len(result)} political")
-            return result
-        print("[MCP-DIRECT] youtube_videos returned empty — falling back to Claude")
 
-    text = run_verb_ai_query(prompt)
+        # ── Most-watched political YouTube videos ─────────────────────────────
+        popular_prompts = [
+            # Attempt 1: targeted, age-filtered, by view count
+            (
+                f"What are the most-watched political YouTube videos by users aged 18 to 29 "
+                f"since {since_iso}? Topics: Trump, immigration, tariffs, DOGE, Congress, "
+                f"federal government, healthcare, Ukraine, climate change. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int, "
+                f"\"category\": str, \"source\": \"youtube\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Categories: {_CAT_ENUM}. Use 'General Politics' only if no other fits."
+            ),
+            # Attempt 2: drop explicit age, simpler
+            (
+                f"Top political YouTube videos watched today since {since_iso}. "
+                f"US politics, government, elections, policy topics. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int}}]"
+            ),
+        ]
+
+        # ── Most-recently-watched political YouTube videos ────────────────────
+        recent_prompts = [
+            # Attempt 1: targeted, age-filtered, by recency
+            (
+                f"What political YouTube videos have users aged 18 to 29 watched most "
+                f"recently since {since_iso}? Emphasise newly uploaded content. "
+                f"Topics: Trump, DOGE, immigration, tariffs, Congress, federal workers, "
+                f"healthcare, Ukraine, climate. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int, "
+                f"\"category\": str, \"source\": \"youtube\", \"trend\": \"up\"|\"down\"|\"stable\"}}]. "
+                f"Categories: {_CAT_ENUM}. Use 'General Politics' only if no other fits."
+            ),
+            # Attempt 2: broader — any recently trending political YouTube content
+            (
+                f"Most recently trending political YouTube videos since {since_iso}. "
+                f"US government, Trump, Congress, immigration, elections. "
+                f"Return JSON: [{{\"query\": str, \"channel\": str, \"count\": int}}]"
+            ),
+        ]
+
+        popular_rows = _call_verbai_with_fallbacks(
+            popular_prompts, tool_name, session_id, url, token, label="yt-popular"
+        )
+        recent_rows = _call_verbai_with_fallbacks(
+            recent_prompts, tool_name, session_id, url, token, label="yt-recent"
+        )
+
+        for r in popular_rows + recent_rows:
+            r.setdefault("source", "youtube")
+
+        combined = popular_rows + recent_rows
+        if combined:
+            raw = _dedup_query_items(combined)
+            result = [item for item in raw if _is_political_item(item)]
+            print(
+                f"[MCP-DIRECT] youtube_videos: popular={len(popular_rows)} "
+                f"recent={len(recent_rows)} → {len(result)} political"
+            )
+            return result
+        print("[MCP-DIRECT] youtube_videos: all attempts sparse — falling back to Claude")
+
+    # ── Claude subprocess: exploratory prompt that permits iteration ──────────
+    claude_prompt = (
+        f"You have the VerbAI tool.  Find political YouTube videos watched by "
+        f"18-29 year olds since {since_iso}.\n\n"
+        f"Work iteratively:\n"
+        f"1. Query for most-watched political YouTube videos (Trump, immigration, "
+        f"tariffs, DOGE, Congress, healthcare, Ukraine, climate).\n"
+        f"2. Query for most-recently-watched political YouTube videos.\n"
+        f"3. If a query returns no data, try a broader phrasing or wider time window.\n"
+        f"4. Combine both result sets.\n\n"
+        f"Once done, output ONLY a raw JSON array (no markdown):\n"
+        f"[{{\"query\": str, \"channel\": str, \"count\": int, "
+        f"\"source\": \"youtube\", \"category\": str, \"trend\": \"up\"|\"down\"|\"stable\"}}]\n"
+        f"Categories: {_CAT_ENUM}."
+    )
+    text = run_verb_ai_query(claude_prompt)
     raw = _dedup_query_items(_parse_json_array(text) if text else [])
     result = [item for item in raw if _is_political_item(item)]
     print(f"[INFO] youtube_videos: {len(raw)} rows → {len(result)} political")
