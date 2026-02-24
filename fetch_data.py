@@ -80,7 +80,7 @@ _SQL_INCLUDE_BLOCK = (
     "OR col ILIKE '%federal budget%' OR col ILIKE '%spending cut%' "
     "OR col ILIKE '%tariff%' OR col ILIKE '%trade war%' "
     "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' "
-    "OR col ILIKE '%immigration%' OR col ILIKE '%border%' OR col ILIKE '%deportation%' "
+    "OR col ILIKE '%immigration%' OR col ILIKE '%deportation%' "
     "OR col ILIKE '%ice raid%' OR col ILIKE '%daca%' OR col ILIKE '%migrant%' "
     "OR col ILIKE '%ukraine%' OR col ILIKE '%russia%' OR col ILIKE '%nato%' "
     "OR col ILIKE '%china%' OR col ILIKE '%iran%' OR col ILIKE '%israel%' "
@@ -88,12 +88,13 @@ _SQL_INCLUDE_BLOCK = (
     "OR col ILIKE '%healthcare%' OR col ILIKE '%medicare%' OR col ILIKE '%medicaid%' "
     "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%gun control%' "
     "OR col ILIKE '%supreme court%' OR col ILIKE '%social security%' "
-    "OR col ILIKE '%student loan%' OR col ILIKE '%climate%' OR col ILIKE '%energy%' "
-    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' OR col ILIKE '%budget%' "
+    "OR col ILIKE '%student debt%' "
+    "OR col ILIKE '%climate change%' OR col ILIKE '%climate policy%' "
+    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' "
     "OR col ILIKE '%state of the union%' OR col ILIKE '%sotu%' "
     "OR col ILIKE '%address to congress%' "
     "OR col ILIKE '%biden%' OR col ILIKE '%kamala%' OR col ILIKE '%rubio%' "
-    "OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
+    "OR col ILIKE '%noem%' OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
 )
 
 
@@ -510,23 +511,57 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
     return _parse_json_array(text) if text else []
 
 
+def _dedup_query_items(items: list[dict]) -> list[dict]:
+    """
+    Deduplicate aggregated query/Reddit items by lowercased query text.
+    When the same query appears in both the popularity-ordered and
+    recency-ordered passes, keep the entry with the higher count.
+    """
+    seen: dict[str, int] = {}   # lower query → index in result
+    result: list[dict] = []
+    for item in items:
+        key = (item.get("query") or "").lower().strip()[:80]
+        if key in seen:
+            # Accumulate counts so the merged item reflects total engagement
+            result[seen[key]]["count"] = max(
+                result[seen[key]].get("count", 0), item.get("count", 0)
+            )
+        else:
+            seen[key] = len(result)
+            result.append(item)
+    return result
+
+
 def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query top political search queries and Reddit posts for 18-29 year-olds.
+    Query political search queries and Reddit posts for 18-29 year-olds.
+    Runs four queries per call — two ordered by total engagement count and
+    two ordered by recency (MAX EVENT_TIME) — so both sustained trends and
+    late-breaking topics are captured across the full day.
     Returns list of dicts with keys: query, topic, count, source, subreddit, category, trend.
     """
     prompt = (
-        f"Use the Snowflake database tool to find the top 40 political items engaged with by 18-29 year-olds since {since_iso}. "
-        f"Run these two SQL queries and return combined results:\n\n"
-        f"QUERY 1 — top political search queries (top 20):\n"
+        f"Use the Snowflake database tool to get a comprehensive picture of political "
+        f"engagement for 18-29 year-olds since {since_iso}. "
+        f"Run FOUR SQL queries — popular topics AND recently active topics for both "
+        f"search and Reddit — then merge all results into one JSON array:\n\n"
+        f"QUERY 1 — top political search queries by total engagement:\n"
         f"SELECT s.QUERY, COUNT(*) AS count "
         f"FROM SEARCH_EVENTS_FLAT_DYM s "
         f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
         f"WHERE s.EVENT_TIME >= '{since_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND {_sql_kw('s.QUERY')}"
-        f"GROUP BY s.QUERY ORDER BY count DESC LIMIT 20;\n\n"
-        f"QUERY 2 — top political Reddit posts (top 20):\n"
+        f"GROUP BY s.QUERY ORDER BY count DESC LIMIT 150;\n\n"
+        f"QUERY 2 — most recently active political search queries (catches late-breaking topics):\n"
+        f"SELECT s.QUERY, COUNT(*) AS count "
+        f"FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"WHERE s.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND {_sql_kw('s.QUERY')}"
+        f"GROUP BY s.QUERY ORDER BY MAX(s.EVENT_TIME) DESC LIMIT 100;\n\n"
+        f"QUERY 3 — top political Reddit posts by total engagement:\n"
         f"SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT "
         f"FROM REDDIT_EVENTS_FLAT_DYM r "
         f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
@@ -538,7 +573,20 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
         f"OR {_sql_include('r.TITLE')}) "
         f"{_sql_exclude('r.TITLE')}"
-        f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 20;\n\n"
+        f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY count DESC LIMIT 150;\n\n"
+        f"QUERY 4 — most recently active political Reddit posts:\n"
+        f"SELECT r.TITLE AS query, COUNT(*) AS count, r.SUBREDDIT "
+        f"FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"WHERE r.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        f"'neutralpolitics','geopolitics','economics','economy','environment',"
+        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
+        f"OR {_sql_include('r.TITLE')}) "
+        f"{_sql_exclude('r.TITLE')}"
+        f"GROUP BY r.TITLE, r.SUBREDDIT ORDER BY MAX(r.EVENT_TIME) DESC LIMIT 100;\n\n"
         f"For each item assign the ONE most relevant category from this exact list: "
         f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
         f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
@@ -546,21 +594,23 @@ def fetch_search_queries(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"Use 'General Politics' only if no other category fits. "
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
         f"query, topic, count, source ('search' or 'reddit'), subreddit (null if search), "
-        f"category, trend ('up', 'down', or 'stable')."
+        f"category, trend ('up', 'down', or 'stable'). "
+        f"Include ALL results from all four queries (up to ~500 items total); "
+        f"deduplicate by query text keeping the higher count when the same query appears twice."
     )
 
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
         if text is not None:
-            raw = _parse_json_array(text)
+            raw = _dedup_query_items(_parse_json_array(text))
             result = [item for item in raw if _is_political_item(item)]
             print(f"[MCP-DIRECT] search_queries: {len(raw)} rows → {len(result)} political")
             return result
         print("[MCP-DIRECT] search_queries protocol failure — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
-    raw = _parse_json_array(text) if text else []
+    raw = _dedup_query_items(_parse_json_array(text) if text else [])
     return [item for item in raw if _is_political_item(item)]
 
 
@@ -583,29 +633,29 @@ _POLITICAL_KEYWORDS: frozenset[str] = frozenset({
     "trump", "white house", "maga", "executive order", "administration",
     # Congress / legislation
     "congress", "senate", "house of representatives", "filibuster",
-    "legislation", "bill", "vote", "democrat", "republican",
+    "legislation", "democrat", "republican",
     # DOGE / federal spending
     "doge", "elon musk", "federal worker", "federal employee",
     "federal budget", "government efficiency", "spending cut",
     # Economy
-    "tariff", "tariffs", "trade war", "inflation", "jobs", "unemployment",
-    "economy", "gdp", "recession", "stock market", "interest rate",
-    # Immigration / border
-    "immigration", "border", "deportation", "ice raid", "daca",
-    "asylum", "undocumented", "migrant",
+    "tariff", "tariffs", "trade war", "inflation", "unemployment",
+    "economy",
+    # Immigration
+    "immigration", "deportation", "ice raid", "daca",
+    "undocumented", "migrant",
     # Foreign policy (US-relevant)
     "ukraine", "russia", "nato", "china", "taiwan", "iran", "israel",
     "gaza", "middle east", "north korea", "sancti",
     # Domestic policy
     "healthcare", "medicare", "medicaid", "obamacare", "aca",
     "abortion", "gun control", "gun violence", "second amendment",
-    "supreme court", "social security", "student loan", "education",
-    "climate", "energy", "oil", "nuclear",
+    "supreme court", "social security", "student debt",
+    "climate change", "climate policy",
     # Budget / debt
-    "deficit", "debt ceiling", "budget", "appropriations",
+    "deficit", "debt ceiling", "federal budget", "appropriations",
     # SOTU-specific
     "state of the union", "sotu", "address to congress",
-    # Other US political figures
+    # US political figures
     "biden", "kamala", "harris", "rubio", "noem", "hegseth",
     "gabbard", "patel",
 })
@@ -672,39 +722,86 @@ def _cap_events_per_user(events: list[dict], max_per_user: int = 3) -> list[dict
     return result
 
 
+def _dedup_live_events(events: list[dict]) -> list[dict]:
+    """
+    Remove exact duplicate live events by (time, lowercased query) key.
+    Preserves order (caller should sort afterwards).
+    """
+    seen: set[tuple] = set()
+    result: list[dict] = []
+    for ev in events:
+        key = (ev.get("time", ""), (ev.get("query") or "").lower().strip()[:60])
+        if key not in seen:
+            seen.add(key)
+            result.append(ev)
+    return result
+
+
 def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query the 50 most recent individual political events for 18-29 year-olds.
-    Uses the midnight-ET cutoff (live_since_iso) matching the rest of the dashboard.
+    Query individual political events for 18-29 year-olds across today's full window.
+    Splits the day at its midpoint and queries each half separately so early-morning
+    activity is not buried by the recency sort.  Four queries total (search + Reddit
+    × early half + recent half), merged and deduplicated in Python.
     Returns list of dicts with keys: time, query, source, subreddit, category, age, gender, state.
-    Per-user capping (max 3 events per person) is applied in Python after retrieval.
+    Per-user capping (max 3 events per person) is applied after retrieval.
     """
+    # Mid-point of today's window: used to split queries across the full day
+    since_dt = datetime.datetime.strptime(live_since_iso, "%Y-%m-%dT%H:%M:%SZ")
+    now_dt   = datetime.datetime.utcnow()
+    mid_dt   = since_dt + (now_dt - since_dt) / 2
+    mid_iso  = mid_dt.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    reddit_subreddits = (
+        "LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
+        "'neutralpolitics','geopolitics','economics','economy','environment',"
+        "'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
+        "'republican','political_humor','libertarian','uspolitics','americanpolitics')"
+    )
+
     prompt = (
-        f"Use the Snowflake database tool to find the 75 most recent political events by 18-29 year-olds since {live_since_iso}. "
-        f"Run these two SQL queries and merge results:\n\n"
-        f"QUERY 1 — recent political searches:\n"
+        f"Use the Snowflake database tool to get a comprehensive sample of political events "
+        f"by 18-29 year-olds across today's full window (since {live_since_iso}). "
+        f"Split the day at its midpoint ({mid_iso}) and run FOUR queries so early-day "
+        f"and recent activity are both represented:\n\n"
+        f"QUERY 1 — recent political searches ({mid_iso} → now):\n"
         f"SELECT s.EVENT_TIME AS time, s.QUERY AS query, 'search' AS source, "
         f"NULL AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
         f"FROM SEARCH_EVENTS_FLAT_DYM s "
         f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
-        f"WHERE s.EVENT_TIME >= '{live_since_iso}' "
+        f"WHERE s.EVENT_TIME >= '{mid_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND {_sql_kw('s.QUERY')}"
-        f"ORDER BY s.EVENT_TIME DESC LIMIT 50;\n\n"
-        f"QUERY 2 — recent political Reddit posts:\n"
+        f"ORDER BY s.EVENT_TIME DESC LIMIT 120;\n\n"
+        f"QUERY 2 — early-day political searches ({live_since_iso} → {mid_iso}):\n"
+        f"SELECT s.EVENT_TIME AS time, s.QUERY AS query, 'search' AS source, "
+        f"NULL AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
+        f"FROM SEARCH_EVENTS_FLAT_DYM s "
+        f"JOIN AGENT_SYNC a ON s.USER_ID = a.USER_ID "
+        f"WHERE s.EVENT_TIME >= '{live_since_iso}' AND s.EVENT_TIME < '{mid_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND {_sql_kw('s.QUERY')}"
+        f"ORDER BY s.EVENT_TIME DESC LIMIT 80;\n\n"
+        f"QUERY 3 — recent political Reddit posts ({mid_iso} → now):\n"
         f"SELECT r.EVENT_TIME AS time, r.TITLE AS query, 'reddit' AS source, "
         f"r.SUBREDDIT AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
         f"FROM REDDIT_EVENTS_FLAT_DYM r "
         f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
-        f"WHERE r.EVENT_TIME >= '{live_since_iso}' "
+        f"WHERE r.EVENT_TIME >= '{mid_iso}' "
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
-        f"AND (LOWER(r.SUBREDDIT) IN ('politics','politicaldiscussion','conservative','liberal',"
-        f"'neutralpolitics','geopolitics','economics','economy','environment',"
-        f"'climate','healthcare','immigration','supremecourt','law','progressive','democrats',"
-        f"'republican','political_humor','libertarian','uspolitics','americanpolitics') "
-        f"OR {_sql_include('r.TITLE')}) "
+        f"AND ({reddit_subreddits} OR {_sql_include('r.TITLE')}) "
         f"{_sql_exclude('r.TITLE')}"
-        f"ORDER BY r.EVENT_TIME DESC LIMIT 25;\n\n"
+        f"ORDER BY r.EVENT_TIME DESC LIMIT 80;\n\n"
+        f"QUERY 4 — early-day political Reddit posts ({live_since_iso} → {mid_iso}):\n"
+        f"SELECT r.EVENT_TIME AS time, r.TITLE AS query, 'reddit' AS source, "
+        f"r.SUBREDDIT AS subreddit, a.YEAR_OF_BIRTH, a.GENDER, a.FULL_ADDRESS "
+        f"FROM REDDIT_EVENTS_FLAT_DYM r "
+        f"JOIN AGENT_SYNC a ON r.USER_ID = a.USER_ID "
+        f"WHERE r.EVENT_TIME >= '{live_since_iso}' AND r.EVENT_TIME < '{mid_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND ({reddit_subreddits} OR {_sql_include('r.TITLE')}) "
+        f"{_sql_exclude('r.TITLE')}"
+        f"ORDER BY r.EVENT_TIME DESC LIMIT 50;\n\n"
         f"For EVENT_TIME format as ISO 8601 (e.g. 2026-02-20T14:32:00Z). "
         f"For age compute YEAR(CURRENT_DATE) - YEAR_OF_BIRTH as an integer. "
         f"For state extract the 2-letter US state abbreviation from FULL_ADDRESS. "
@@ -714,7 +811,7 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
         f"Education Policy, Environmental Policy, Civil Rights. "
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
         f"time, query, source, subreddit, category, age, gender, state. "
-        f"Merge both query results, sort by time descending, return up to 75 events."
+        f"Merge all four query results, sort by time descending, return up to 330 events."
     )
 
     if mcp_ctx:
@@ -736,14 +833,18 @@ def fetch_live_events(live_since_iso: str, mcp_ctx: tuple | None = None) -> list
 
 def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
-    Query top political YouTube videos watched by 18-29 year-olds since since_iso.
-    Uses YOUTUBE_EVENTS_FLAT_DYM joined with AGENT_SYNC for age filtering.
+    Query political YouTube videos watched by 18-29 year-olds since since_iso.
+    Runs two queries — by total view count and by recency — so both sustained
+    viral videos and newly trending content are captured across the full day.
     Returns list of dicts with keys: query (video title), topic, count, source
     ('youtube'), channel, category, trend.
     """
     prompt = (
-        f"Use the Snowflake database tool to find the top 20 political YouTube videos "
-        f"watched by 18-29 year-olds since {since_iso}. Run this SQL query:\n\n"
+        f"Use the Snowflake database tool to find political YouTube videos "
+        f"watched by 18-29 year-olds since {since_iso}. "
+        f"Run TWO SQL queries — most-watched and most-recently-watched — "
+        f"to capture both all-day trends and late-breaking content:\n\n"
+        f"QUERY 1 — top political YouTube videos by total views:\n"
         f"SELECT y.VIDEO_TITLE AS query, y.CHANNEL AS channel, "
         f"COUNT(*) AS count, COUNT(DISTINCT y.USER_ID) AS users "
         f"FROM YOUTUBE_EVENTS_FLAT_DYM y "
@@ -752,7 +853,17 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
         f"AND {_sql_kw('y.VIDEO_TITLE')}"
         f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
-        f"ORDER BY count DESC LIMIT 20;\n\n"
+        f"ORDER BY count DESC LIMIT 150;\n\n"
+        f"QUERY 2 — most recently watched political YouTube videos (catches new uploads):\n"
+        f"SELECT y.VIDEO_TITLE AS query, y.CHANNEL AS channel, "
+        f"COUNT(*) AS count, COUNT(DISTINCT y.USER_ID) AS users "
+        f"FROM YOUTUBE_EVENTS_FLAT_DYM y "
+        f"JOIN AGENT_SYNC a ON y.USER_ID = a.USER_ID "
+        f"WHERE y.EVENT_TIME >= '{since_iso}' "
+        f"AND (YEAR(CURRENT_DATE) - a.YEAR_OF_BIRTH) BETWEEN 18 AND 29 "
+        f"AND {_sql_kw('y.VIDEO_TITLE')}"
+        f"GROUP BY y.VIDEO_TITLE, y.CHANNEL "
+        f"ORDER BY MAX(y.EVENT_TIME) DESC LIMIT 100;\n\n"
         f"For each video assign the ONE most relevant category from this exact list: "
         f"Presidential Politics, General Politics, Elections & Voting, Foreign Policy, "
         f"Immigration Policy, Legislative Politics, Economic Policy, Healthcare Policy, "
@@ -761,21 +872,23 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
         f"Respond ONLY with a raw JSON array (no markdown, no explanation) with objects: "
         f"query (video title), topic (one-sentence description), count, "
         f"source (always 'youtube'), channel (YouTube channel name), "
-        f"category, trend ('up', 'down', or 'stable')."
+        f"category, trend ('up', 'down', or 'stable'). "
+        f"Include ALL results from both queries (up to ~250 items); "
+        f"deduplicate by video title keeping the higher count."
     )
 
     if mcp_ctx:
         tool_name, session_id, url, token = mcp_ctx
         text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
         if text is not None:
-            raw = _parse_json_array(text)
+            raw = _dedup_query_items(_parse_json_array(text))
             result = [item for item in raw if _is_political_item(item)]
             print(f"[MCP-DIRECT] youtube_videos: {len(raw)} rows → {len(result)} political")
             return result
         print("[MCP-DIRECT] youtube_videos protocol failure — falling back to Claude")
 
     text = run_verb_ai_query(prompt)
-    raw = _parse_json_array(text) if text else []
+    raw = _dedup_query_items(_parse_json_array(text) if text else [])
     result = [item for item in raw if _is_political_item(item)]
     print(f"[INFO] youtube_videos: {len(raw)} rows → {len(result)} political")
     return result
@@ -1212,11 +1325,149 @@ def write_mcp_status(data_returned: bool, counts: dict) -> None:
     print(f"[OK] Wrote mcp_status.json — data_returned={data_returned}{flag}")
 
 
+def get_fetch_cursor() -> tuple[str, bool]:
+    """
+    Return (since_iso, is_incremental).
+
+    On the first run of the day (or after a gap since midnight) returns
+    (midnight_ET_utc, False) so the fetch covers the whole day from scratch.
+
+    On subsequent runs within the same day returns (last_success_at, True)
+    so only genuinely new events are fetched and merged into the existing file.
+    """
+    midnight = et_midnight_utc()
+    if MCP_STATUS_FILE.exists():
+        try:
+            with open(MCP_STATUS_FILE) as f:
+                status = json.load(f)
+            last_success = status.get("last_success_at") or ""
+            if last_success > midnight:           # same day, after midnight
+                return last_success, True
+        except Exception:
+            pass
+    return midnight, False
+
+
+def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
+    """
+    Merge new_data (produced by merge_into_structure for a cursor window) into
+    the existing political_data.json produced earlier today.
+
+    Rules:
+    - engagement_count per category: summed (new events add to the running total)
+    - unique_users per category:     take the max (avoids double-counting users
+                                     who appear in multiple windows)
+    - items (query strings / videos): matched by lowercased query prefix;
+                                      counts are accumulated for known items,
+                                      genuinely new items are appended
+    - items list per category:       re-sorted by count, deduped, capped at 30
+    - summary + metadata:            recomputed from the merged totals
+    """
+    # Build mutable copies indexed by label / (label, query_key)
+    cat_by_label: dict[str, dict] = {}
+    item_idx:     dict[tuple, dict] = {}
+
+    for cat in existing.get("categories", []):
+        cat = dict(cat)
+        cat["items"] = [dict(i) for i in cat.get("items", [])]
+        cat_by_label[cat["label"]] = cat
+        for item in cat["items"]:
+            key = (cat["label"], (item.get("query") or "").lower().strip()[:80])
+            item_idx[key] = item
+
+    # Merge new categories into the existing index
+    for new_cat in new_data.get("categories", []):
+        label = new_cat["label"]
+        if label in cat_by_label:
+            cat_by_label[label]["engagement_count"] = (
+                cat_by_label[label].get("engagement_count", 0)
+                + new_cat.get("engagement_count", 0)
+            )
+            cat_by_label[label]["unique_users"] = max(
+                cat_by_label[label].get("unique_users", 0),
+                new_cat.get("unique_users", 0),
+            )
+            for new_item in new_cat.get("items", []):
+                key = (label, (new_item.get("query") or "").lower().strip()[:80])
+                if key in item_idx:
+                    item_idx[key]["count"] = (
+                        item_idx[key].get("count", 0) + new_item.get("count", 0)
+                    )
+                else:
+                    new_item = dict(new_item)
+                    cat_by_label[label]["items"].append(new_item)
+                    item_idx[key] = new_item
+        else:
+            # Brand-new category not seen earlier today
+            new_cat = dict(new_cat)
+            new_cat["items"] = [dict(i) for i in new_cat.get("items", [])]
+            cat_by_label[label] = new_cat
+            for item in new_cat["items"]:
+                key = (label, (item.get("query") or "").lower().strip()[:80])
+                item_idx[key] = item
+
+    # Rebuild in canonical order; re-sort and cap items; recompute trending
+    categories: list[dict] = []
+    for label in CATEGORY_META:
+        if label not in cat_by_label:
+            continue
+        cat = cat_by_label[label]
+        cat["items"] = _dedup_items(
+            sorted(cat["items"], key=lambda i: -i.get("count", 0))
+        )[:30]
+        categories.append(cat)
+
+    max_eng = max((c.get("engagement_count", 0) for c in categories), default=1) or 1
+    for cat in categories:
+        cat["trending_score"] = round(cat.get("engagement_count", 0) / max_eng * 100)
+
+    # Recompute summary and metadata
+    now_iso    = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    today_label = datetime.date.today().strftime("%b %-d")
+    total_eng  = sum(c.get("engagement_count", 0) for c in categories)
+    top_cat    = (
+        max(categories, key=lambda c: c.get("engagement_count", 0))["label"]
+        if categories else ""
+    )
+
+    result = dict(existing)
+    result["meta"] = dict(existing.get("meta", {}))
+    result["meta"]["generated_at"]  = now_iso
+    result["meta"]["last_mcp_pull"] = now_iso
+    result["meta"]["window_label"]  = f"Today ({today_label}) · Updated live"
+    result["meta"]["today_start"]   = et_midnight_utc()
+    result["summary"] = {
+        "total_engagements":    total_eng,
+        "total_unique_users":   sum(c.get("unique_users", 0) for c in categories),
+        "top_category":         top_cat,
+        "categories_tracked":   len([c for c in categories if c.get("engagement_count", 0) > 0]),
+        "data_window":          "Today from midnight · accumulates throughout the day",
+        "search_events_today":  sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "search" for i in c.get("items", []))
+        ),
+        "reddit_events_today":  sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "reddit" for i in c.get("items", []))
+        ),
+        "youtube_events_today": sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "youtube" for i in c.get("items", []))
+        ),
+        "news_events_today": 0,
+    }
+    result["categories"] = categories
+    return result
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    since_iso = et_midnight_utc()
-    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
+    since_iso, is_incremental = get_fetch_cursor()
+    midnight = et_midnight_utc()
+    print(
+        f"[INFO] {'Incremental fetch since ' + since_iso if is_incremental else 'Full-day fetch since midnight ET'}"
+    )
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -1264,7 +1515,23 @@ def main():
             # Still append a history point so the graph has no gaps on down-days
             update_history(existing)
     else:
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
+        new_data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
+        midnight = et_midnight_utc()
+        if is_incremental and OUTPUT_FILE.exists():
+            try:
+                with open(OUTPUT_FILE) as f:
+                    existing = json.load(f)
+                if existing.get("meta", {}).get("today_start", "") >= midnight:
+                    data = accumulate_into_existing(existing, new_data)
+                    print("[INFO] Incremental run — merged new events into existing data.")
+                else:
+                    data = new_data  # stale file from yesterday — start fresh
+                    print("[INFO] Stale file detected — starting fresh for today.")
+            except Exception as e:
+                print(f"[WARN] Could not merge into existing data: {e}. Starting fresh.")
+                data = new_data
+        else:
+            data = new_data
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
@@ -1273,52 +1540,14 @@ def main():
               f"(YouTube: {data['summary']['youtube_events_today']} videos).")
         update_history(data)
 
-    # ── Fetch and write live events (demographic data per engagement) ─────────
-    # Use the same midnight-ET cutoff as the rest of the dashboard so the live
-    # feed resets at midnight Eastern Time, not on a rolling 24-hour window.
-    live_since_iso = et_midnight_utc()
-    live_events = fetch_live_events(live_since_iso, mcp_ctx)
-    live_events_from_mcp = bool(live_events)
-
-    if not live_events:
-        # Seed synthetic events from the just-written political_data.json
-        try:
-            with open(OUTPUT_FILE) as f:
-                _seed_src = json.load(f)
-        except Exception:
-            _seed_src = {}
-        live_events = seed_events_from_categories(_seed_src)
-
-    # If live events came from MCP but category/query/youtube fetches all failed,
-    # update last_mcp_pull in the existing political_data.json to reflect the pull.
-    if live_events_from_mcp and not categories_raw and not queries_raw and not youtube_raw:
-        try:
-            with open(OUTPUT_FILE) as f:
-                _existing = json.load(f)
-            _existing["meta"]["last_mcp_pull"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-            with open(OUTPUT_FILE, "w") as f:
-                json.dump(_existing, f, indent=2, ensure_ascii=False)
-            print("[INFO] Updated last_mcp_pull from live events fetch.")
-        except Exception as e:
-            print(f"[WARN] Could not update last_mcp_pull from live events: {e}")
-
-    live_payload = {
-        "generated_at": datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "events": live_events,
-    }
-    with open(LIVE_FEED_FILE, "w") as f:
-        json.dump(live_payload, f, indent=2, ensure_ascii=False)
-    print(f"[OK] Wrote live_feed.json — {len(live_events)} events.")
-
     # ── Write MCP status (every run, data or not) ─────────────────────────────
-    any_data = bool(categories_raw or queries_raw or youtube_raw or live_events_from_mcp)
+    any_data = bool(categories_raw or queries_raw or youtube_raw)
     write_mcp_status(
         data_returned=any_data,
         counts={
-            "categories":  len(categories_raw),
-            "queries":     len(queries_raw),
-            "youtube":     len(youtube_raw),
-            "live_events": len(live_events) if live_events_from_mcp else 0,
+            "categories": len(categories_raw),
+            "queries":    len(queries_raw),
+            "youtube":    len(youtube_raw),
         },
     )
 

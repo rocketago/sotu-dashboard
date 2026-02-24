@@ -78,6 +78,29 @@
     .fetch-btn:active  { transform: scale(0.97); }
     .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+    /* ── LIVE UPDATES TOGGLE ── */
+    .live-toggle-btn {
+      background: transparent;
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 7px 14px;
+      transition: opacity 0.15s, transform 0.1s, background 0.2s, color 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .live-toggle-btn:hover   { opacity: 0.85; }
+    .live-toggle-btn:active  { transform: scale(0.97); }
+    .live-toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .live-toggle-btn.live-on {
+      background: var(--accent);
+      color: #fff;
+    }
+
     /* ── DATA LOADING OVERLAY ── */
     .data-loading-overlay {
       position: fixed;
@@ -983,6 +1006,9 @@
   <button class="fetch-btn" id="fetch-btn" onclick="triggerFetch()" title="Dispatch the fetch_data workflow via GitHub Actions">
     ↻ Fetch Data
   </button>
+  <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-5-minute auto-update cron">
+    ⏸ Live Updates: OFF
+  </button>
   <div class="live-pill paused" id="live-pill">
     <div class="live-dot" id="live-dot"></div>
     <span id="live-label">PAUSED</span>
@@ -1115,7 +1141,6 @@
 
 <script>
   const DATA_URL          = './political_data.json';
-  const LIVE_URL          = './live_feed.json';
   const STATUS_URL        = './status.json';
   const HISTORY_URL       = './history.json';
   const MCP_STATUS_URL    = './mcp_status.json';
@@ -1124,7 +1149,6 @@
 
   let allExpanded    = false;
   let currentData    = null;
-  let liveData       = null;
   let historyData    = null;
   let mcpStatus      = null;
 
@@ -1541,7 +1565,7 @@
 
     data.categories.forEach(cat => {
       cat.items.forEach(item => {
-        const raw = (item.query || '') + ' ' + (item.topic || '');
+        const raw = (item.query || '');
         const words = raw.toLowerCase()
           .replace(/[^a-z0-9\s'-]/g, ' ')
           .split(/\s+/)
@@ -1830,14 +1854,14 @@
     const runStr  = m.generated_at ? `Action run: ${fmtEST(m.generated_at)}` : '';
 
     // MCP pull status — sourced from mcp_status.json written by fetch_data.py on every run.
-    // Falls back to live_feed / last_mcp_pull timestamps for older deploys without the file.
+    // Falls back to last_mcp_pull from political_data.json meta for older deploys without mcp_status.json.
     let pullStr = '';
     if (mcpStatus && mcpStatus.last_attempt_at) {
       const noData = mcpStatus.data_returned === false;
       const flag   = noData ? ' ⚠️ No data returned' : '';
       pullStr = `Last MCP pull: ${fmtEST(mcpStatus.last_attempt_at)}${flag}`;
     } else {
-      const pullTs = (liveData && liveData.generated_at) ? liveData.generated_at : m.last_mcp_pull;
+      const pullTs = m.last_mcp_pull;
       if (pullTs) pullStr = `Last MCP pull: ${fmtEST(pullTs)}`;
     }
     document.getElementById('window-desc').textContent = [runStr, pullStr].filter(Boolean).join('  ·  ');
@@ -1989,7 +2013,7 @@
   }
 
   function buildItemDetail(item, catLabel) {
-    const events = liveData && Array.isArray(liveData.events) ? liveData.events : [];
+    const events = [];
 
     // Keywords from the item query (len>=4, skip stopwords) for fuzzy matching
     const keywords = ((item.query || '') + ' ' + (item.topic || ''))
@@ -2205,6 +2229,119 @@
     }
   }
 
+  /* ── LIVE UPDATES TOGGLE ── */
+  const GH_CONTENTS_URL = 'https://api.github.com/repos/rocketago/sotu-dashboard/contents/cron_enabled.json';
+
+  function updateLiveBtn(enabled) {
+    const btn = document.getElementById('live-toggle-btn');
+    if (!btn) return;
+    btn.classList.toggle('live-on', enabled);
+    btn.textContent = enabled ? '▶ Live Updates: ON' : '⏸ Live Updates: OFF';
+    btn.title = enabled
+      ? 'Click to disable automatic 5-minute updates'
+      : 'Click to enable automatic 5-minute updates';
+    const pill      = document.getElementById('live-pill');
+    const liveLabel = document.getElementById('live-label');
+    if (pill)      pill.classList.toggle('paused', !enabled);
+    if (liveLabel) liveLabel.textContent = enabled ? 'LIVE' : 'PAUSED';
+    const fetchBtn = document.getElementById('fetch-btn');
+    if (fetchBtn) {
+      fetchBtn.disabled = enabled;
+      fetchBtn.title = enabled
+        ? 'Disable live updates to fetch manually'
+        : 'Dispatch the fetch_data workflow via GitHub Actions';
+    }
+  }
+
+  async function loadLiveUpdatesState() {
+    try {
+      const res = await fetch('./cron_enabled.json?_=' + Date.now());
+      if (!res.ok) return;
+      const d = await res.json();
+      updateLiveBtn(!!d.enabled);
+    } catch (e) { /* silently ignore — button stays in default off state */ }
+  }
+
+  async function toggleLiveUpdates() {
+    const btn = document.getElementById('live-toggle-btn');
+    if (!btn) return;
+
+    let token = localStorage.getItem('gh_actions_token');
+    if (!token) {
+      token = prompt(
+        'Enter a GitHub Personal Access Token with repo/contents:write scope.\n' +
+        'It will be stored in localStorage for future use.\n\nToken:'
+      );
+      if (!token || !token.trim()) return;
+      token = token.trim();
+      localStorage.setItem('gh_actions_token', token);
+    }
+
+    btn.disabled = true;
+    const wasOn = btn.classList.contains('live-on');
+    btn.textContent = wasOn ? '⏸ Disabling…' : '▶ Enabling…';
+
+    try {
+      // 1. GET current file to retrieve SHA
+      const getRes = await fetch(GH_CONTENTS_URL, {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      });
+
+      if (getRes.status === 401 || getRes.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
+        btn.disabled = false; updateLiveBtn(wasOn); return;
+      }
+      if (!getRes.ok) {
+        showStatus('Could not read cron_enabled.json from GitHub (' + getRes.status + ')', 'error');
+        btn.disabled = false; updateLiveBtn(wasOn); return;
+      }
+
+      const fileInfo   = await getRes.json();
+      const sha        = fileInfo.sha;
+      const newEnabled = !wasOn;
+      const newContent = btoa(JSON.stringify({enabled: newEnabled}) + '\n');
+
+      // 2. PUT updated content back
+      const putRes = await fetch(GH_CONTENTS_URL, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: newEnabled ? 'chore: enable live auto-updates' : 'chore: disable live auto-updates',
+          content: newContent,
+          sha: sha,
+        }),
+      });
+
+      if (putRes.status === 200 || putRes.status === 201) {
+        updateLiveBtn(newEnabled);
+        showStatus(newEnabled ? 'Live auto-updates enabled (every 5 min)' : 'Live auto-updates disabled', 'success');
+      } else if (putRes.status === 401 || putRes.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
+        updateLiveBtn(wasOn);
+      } else {
+        const body = await putRes.text().catch(() => '');
+        showStatus('Failed to update cron_enabled.json (' + putRes.status + ')' +
+          (body ? ': ' + body.slice(0, 120) : ''), 'error');
+        updateLiveBtn(wasOn);
+      }
+    } catch (err) {
+      showStatus('Network error: ' + err.message, 'error');
+      updateLiveBtn(wasOn);
+    }
+    btn.disabled = false;
+  }
+
   /* ── LOAD AUTO-UPDATE STATUS ── */
   async function loadStatus() {
     try {
@@ -2371,16 +2508,14 @@
   async function loadData() {
     try {
       const ts = Date.now();
-      const [dataRes, liveRes, histRes, mcpStatusRes] = await Promise.all([
+      const [dataRes, histRes, mcpStatusRes] = await Promise.all([
         fetch(DATA_URL        + '?_=' + ts),
-        fetch(LIVE_URL        + '?_=' + ts).catch(() => null),
         fetch(HISTORY_URL     + '?_=' + ts).catch(() => null),
         fetch(MCP_STATUS_URL  + '?_=' + ts).catch(() => null),
       ]);
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
       currentData = data;
-      liveData    = liveRes       ? await liveRes.json().catch(()       => null) : null;
       historyData = histRes       ? await histRes.json().catch(()       => null) : null;
       mcpStatus   = mcpStatusRes  ? await mcpStatusRes.json().catch(()  => null) : null;
 
@@ -2416,6 +2551,7 @@
 
   /* ── INIT + AUTO-REFRESH ── */
   loadStatus();
+  loadLiveUpdatesState();
   loadData();
   setInterval(loadStatus, SEARCH_REFRESH_MS);
   setInterval(loadData,   SEARCH_REFRESH_MS);
