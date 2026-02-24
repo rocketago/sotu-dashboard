@@ -62,6 +62,7 @@ jobs:
         run: npm install -g @anthropic-ai/claude-code
 
       - name: Configure VerbAI MCP (Claude fallback path)
+        continue-on-error: true   # primary path is direct HTTP; CLI config is best-effort
         env:
           VERBAI_TOKEN: ${{ secrets.VERBAI_TOKEN }}
         run: |
