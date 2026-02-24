@@ -22,7 +22,9 @@ import os
 import random
 import re
 import subprocess
+import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -565,6 +567,56 @@ def fetch_category_counts(since_iso: str, mcp_ctx: tuple | None = None) -> list[
     return _parse_json_array(text) if text else []
 
 
+# ── TikTok oEmbed title resolver ──────────────────────────────────────────────
+# In-process URL → title cache (avoids re-fetching the same URL within one run
+# and persists if the module stays loaded in a long-running process).
+_TIKTOK_TITLE_CACHE: dict[str, str | None] = {}
+
+_TIKTOK_OEMBED_HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/121.0.0.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+}
+
+
+def resolve_tiktok_oembed(video_url: str) -> tuple[str | None, str | None]:
+    """
+    Call TikTok's public oEmbed endpoint to resolve a video URL to its title
+    and author.  Works with both the share URL format used in DONATIONS_EVENTS_DYM:
+        https://www.tiktokv.com/share/video/{id}/
+    and the canonical format:
+        https://www.tiktok.com/@user/video/{id}
+
+    Returns (title, author_name) or (None, None) on any error.
+    Results are cached in _TIKTOK_TITLE_CACHE.
+    """
+    if video_url in _TIKTOK_TITLE_CACHE:
+        cached = _TIKTOK_TITLE_CACHE[video_url]
+        if cached is None:
+            return None, None
+        return cached, None  # author not stored in cache — caller only needs title
+
+    oembed_url = (
+        "https://www.tiktok.com/oembed?url="
+        + urllib.parse.quote(video_url, safe="")
+    )
+    try:
+        req = urllib.request.Request(oembed_url, headers=_TIKTOK_OEMBED_HEADERS)
+        with urllib.request.urlopen(req, timeout=6) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+        title  = (data.get("title")       or "").strip() or None
+        author = (data.get("author_name") or "").strip() or None
+        _TIKTOK_TITLE_CACHE[video_url] = title
+        return title, author
+    except Exception as exc:
+        print(f"[WARN] TikTok oEmbed failed for {video_url[:70]}: {exc}")
+        _TIKTOK_TITLE_CACHE[video_url] = None
+        return None, None
+
+
 def _dedup_query_items(items: list[dict]) -> list[dict]:
     """
     Deduplicate aggregated query/Reddit items by lowercased query text.
@@ -1074,6 +1126,79 @@ def fetch_youtube_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[d
     return result
 
 
+def fetch_tiktok_watch_videos(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
+    """
+    Fetch political TikTok videos watched by 18-29 year-olds since since_iso.
+
+    Two-step process:
+      1. VerbAI — query DONATIONS_EVENTS_DYM for watch_history events on TikTok,
+         grouped by video URL with watch counts.  Returns the top-watched URLs.
+      2. oEmbed  — resolve each URL to a video title via TikTok's public oEmbed API
+         (https://www.tiktok.com/oembed), then filter for political content.
+
+    Both the tiktokv.com/share/video/{id} format (used in DONATIONS_EVENTS_DYM)
+    and the canonical tiktok.com/@user/video/{id} format are supported.
+
+    Returns list of dicts: query (video title), count, source ("tiktok_watch"),
+    channel (author), category, trend.
+    """
+    url_count_prompts = [
+        (
+            f"Which TikTok videos are being watched most by users aged 18 to 29 "
+            f"since {since_iso}? Query DONATIONS_EVENTS_DYM where "
+            f"EVENT_TYPE = 'watch_history' and PLATFORM = 'tiktok'. "
+            f"The DATA column is JSON containing a 'url' field with the video URL. "
+            f"Group by the url value extracted from DATA, count watches, "
+            f"return the top 60 by watch count. "
+            f"Return JSON only: [{{\"url\": str, \"count\": int}}]. "
+            f"Include only rows where the url contains 'tiktok' or 'tiktokv'."
+        ),
+        (
+            f"Top TikTok video URLs watched since {since_iso}. "
+            f"Use DONATIONS_EVENTS_DYM, EVENT_TYPE='watch_history', PLATFORM='tiktok'. "
+            f"Group by video URL from DATA JSON field, count rows per URL. "
+            f"Return JSON: [{{\"url\": str, \"count\": int}}]"
+        ),
+    ]
+
+    if mcp_ctx:
+        tool_name, session_id, mcp_url, token = mcp_ctx
+        url_rows = _call_verbai_with_fallbacks(
+            url_count_prompts, tool_name, session_id, mcp_url, token,
+            label="tiktok-watch-urls",
+        )
+    else:
+        text = run_verb_ai_query(url_count_prompts[0])
+        url_rows = _parse_json_array(text) if text else []
+
+    if not url_rows:
+        print("[INFO] tiktok_watch: no watch URLs returned from VerbAI")
+        return []
+
+    # Sort by count descending; cap at 60 resolutions to stay within oEmbed rate limits.
+    url_rows.sort(key=lambda x: x.get("count", 0), reverse=True)
+    resolved: list[dict] = []
+    for row in url_rows[:60]:
+        video_url = (row.get("url") or "").strip()
+        if not video_url:
+            continue
+        title, author = resolve_tiktok_oembed(video_url)
+        if title:
+            resolved.append({
+                "query":   title,
+                "count":   int(row.get("count") or 1),
+                "source":  "tiktok_watch",
+                "channel": author or "",
+                "url":     video_url,
+            })
+        time.sleep(0.15)  # gentle pacing to avoid oEmbed rate limiting
+
+    print(f"[INFO] tiktok_watch: {len(url_rows)} URLs → {len(resolved)} titles resolved")
+    political = [item for item in resolved if _is_political_item(item)]
+    print(f"[INFO] tiktok_watch: {len(resolved)} resolved → {len(political)} political")
+    return political
+
+
 def fetch_news_articles(since_iso: str, mcp_ctx: tuple | None = None) -> list[dict]:
     """
     Query political news articles read by 18-29 year-olds from NEWS_EVENTS_FLAT_DYM.
@@ -1329,11 +1454,12 @@ def merge_into_structure(
     today_label = datetime.date.today().strftime("%b %-d")
 
     # Count today's events by source from items
-    search_today       = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
-    reddit_today       = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
-    youtube_today      = sum(1 for c in categories for i in c["items"] if i.get("source") == "youtube")
-    tiktok_srch_today  = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "tiktok_search")
-    news_today         = sum(1 for c in categories for i in c["items"] if i.get("source") == "news")
+    search_today        = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "search")
+    reddit_today        = sum(1 for c in categories for i in c["items"] if i.get("source") == "reddit")
+    youtube_today       = sum(1 for c in categories for i in c["items"] if i.get("source") == "youtube")
+    tiktok_srch_today   = sum(i["count"] for c in categories for i in c["items"] if i.get("source") == "tiktok_search")
+    tiktok_watch_today  = sum(1 for c in categories for i in c["items"] if i.get("source") == "tiktok_watch")
+    news_today          = sum(1 for c in categories for i in c["items"] if i.get("source") == "news")
 
     # Preserve last_mcp_pull: advance it when any fetch returned real data
     got_mcp_data = bool(categories_raw) or bool(queries_raw) or bool(youtube_raw) or bool(news_raw)
@@ -1344,7 +1470,7 @@ def merge_into_structure(
             "generated_at":  now_iso,
             "last_mcp_pull": last_mcp_pull,
             "demographic":   "Ages 18-29",
-            "data_source":   "VerbAI MCP (Search, YouTube, Reddit, TikTok Search, News events)",
+            "data_source":   "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
             "window":        "today",
             "window_label":  f"Today ({today_label}) · Updated live",
             "today_start":   et_midnight_utc(),
@@ -1360,6 +1486,7 @@ def merge_into_structure(
             "reddit_events_today":        reddit_today,
             "youtube_events_today":       youtube_today,
             "tiktok_search_events_today": tiktok_srch_today,
+            "tiktok_watch_events_today":  tiktok_watch_today,
             "news_events_today":          news_today,
         },
         "categories": categories,
@@ -1781,10 +1908,12 @@ def _fresh_day_structure() -> dict:
             "top_category":         "N/A",
             "categories_tracked":   0,
             "data_window":          "Today from midnight · accumulates throughout the day",
-            "search_events_today":  0,
-            "reddit_events_today":  0,
-            "youtube_events_today": 0,
-            "news_events_today":    0,
+            "search_events_today":        0,
+            "reddit_events_today":        0,
+            "youtube_events_today":       0,
+            "tiktok_search_events_today": 0,
+            "tiktok_watch_events_today":  0,
+            "news_events_today":          0,
         },
         "categories": categories,
     }
@@ -1837,24 +1966,31 @@ def main():
     # ── Fetch data sets ───────────────────────────────────────────────────────
     if mcp_ctx:
         # Direct MCP: run sequentially (one session, calls are fast)
-        categories_raw = fetch_category_counts(since_iso, mcp_ctx)
-        queries_raw    = fetch_search_queries(since_iso, mcp_ctx)
-        youtube_raw    = fetch_youtube_videos(since_iso, mcp_ctx)
-        news_raw       = fetch_news_articles(since_iso, mcp_ctx)
+        categories_raw    = fetch_category_counts(since_iso, mcp_ctx)
+        queries_raw       = fetch_search_queries(since_iso, mcp_ctx)
+        youtube_raw       = fetch_youtube_videos(since_iso, mcp_ctx)
+        news_raw          = fetch_news_articles(since_iso, mcp_ctx)
+        tiktok_watch_raw  = fetch_tiktok_watch_videos(since_iso, mcp_ctx)
     else:
         # Claude fallback: run subprocesses in parallel (max time = slowest one)
-        print("[INFO] Running 4 Claude queries in parallel (timeout=600s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as pool:
-            f_cats    = pool.submit(fetch_category_counts, since_iso, None)
-            f_queries = pool.submit(fetch_search_queries,  since_iso, None)
-            f_youtube = pool.submit(fetch_youtube_videos,  since_iso, None)
-            f_news    = pool.submit(fetch_news_articles,   since_iso, None)
-            categories_raw = f_cats.result()
-            queries_raw    = f_queries.result()
-            youtube_raw    = f_youtube.result()
-            news_raw       = f_news.result()
+        print("[INFO] Running 5 Claude queries in parallel (timeout=600s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
+            f_cats        = pool.submit(fetch_category_counts,    since_iso, None)
+            f_queries     = pool.submit(fetch_search_queries,     since_iso, None)
+            f_youtube     = pool.submit(fetch_youtube_videos,     since_iso, None)
+            f_news        = pool.submit(fetch_news_articles,      since_iso, None)
+            f_tiktok_wtch = pool.submit(fetch_tiktok_watch_videos, since_iso, None)
+            categories_raw   = f_cats.result()
+            queries_raw      = f_queries.result()
+            youtube_raw      = f_youtube.result()
+            news_raw         = f_news.result()
+            tiktok_watch_raw = f_tiktok_wtch.result()
+
+    # Merge TikTok watch video titles into queries (same shape: query/count/source/category)
+    queries_raw = list(queries_raw or []) + list(tiktok_watch_raw or [])
 
     # ── Write outputs ─────────────────────────────────────────────────────────
+    # Note: queries_raw already includes tiktok_watch_raw merged above.
     if not categories_raw and not queries_raw and not youtube_raw and not news_raw:
         if is_new_day:
             # Day has rolled over but VerbAI has no data yet (normal early-morning
@@ -1893,13 +2029,15 @@ def main():
 
     # ── Write MCP status (every run, data or not) ─────────────────────────────
     any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
+    tiktok_watch_count = sum(1 for q in (queries_raw or []) if q.get("source") == "tiktok_watch")
     write_mcp_status(
         data_returned=any_data,
         counts={
-            "categories": len(categories_raw),
-            "queries":    len(queries_raw),
-            "youtube":    len(youtube_raw),
-            "news":       len(news_raw),
+            "categories":   len(categories_raw),
+            "queries":      len(queries_raw),
+            "youtube":      len(youtube_raw),
+            "news":         len(news_raw),
+            "tiktok_watch": tiktok_watch_count,
         },
     )
 
