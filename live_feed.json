@@ -1,5 +1,136 @@
 {
-  "generated_at": "2026-02-24T22:21:07Z",
+  "generated_at": "2026-02-24T22:50:13Z",
   "day_start": "2026-02-24T00:00:00",
-  "events": []
+  "events": [
+    {
+      "query": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T17:50:13Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "NV"
+    },
+    {
+      "query": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T16:21:01Z",
+      "age": 23,
+      "gender": "Female",
+      "state": "IL"
+    },
+    {
+      "query": "Immigration",
+      "source": "news",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-24T14:51:50Z",
+      "age": 19,
+      "gender": "Male",
+      "state": "NH"
+    },
+    {
+      "query": "social security benefits february 25",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T13:22:39Z",
+      "age": 27,
+      "gender": "Male",
+      "state": "IL"
+    },
+    {
+      "query": "Tariffs",
+      "source": "news",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "time": "2026-02-24T11:53:28Z",
+      "age": 20,
+      "gender": "Male",
+      "state": "HI"
+    },
+    {
+      "query": "Congress",
+      "source": "news",
+      "subreddit": null,
+      "category": "Legislative Politics",
+      "time": "2026-02-24T10:24:17Z",
+      "age": 25,
+      "gender": "Male",
+      "state": "TN"
+    },
+    {
+      "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "General Politics",
+      "time": "2026-02-24T08:55:06Z",
+      "age": 22,
+      "gender": "Non-binary",
+      "state": "TX"
+    },
+    {
+      "query": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
+      "source": "news",
+      "subreddit": null,
+      "category": "General Politics",
+      "time": "2026-02-24T07:25:55Z",
+      "age": 18,
+      "gender": "Male",
+      "state": "MA"
+    },
+    {
+      "query": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
+      "source": "news",
+      "subreddit": null,
+      "category": "Immigration Policy",
+      "time": "2026-02-24T05:56:44Z",
+      "age": 28,
+      "gender": "Male",
+      "state": "AK"
+    },
+    {
+      "query": "Healthcare",
+      "source": "news",
+      "subreddit": null,
+      "category": "Healthcare Policy",
+      "time": "2026-02-24T04:27:33Z",
+      "age": 21,
+      "gender": "Male",
+      "state": "ID"
+    },
+    {
+      "query": "Abortion",
+      "source": "news",
+      "subreddit": null,
+      "category": "Civil Rights",
+      "time": "2026-02-24T02:58:22Z",
+      "age": 20,
+      "gender": "Female",
+      "state": "MA"
+    },
+    {
+      "query": "trump",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-24T01:29:11Z",
+      "age": 25,
+      "gender": "Female",
+      "state": "RI"
+    },
+    {
+      "query": "Why Trump Might Be a Manchurian Candidate",
+      "source": "youtube",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "time": "2026-02-24T00:00:00Z",
+      "age": 19,
+      "gender": "Male",
+      "state": "CT"
+    }
+  ]
 }
