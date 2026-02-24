@@ -1,13 +1,37 @@
 name: Auto-update political data
 
 on:
-  # Schedule disabled — uncomment to re-enable when out of testing mode
-  # schedule:
-  #   - cron: '*/5 * * * *'
+  schedule:
+    - cron: '*/5 * * * *'
   workflow_dispatch:
 
 jobs:
+  check-enabled:
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.gate.outputs.should_run }}
+    steps:
+      - name: Checkout cron gate file
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: cron_enabled.json
+          sparse-checkout-cone-mode: false
+
+      - name: Check cron_enabled.json
+        id: gate
+        run: |
+          if [ -f cron_enabled.json ]; then
+            enabled=$(python3 -c "import json; d=json.load(open('cron_enabled.json')); print('true' if d.get('enabled') else 'false')")
+          else
+            enabled=false
+          fi
+          echo "should_run=$enabled" >> "$GITHUB_OUTPUT"
+          echo "Cron gate: should_run=$enabled"
+
   fetch-and-push:
+    needs: check-enabled
+    if: needs.check-enabled.outputs.should_run == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -44,7 +68,7 @@ jobs:
         run: |
           git config user.name  "Claude Auto-Update"
           git config user.email "noreply@anthropic.com"
-          git add political_data.json live_feed.json history.json mcp_status.json
+          git add political_data.json history.json mcp_status.json
           # Only commit if something changed
           if git diff --cached --quiet; then
             echo "No changes — skipping commit."

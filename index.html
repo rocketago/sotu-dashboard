@@ -78,6 +78,29 @@
     .fetch-btn:active  { transform: scale(0.97); }
     .fetch-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
+    /* ── LIVE UPDATES TOGGLE ── */
+    .live-toggle-btn {
+      background: transparent;
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      padding: 7px 14px;
+      transition: opacity 0.15s, transform 0.1s, background 0.2s, color 0.2s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .live-toggle-btn:hover   { opacity: 0.85; }
+    .live-toggle-btn:active  { transform: scale(0.97); }
+    .live-toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .live-toggle-btn.live-on {
+      background: var(--accent);
+      color: #fff;
+    }
+
     /* ── DATA LOADING OVERLAY ── */
     .data-loading-overlay {
       position: fixed;
@@ -982,6 +1005,9 @@
   <h1>State of the Union — Rapid Response Tracker</h1>
   <button class="fetch-btn" id="fetch-btn" onclick="triggerFetch()" title="Dispatch the fetch_data workflow via GitHub Actions">
     ↻ Fetch Data
+  </button>
+  <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-5-minute auto-update cron">
+    ⏸ Live Updates: OFF
   </button>
   <div class="live-pill paused" id="live-pill">
     <div class="live-dot" id="live-dot"></div>
@@ -2203,6 +2229,112 @@
     }
   }
 
+  /* ── LIVE UPDATES TOGGLE ── */
+  const GH_CONTENTS_URL = 'https://api.github.com/repos/rocketago/sotu-dashboard/contents/cron_enabled.json';
+
+  function updateLiveBtn(enabled) {
+    const btn = document.getElementById('live-toggle-btn');
+    if (!btn) return;
+    btn.classList.toggle('live-on', enabled);
+    btn.textContent = enabled ? '▶ Live Updates: ON' : '⏸ Live Updates: OFF';
+    btn.title = enabled
+      ? 'Click to disable automatic 5-minute updates'
+      : 'Click to enable automatic 5-minute updates';
+    const pill      = document.getElementById('live-pill');
+    const liveLabel = document.getElementById('live-label');
+    if (pill)      pill.classList.toggle('paused', !enabled);
+    if (liveLabel) liveLabel.textContent = enabled ? 'LIVE' : 'PAUSED';
+  }
+
+  async function loadLiveUpdatesState() {
+    try {
+      const res = await fetch('./cron_enabled.json?_=' + Date.now());
+      if (!res.ok) return;
+      const d = await res.json();
+      updateLiveBtn(!!d.enabled);
+    } catch (e) { /* silently ignore — button stays in default off state */ }
+  }
+
+  async function toggleLiveUpdates() {
+    const btn = document.getElementById('live-toggle-btn');
+    if (!btn) return;
+
+    let token = localStorage.getItem('gh_actions_token');
+    if (!token) {
+      token = prompt(
+        'Enter a GitHub Personal Access Token with repo/contents:write scope.\n' +
+        'It will be stored in localStorage for future use.\n\nToken:'
+      );
+      if (!token || !token.trim()) return;
+      token = token.trim();
+      localStorage.setItem('gh_actions_token', token);
+    }
+
+    btn.disabled = true;
+    const wasOn = btn.classList.contains('live-on');
+    btn.textContent = wasOn ? '⏸ Disabling…' : '▶ Enabling…';
+
+    try {
+      // 1. GET current file to retrieve SHA
+      const getRes = await fetch(GH_CONTENTS_URL, {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+      });
+
+      if (getRes.status === 401 || getRes.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
+        btn.disabled = false; updateLiveBtn(wasOn); return;
+      }
+      if (!getRes.ok) {
+        showStatus('Could not read cron_enabled.json from GitHub (' + getRes.status + ')', 'error');
+        btn.disabled = false; updateLiveBtn(wasOn); return;
+      }
+
+      const fileInfo   = await getRes.json();
+      const sha        = fileInfo.sha;
+      const newEnabled = !wasOn;
+      const newContent = btoa(JSON.stringify({enabled: newEnabled}) + '\n');
+
+      // 2. PUT updated content back
+      const putRes = await fetch(GH_CONTENTS_URL, {
+        method: 'PUT',
+        headers: {
+          'Authorization': 'Bearer ' + token,
+          'Accept': 'application/vnd.github+json',
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: newEnabled ? 'chore: enable live auto-updates' : 'chore: disable live auto-updates',
+          content: newContent,
+          sha: sha,
+        }),
+      });
+
+      if (putRes.status === 200 || putRes.status === 201) {
+        updateLiveBtn(newEnabled);
+        showStatus(newEnabled ? 'Live auto-updates enabled (every 5 min)' : 'Live auto-updates disabled', 'success');
+      } else if (putRes.status === 401 || putRes.status === 403) {
+        localStorage.removeItem('gh_actions_token');
+        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
+        updateLiveBtn(wasOn);
+      } else {
+        const body = await putRes.text().catch(() => '');
+        showStatus('Failed to update cron_enabled.json (' + putRes.status + ')' +
+          (body ? ': ' + body.slice(0, 120) : ''), 'error');
+        updateLiveBtn(wasOn);
+      }
+    } catch (err) {
+      showStatus('Network error: ' + err.message, 'error');
+      updateLiveBtn(wasOn);
+    }
+    btn.disabled = false;
+  }
+
   /* ── LOAD AUTO-UPDATE STATUS ── */
   async function loadStatus() {
     try {
@@ -2412,6 +2544,7 @@
 
   /* ── INIT + AUTO-REFRESH ── */
   loadStatus();
+  loadLiveUpdatesState();
   loadData();
   setInterval(loadStatus, SEARCH_REFRESH_MS);
   setInterval(loadData,   SEARCH_REFRESH_MS);

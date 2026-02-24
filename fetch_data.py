@@ -1325,11 +1325,149 @@ def write_mcp_status(data_returned: bool, counts: dict) -> None:
     print(f"[OK] Wrote mcp_status.json — data_returned={data_returned}{flag}")
 
 
+def get_fetch_cursor() -> tuple[str, bool]:
+    """
+    Return (since_iso, is_incremental).
+
+    On the first run of the day (or after a gap since midnight) returns
+    (midnight_ET_utc, False) so the fetch covers the whole day from scratch.
+
+    On subsequent runs within the same day returns (last_success_at, True)
+    so only genuinely new events are fetched and merged into the existing file.
+    """
+    midnight = et_midnight_utc()
+    if MCP_STATUS_FILE.exists():
+        try:
+            with open(MCP_STATUS_FILE) as f:
+                status = json.load(f)
+            last_success = status.get("last_success_at") or ""
+            if last_success > midnight:           # same day, after midnight
+                return last_success, True
+        except Exception:
+            pass
+    return midnight, False
+
+
+def accumulate_into_existing(existing: dict, new_data: dict) -> dict:
+    """
+    Merge new_data (produced by merge_into_structure for a cursor window) into
+    the existing political_data.json produced earlier today.
+
+    Rules:
+    - engagement_count per category: summed (new events add to the running total)
+    - unique_users per category:     take the max (avoids double-counting users
+                                     who appear in multiple windows)
+    - items (query strings / videos): matched by lowercased query prefix;
+                                      counts are accumulated for known items,
+                                      genuinely new items are appended
+    - items list per category:       re-sorted by count, deduped, capped at 30
+    - summary + metadata:            recomputed from the merged totals
+    """
+    # Build mutable copies indexed by label / (label, query_key)
+    cat_by_label: dict[str, dict] = {}
+    item_idx:     dict[tuple, dict] = {}
+
+    for cat in existing.get("categories", []):
+        cat = dict(cat)
+        cat["items"] = [dict(i) for i in cat.get("items", [])]
+        cat_by_label[cat["label"]] = cat
+        for item in cat["items"]:
+            key = (cat["label"], (item.get("query") or "").lower().strip()[:80])
+            item_idx[key] = item
+
+    # Merge new categories into the existing index
+    for new_cat in new_data.get("categories", []):
+        label = new_cat["label"]
+        if label in cat_by_label:
+            cat_by_label[label]["engagement_count"] = (
+                cat_by_label[label].get("engagement_count", 0)
+                + new_cat.get("engagement_count", 0)
+            )
+            cat_by_label[label]["unique_users"] = max(
+                cat_by_label[label].get("unique_users", 0),
+                new_cat.get("unique_users", 0),
+            )
+            for new_item in new_cat.get("items", []):
+                key = (label, (new_item.get("query") or "").lower().strip()[:80])
+                if key in item_idx:
+                    item_idx[key]["count"] = (
+                        item_idx[key].get("count", 0) + new_item.get("count", 0)
+                    )
+                else:
+                    new_item = dict(new_item)
+                    cat_by_label[label]["items"].append(new_item)
+                    item_idx[key] = new_item
+        else:
+            # Brand-new category not seen earlier today
+            new_cat = dict(new_cat)
+            new_cat["items"] = [dict(i) for i in new_cat.get("items", [])]
+            cat_by_label[label] = new_cat
+            for item in new_cat["items"]:
+                key = (label, (item.get("query") or "").lower().strip()[:80])
+                item_idx[key] = item
+
+    # Rebuild in canonical order; re-sort and cap items; recompute trending
+    categories: list[dict] = []
+    for label in CATEGORY_META:
+        if label not in cat_by_label:
+            continue
+        cat = cat_by_label[label]
+        cat["items"] = _dedup_items(
+            sorted(cat["items"], key=lambda i: -i.get("count", 0))
+        )[:30]
+        categories.append(cat)
+
+    max_eng = max((c.get("engagement_count", 0) for c in categories), default=1) or 1
+    for cat in categories:
+        cat["trending_score"] = round(cat.get("engagement_count", 0) / max_eng * 100)
+
+    # Recompute summary and metadata
+    now_iso    = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    today_label = datetime.date.today().strftime("%b %-d")
+    total_eng  = sum(c.get("engagement_count", 0) for c in categories)
+    top_cat    = (
+        max(categories, key=lambda c: c.get("engagement_count", 0))["label"]
+        if categories else ""
+    )
+
+    result = dict(existing)
+    result["meta"] = dict(existing.get("meta", {}))
+    result["meta"]["generated_at"]  = now_iso
+    result["meta"]["last_mcp_pull"] = now_iso
+    result["meta"]["window_label"]  = f"Today ({today_label}) · Updated live"
+    result["meta"]["today_start"]   = et_midnight_utc()
+    result["summary"] = {
+        "total_engagements":    total_eng,
+        "total_unique_users":   sum(c.get("unique_users", 0) for c in categories),
+        "top_category":         top_cat,
+        "categories_tracked":   len([c for c in categories if c.get("engagement_count", 0) > 0]),
+        "data_window":          "Today from midnight · accumulates throughout the day",
+        "search_events_today":  sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "search" for i in c.get("items", []))
+        ),
+        "reddit_events_today":  sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "reddit" for i in c.get("items", []))
+        ),
+        "youtube_events_today": sum(
+            c.get("engagement_count", 0) for c in categories
+            if any(i.get("source") == "youtube" for i in c.get("items", []))
+        ),
+        "news_events_today": 0,
+    }
+    result["categories"] = categories
+    return result
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
-    since_iso = et_midnight_utc()
-    print(f"[INFO] Fetching data since {since_iso} (Eastern midnight)")
+    since_iso, is_incremental = get_fetch_cursor()
+    midnight = et_midnight_utc()
+    print(
+        f"[INFO] {'Incremental fetch since ' + since_iso if is_incremental else 'Full-day fetch since midnight ET'}"
+    )
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -1377,7 +1515,23 @@ def main():
             # Still append a history point so the graph has no gaps on down-days
             update_history(existing)
     else:
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
+        new_data = merge_into_structure(categories_raw, queries_raw, youtube_raw)
+        midnight = et_midnight_utc()
+        if is_incremental and OUTPUT_FILE.exists():
+            try:
+                with open(OUTPUT_FILE) as f:
+                    existing = json.load(f)
+                if existing.get("meta", {}).get("today_start", "") >= midnight:
+                    data = accumulate_into_existing(existing, new_data)
+                    print("[INFO] Incremental run — merged new events into existing data.")
+                else:
+                    data = new_data  # stale file from yesterday — start fresh
+                    print("[INFO] Stale file detected — starting fresh for today.")
+            except Exception as e:
+                print(f"[WARN] Could not merge into existing data: {e}. Starting fresh.")
+                data = new_data
+        else:
+            data = new_data
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
