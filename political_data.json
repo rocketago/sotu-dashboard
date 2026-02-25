@@ -11,7 +11,7 @@
   },
   "summary": {
     "total_engagements": 115,
-    "total_unique_users": 8,
+    "total_unique_users": 12,
     "top_category": "Presidential Politics",
     "categories_tracked": 7,
     "data_window": "Sliding 24-hour window · accumulates each run",
@@ -104,7 +104,7 @@
       "label": "Immigration Policy",
       "icon": "🛂",
       "engagement_count": 11,
-      "unique_users": 1,
+      "unique_users": 2,
       "trending_score": 14,
       "items": [
         {
@@ -154,7 +154,7 @@
       "label": "Economic Policy",
       "icon": "💰",
       "engagement_count": 6,
-      "unique_users": 1,
+      "unique_users": 4,
       "trending_score": 8,
       "items": [
         {
