@@ -1286,25 +1286,31 @@
     return Math.max(0, Math.min(100, raw * 5 + 50));
   }
 
-  // Keywords used to identify Trump / Republican content for targeted sentiment.
-  const TRUMP_REPUB_RE = /trump|republican|republicans|\bgop\b|maga|white house|executive order|conservative|conservatives|ivanka|melania|jd vance|\bvance\b|desantis|rubio|mcconnell|haley|pence/i;
+  // Regexes for framing-aware sentiment.
+  const TRUMP_REPUB_RE  = /trump|republican|republicans|\bgop\b|maga|white house|executive order|conservative|conservatives|ivanka|melania|jd vance|\bvance\b|desantis|rubio|mcconnell|haley|pence/i;
+  const DEMOCRAT_LIB_RE = /democrat|democrats|democratic|\bdems?\b|liberal|liberals|progressive|progressives|biden|harris|pelosi|schumer|\baoc\b|ocasio-cortez|bernie|sanders|warren|defund|woke/i;
 
-  function isTrumpRepubItem(item) {
-    return TRUMP_REPUB_RE.test((item.topic || '') + ' ' + (item.query || ''));
+  // Score an item relative to Trump/Republican framing.
+  // ALL political items are scored; Democrat/liberal content (not also Republican)
+  // has its score INVERTED so negative-about-Dems = positive for Republicans.
+  function scoreItemSentiment(item) {
+    const text     = (item.topic || '') + ' ' + (item.query || '');
+    const rawScore = scoreItemText(item.topic, item.query);
+    const isRepub  = TRUMP_REPUB_RE.test(text);
+    const isDem    = DEMOCRAT_LIB_RE.test(text);
+    return (isDem && !isRepub) ? (100 - rawScore) : rawScore;
   }
 
   function computeSentimentScore(data) {
     let totalWeight = 0, totalSentiment = 0;
     let posWeight = 0, negWeight = 0, neuWeight = 0;
 
-    // Collect all items then prefer Trump/Republican subset for targeted sentiment.
-    const allItems = data.categories.flatMap(cat => cat.items);
-    const trItems  = allItems.filter(isTrumpRepubItem);
-    const items    = trItems.length > 0 ? trItems : allItems;
+    // Score ALL political items with framing-aware scoring.
+    const items = data.categories.flatMap(cat => cat.items);
 
     items.forEach(item => {
       const w     = item.count || 1;
-      const score = scoreItemText(item.topic, item.query);
+      const score = scoreItemSentiment(item);
       totalWeight    += w;
       totalSentiment += score * w;
       if      (score >= 55) posWeight += w;

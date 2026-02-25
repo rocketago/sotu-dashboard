@@ -1708,15 +1708,22 @@ _AFINN: dict[str, int] = {
 
 _CLEAN_RE = re.compile(r"[^a-z\s]")
 
-# Keywords used to identify Trump / Republican content for targeted sentiment scoring.
-# Items whose topic+query text contain any of these are treated as Trump/GOP signals;
-# the history score and gauge are computed exclusively from these items (falling back
-# to all items only when none match).
+# Keywords identifying Trump / Republican content.
 _TRUMP_REPUB_KEYWORDS = (
     "trump", "republican", "republicans", "gop", "maga",
     "white house", "executive order", "conservative", "conservatives",
     "ivanka", "melania", "jd vance", "vance", "desantis", "rubio",
     "mcconnell", "haley", "pence",
+)
+
+# Keywords identifying Democrat / liberal content.  When an item matches one of
+# these (but NOT a Republican keyword), its AFINN score is INVERTED (100 - score)
+# so that "negative about Democrats" counts as positive for Republicans and vice versa.
+_DEMOCRAT_LIB_KEYWORDS = (
+    "democrat", "democrats", "democratic", "dems",
+    "liberal", "liberals", "progressive", "progressives",
+    "biden", "harris", "pelosi", "schumer", "aoc", "ocasio-cortez",
+    "bernie", "sanders", "warren", "defund", "woke",
 )
 
 
@@ -1727,22 +1734,40 @@ def _score_item_text(topic: str, query: str) -> float:
     return max(0.0, min(100.0, raw * 5 + 50))
 
 
-def _is_trump_repub_item(item: dict) -> bool:
-    """Return True if this item is about Trump or Republican politics."""
-    text = (
-        (item.get("topic") or "") + " " + (item.get("query") or "")
-    ).lower()
-    return any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
+def _score_item_sentiment(item: dict) -> float:
+    """Return 0-100 sentiment score framed relative to Trump/Republicans.
+
+    ALL political items are scored.  The direction is adjusted for framing:
+      - Republican/Trump content  → AFINN score as-is
+      - Democrat/liberal content (not also Republican) → INVERTED (100 - score),
+        because negative-about-Democrats is a positive for Republicans
+      - Neutral political content → AFINN score as-is
+
+    Examples:
+      "SAVE Act fails"                   → low score  (bad for Republicans)
+      "Democrats demand defund ICE"      → high score (anti-Democrat framing)
+      "Trump signs historic deal"        → high score (positive for Republicans)
+    """
+    topic = item.get("topic", "")
+    query = item.get("query", "")
+    text  = (topic + " " + query).lower()
+    raw_score = _score_item_text(topic, query)
+    is_repub = any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
+    is_dem   = any(kw in text for kw in _DEMOCRAT_LIB_KEYWORDS)
+    # Invert only for Democrat-focused content that isn't also about Republicans.
+    if is_dem and not is_repub:
+        return 100.0 - raw_score
+    return raw_score
 
 
 def update_history(data: dict) -> None:
     """
-    Append the current AFINN text-sentiment score to history.json.
+    Append the current sentiment score to history.json.
 
-    Score is engagement-count-weighted over items related to Trump and
-    Republican politics (falling back to all items when none match),
-    measuring how positively/negatively Gen Z is engaging with
-    Trump/Republican content.  Matches the JS formula in index.html.
+    Score is engagement-count-weighted over ALL political items, with framing
+    adjustment: Democrat/liberal content has its AFINN score inverted so that
+    "negative about Democrats" counts as positive for Republicans.  Matches
+    the JS formula in index.html.
     Keeps at most 2016 entries (~21 days at 15-min intervals).
     """
     all_items = [
@@ -1753,14 +1778,10 @@ def update_history(data: dict) -> None:
     if not all_items:
         return  # nothing to record
 
-    # Prefer Trump/Republican items for targeted sentiment; fall back to all.
-    tr_items = [i for i in all_items if _is_trump_repub_item(i)]
-    score_items = tr_items if tr_items else all_items
-
-    total_weight = sum(i.get("count", 1) for i in score_items) or 1
+    total_weight = sum(i.get("count", 1) for i in all_items) or 1
     total_sentiment = sum(
-        _score_item_text(i.get("topic", ""), i.get("query", "")) * i.get("count", 1)
-        for i in score_items
+        _score_item_sentiment(i) * i.get("count", 1)
+        for i in all_items
     )
     score = round(total_sentiment / total_weight)
 

@@ -129,6 +129,19 @@ _AFINN: dict[str, int] = {
 
 _CLEAN_RE = re.compile(r"[^a-z\s]")
 
+_TRUMP_REPUB_KEYWORDS = (
+    "trump", "republican", "republicans", "gop", "maga",
+    "white house", "executive order", "conservative", "conservatives",
+    "ivanka", "melania", "jd vance", "vance", "desantis", "rubio",
+    "mcconnell", "haley", "pence",
+)
+_DEMOCRAT_LIB_KEYWORDS = (
+    "democrat", "democrats", "democratic", "dems",
+    "liberal", "liberals", "progressive", "progressives",
+    "biden", "harris", "pelosi", "schumer", "aoc", "ocasio-cortez",
+    "bernie", "sanders", "warren", "defund", "woke",
+)
+
 
 def score_item(topic: str, query: str) -> float:
     text = _CLEAN_RE.sub(" ", ((topic or "") + " " + (query or "")).lower())
@@ -136,12 +149,29 @@ def score_item(topic: str, query: str) -> float:
     return max(0.0, min(100.0, raw * 5 + 50))
 
 
+def score_item_sentiment(item: dict) -> float:
+    """Return 0-100 sentiment score framed relative to Trump/Republicans.
+
+    Democrat/liberal content (not also Republican) has its score inverted so
+    that negative-about-Democrats counts as positive for Republicans.
+    """
+    topic = item.get("topic", "")
+    query = item.get("query", "")
+    text  = (topic + " " + query).lower()
+    raw_score = score_item(topic, query)
+    is_repub = any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
+    is_dem   = any(kw in text for kw in _DEMOCRAT_LIB_KEYWORDS)
+    if is_dem and not is_repub:
+        return 100.0 - raw_score
+    return raw_score
+
+
 def afinn_score_from_items(items: list[dict]) -> int | None:
-    """Compute engagement-weighted AFINN score from a list of items."""
+    """Compute engagement-weighted sentiment score from a list of items."""
     if not items:
         return None
     total_w = sum(i.get("count", 1) for i in items) or 1
-    total_s = sum(score_item(i.get("topic", ""), i.get("query", "")) * i.get("count", 1) for i in items)
+    total_s = sum(score_item_sentiment(i) * i.get("count", 1) for i in items)
     return round(total_s / total_w)
 
 
