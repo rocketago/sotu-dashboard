@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-25T02:21:41Z",
-    "last_mcp_pull": "2026-02-25T02:21:41Z",
+    "generated_at": "2026-02-25T02:36:49Z",
+    "last_mcp_pull": "2026-02-25T02:36:49Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
@@ -11,7 +11,7 @@
   },
   "summary": {
     "total_engagements": 115,
-    "total_unique_users": 10,
+    "total_unique_users": 9,
     "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Sliding 24-hour window · accumulates each run",
@@ -118,7 +118,7 @@
       "label": "Economic Policy",
       "icon": "💰",
       "engagement_count": 6,
-      "unique_users": 2,
+      "unique_users": 1,
       "trending_score": 8,
       "items": [
         {
