@@ -1,5 +1,26 @@
 {
-  "generated_at": "2026-02-25T05:20:41Z",
-  "day_start": "2026-02-24T00:20:41",
-  "events": []
+  "generated_at": "2026-02-25T06:24:34Z",
+  "day_start": "2026-02-24T01:24:34",
+  "events": [
+    {
+      "time": "2026-02-24T02:02:27Z",
+      "query": "a thread cringy bs urinator pinterest quotes",
+      "source": "reddit",
+      "subreddit": "ArianaGrandeSnark",
+      "category": "General Politics",
+      "age": 24,
+      "gender": "Female",
+      "state": "MD"
+    },
+    {
+      "time": "2026-02-24T01:32:33Z",
+      "query": "israel rivas",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "age": 24,
+      "gender": "Male",
+      "state": "CA"
+    }
+  ]
 }
