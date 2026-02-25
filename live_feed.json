@@ -1,7 +1,39 @@
 {
-  "generated_at": "2026-02-25T23:34:24Z",
-  "day_start": "2026-02-24T18:34:24",
+  "generated_at": "2026-02-25T23:54:08Z",
+  "day_start": "2026-02-24T18:54:08",
   "events": [
+    {
+      "time": "2026-02-25T23:54:08Z",
+      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Economic Policy",
+      "count": 2
+    },
+    {
+      "time": "2026-02-25T20:59:36Z",
+      "query": "Democrats hold 'People's State of the Union' amid Schiff boycott",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 4
+    },
+    {
+      "time": "2026-02-25T18:05:04Z",
+      "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 17
+    },
+    {
+      "time": "2026-02-25T15:10:32Z",
+      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+      "source": "youtube",
+      "channel": "13WMAZ",
+      "category": "Presidential Politics",
+      "count": 1
+    },
     {
       "time": "2026-02-25T15:00:30Z",
       "query": "trump",
@@ -23,7 +55,37 @@
       "state": "IL"
     },
     {
+      "time": "2026-02-25T15:00:30.000Z",
+      "query": "trump latest news",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 23,
+      "gender": "Female",
+      "state": "IL"
+    },
+    {
+      "time": "2026-02-25T15:00:30.000Z",
+      "query": "trump",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 23,
+      "gender": "Female",
+      "state": "IL"
+    },
+    {
       "time": "2026-02-25T15:00:22Z",
+      "query": "The People's State of the Union",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 23,
+      "gender": "Female",
+      "state": "IL"
+    },
+    {
+      "time": "2026-02-25T15:00:22.000Z",
       "query": "The People's State of the Union",
       "source": "search",
       "subreddit": null,
@@ -41,6 +103,72 @@
       "age": 26,
       "gender": "Female",
       "state": "OH"
+    },
+    {
+      "time": "2026-02-25T14:56:09.000Z",
+      "query": "supreme court postal service",
+      "source": "search",
+      "subreddit": null,
+      "category": "Civil Rights",
+      "age": 26,
+      "gender": "Female",
+      "state": "OH"
+    },
+    {
+      "time": "2026-02-25T12:16:01Z",
+      "query": "President Donald J. Trump's 2026 State of the Union Address",
+      "source": "youtube",
+      "channel": "The White House",
+      "category": "Presidential Politics",
+      "count": 4
+    },
+    {
+      "time": "2026-02-25T09:21:29Z",
+      "query": "Why Trump Might Be a Manchurian Candidate",
+      "source": "youtube",
+      "channel": "Jack Neel",
+      "category": "Presidential Politics",
+      "count": 4
+    },
+    {
+      "time": "2026-02-25T06:26:57Z",
+      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+      "source": "youtube",
+      "channel": "FOX 9 Minneapolis-St. Paul",
+      "category": "Presidential Politics",
+      "count": 5
+    },
+    {
+      "time": "2026-02-25T03:32:26Z",
+      "query": "10 highlights from Trump's 2026 State of the Union",
+      "source": "youtube",
+      "channel": "CBS News",
+      "category": "Presidential Politics",
+      "count": 8
+    },
+    {
+      "time": "2026-02-25T00:37:54Z",
+      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+      "source": "youtube",
+      "channel": "Jimmy Kimmel Live",
+      "category": "Presidential Politics",
+      "count": 9
+    },
+    {
+      "time": "2026-02-24T21:43:22Z",
+      "query": "It's time to play: Are these images Trump's skin or the surface of Mars?",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Presidential Politics",
+      "count": 10
+    },
+    {
+      "time": "2026-02-24T18:48:51Z",
+      "query": "LIVE: President Trump delivers State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Presidential Politics",
+      "count": 22
     },
     {
       "time": "2026-02-24T02:02:27Z",
