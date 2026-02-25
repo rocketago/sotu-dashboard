@@ -1,45 +1,85 @@
 {
   "meta": {
-    "generated_at": "2026-02-25T22:00:14Z",
-    "last_mcp_pull": "2026-02-25T21:29:25Z",
+    "generated_at": "2026-02-25T22:23:50Z",
+    "last_mcp_pull": "2026-02-25T22:23:50Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
     "window_label": "Last 24h · Updated live",
-    "today_start": "2026-02-24T16:53:05",
+    "today_start": "2026-02-24T00:00:00",
     "refresh_interval_minutes": 15
   },
   "summary": {
-    "total_engagements": 115,
-    "total_unique_users": 8,
+    "total_engagements": 86,
+    "total_unique_users": 4,
     "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Sliding 24-hour window · accumulates each run",
-    "search_events_today": 77,
+    "search_events_today": 0,
     "reddit_events_today": 0,
-    "youtube_events_today": 2,
+    "youtube_events_today": 11,
     "tiktok_search_events_today": 0,
     "tiktok_watch_events_today": 0,
-    "news_events_today": 9
+    "news_events_today": 0
   },
   "categories": [
     {
       "id": "presidential_politics",
       "label": "Presidential Politics",
       "icon": "🏛️",
-      "engagement_count": 80,
+      "engagement_count": 63,
       "unique_users": 1,
       "trending_score": 100,
       "items": [
         {
-          "topic": "trump",
-          "query": "trump",
-          "count": 76,
-          "source": "search",
+          "topic": "LIVE: President Trump delivers State of the Union address",
+          "query": "LIVE: President Trump delivers State of the Union address",
+          "count": 22,
+          "source": "youtube",
           "subreddit": null,
-          "channel": null,
+          "channel": "ABC News",
           "url": null,
-          "trend": "stable"
+          "trend": "up"
+        },
+        {
+          "topic": "It's time to play: Are these images Trump's skin or the surface of Mars?",
+          "query": "It's time to play: Are these images Trump's skin or the surface of Mars?",
+          "count": 10,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "The Daily Show",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+          "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+          "count": 9,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "Jimmy Kimmel Live",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "10 highlights from Trump's 2026 State of the Union",
+          "query": "10 highlights from Trump's 2026 State of the Union",
+          "count": 8,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "CBS News",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "Trump greets U.S. Men's Olympic Hockey team to White House",
+          "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+          "count": 5,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "FOX 9 Minneapolis-St. Paul",
+          "url": null,
+          "trend": "up"
         },
         {
           "topic": "Why Trump Might Be a Manchurian Candidate",
@@ -49,137 +89,27 @@
           "subreddit": null,
           "channel": "Jack Neel",
           "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "immigration_policy",
-      "label": "Immigration Policy",
-      "icon": "🛂",
-      "engagement_count": 11,
-      "unique_users": 2,
-      "trending_score": 14,
-      "items": [
-        {
-          "topic": "Immigration",
-          "query": "Immigration",
-          "count": 10,
-          "source": "news",
-          "subreddit": null,
-          "channel": "CNN",
-          "url": null,
-          "trend": "stable"
+          "trend": "up"
         },
         {
-          "topic": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
-          "query": "Key Witness Who Disputed ICE Account of Fatal Texas Shooting Dies in Car Accident",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "The New York Times",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "general_politics",
-      "label": "General Politics",
-      "icon": "🗳️",
-      "engagement_count": 8,
-      "unique_users": 1,
-      "trending_score": 10,
-      "items": [
-        {
-          "topic": "Twitter: Last Week Tonight with John Oliver (HBO)",
-          "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
-          "count": 7,
+          "topic": "President Donald J. Trump's 2026 State of the Union Address",
+          "query": "President Donald J. Trump's 2026 State of the Union Address",
+          "count": 4,
           "source": "youtube",
           "subreddit": null,
-          "channel": "LastWeekTonight",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
-          "query": "Blue Cities and States Are in Trouble. Democrats Need to Change How They Run Them.",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "The New York Times",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "economic_policy",
-      "label": "Economic Policy",
-      "icon": "💰",
-      "engagement_count": 6,
-      "unique_users": 1,
-      "trending_score": 8,
-      "items": [
-        {
-          "topic": "Tariffs",
-          "query": "Tariffs",
-          "count": 3,
-          "source": "news",
-          "subreddit": null,
-          "channel": "Reuters",
+          "channel": "The White House",
           "url": null,
           "trend": "up"
         },
         {
-          "topic": "social security benefits february 25",
-          "query": "social security benefits february 25",
+          "topic": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+          "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
           "count": 1,
-          "source": "search",
+          "source": "youtube",
           "subreddit": null,
-          "channel": null,
+          "channel": "13WMAZ",
           "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
-          "query": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "The New York Times",
-          "url": null,
-          "trend": "stable"
-        },
-        {
-          "topic": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
-          "query": "U.S. trade representative says White House expects to \"stand by\" trade deals after Supreme Court ruling",
-          "count": 1,
-          "source": "news",
-          "subreddit": null,
-          "channel": "CBS News",
-          "url": null,
-          "trend": "stable"
-        }
-      ]
-    },
-    {
-      "id": "healthcare_policy",
-      "label": "Healthcare Policy",
-      "icon": "🏥",
-      "engagement_count": 5,
-      "unique_users": 1,
-      "trending_score": 6,
-      "items": [
-        {
-          "topic": "Healthcare",
-          "query": "Healthcare",
-          "count": 5,
-          "source": "news",
-          "subreddit": null,
-          "channel": "AP News",
-          "url": null,
-          "trend": "stable"
+          "trend": "up"
         }
       ]
     },
@@ -187,41 +117,60 @@
       "id": "legislative_politics",
       "label": "Legislative Politics",
       "icon": "📜",
-      "engagement_count": 4,
-      "unique_users": 1,
-      "trending_score": 5,
+      "engagement_count": 21,
+      "unique_users": 2,
+      "trending_score": 33,
       "items": [
         {
-          "topic": "Congress",
-          "query": "Congress",
-          "count": 4,
-          "source": "news",
+          "topic": "No. 2 House Democrat to skip Trump's State of the Union address",
+          "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+          "count": 17,
+          "source": "youtube",
           "subreddit": null,
-          "channel": "Reuters",
+          "channel": "ABC News",
+          "url": null,
+          "trend": "up"
+        },
+        {
+          "topic": "Democrats hold 'People's State of the Union' amid Schiff boycott",
+          "query": "Democrats hold 'People's State of the Union' amid Schiff boycott",
+          "count": 4,
+          "source": "youtube",
+          "subreddit": null,
+          "channel": "ABC News",
           "url": null,
           "trend": "up"
         }
       ]
     },
     {
-      "id": "civil_rights",
-      "label": "Civil Rights",
-      "icon": "✊",
-      "engagement_count": 1,
+      "id": "economic_policy",
+      "label": "Economic Policy",
+      "icon": "💰",
+      "engagement_count": 2,
       "unique_users": 1,
-      "trending_score": 1,
+      "trending_score": 3,
       "items": [
         {
-          "topic": "Abortion",
-          "query": "Abortion",
-          "count": 1,
-          "source": "news",
+          "topic": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms",
+          "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms",
+          "count": 2,
+          "source": "youtube",
           "subreddit": null,
-          "channel": "CBS News",
+          "channel": "The Daily Show",
           "url": null,
-          "trend": "stable"
+          "trend": "up"
         }
       ]
+    },
+    {
+      "id": "general_politics",
+      "label": "General Politics",
+      "icon": "🗳️",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
     },
     {
       "id": "elections_voting",
@@ -242,6 +191,24 @@
       "items": []
     },
     {
+      "id": "immigration_policy",
+      "label": "Immigration Policy",
+      "icon": "🛂",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "healthcare_policy",
+      "label": "Healthcare Policy",
+      "icon": "🏥",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
       "id": "education_policy",
       "label": "Education Policy",
       "icon": "🎓",
@@ -254,6 +221,15 @@
       "id": "environmental_policy",
       "label": "Environmental Policy",
       "icon": "🌿",
+      "engagement_count": 0,
+      "unique_users": 0,
+      "trending_score": 0,
+      "items": []
+    },
+    {
+      "id": "civil_rights",
+      "label": "Civil Rights",
+      "icon": "✊",
       "engagement_count": 0,
       "unique_users": 0,
       "trending_score": 0,
