@@ -337,19 +337,20 @@ def day_range_utc(date: datetime.date, start_hour: int, end_hour: int):
 
 
 def main():
-    # Dates to backfill: Feb 15 through yesterday (Feb 20).
-    # Feb 20's real data point (16:33Z, score=26) will be preserved at the end.
-    today = datetime.date(2026, 2, 21)
+    # Recompute sentiment for all days from Feb 15 through yesterday using the
+    # new framing-aware scoring. Preserve only today's live data points.
+    today      = datetime.date.today()
     start_date = datetime.date(2026, 2, 15)
+    today_prefix = today.strftime("%Y-%m-%d")
 
-    # Load existing history to preserve the real Feb 20 16:33 point
+    # Load existing history to preserve today's live data points
     existing_points: list[dict] = []
     if HISTORY_FILE.exists():
         with open(HISTORY_FILE) as f:
             existing_points = json.load(f).get("points", [])
     # Keep only points from today (real live data) — we'll rebuild everything else
-    real_points = [p for p in existing_points if p["ts"] >= "2026-02-20T16:33:00Z"]
-    print(f"Preserving {len(real_points)} existing real data points.")
+    real_points = [p for p in existing_points if p["ts"].startswith(today_prefix)]
+    print(f"Preserving {len(real_points)} existing real data points (today: {today_prefix}).")
 
     new_points: list[dict] = []
     fmt = "%Y-%m-%dT%H:%M:%SZ"
