@@ -2121,7 +2121,22 @@ def main():
             if not existing_events:
                 live_events_raw = seed_events_from_categories(data)
                 print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events.")
-        _append_live_events(live_events_raw or [], reset=not is_incremental)
+        # Reset the live feed at ET day rollover; within the same calendar day,
+        # accumulate so per-item engagement rows don't disappear between runs.
+        _lf_reset = True
+        if LIVE_FEED_FILE.exists():
+            try:
+                with open(LIVE_FEED_FILE) as _lf_f:
+                    _lf_gen = json.load(_lf_f).get("generated_at", "")
+                # generated_at is UTC "YYYY-MM-DDTHH:MM:SSZ"; convert to ET date.
+                _lf_utc  = datetime.datetime.strptime(_lf_gen[:19], "%Y-%m-%dT%H:%M:%S")
+                _et_off  = datetime.timedelta(hours=(4 if 4 <= datetime.datetime.now(datetime.timezone.utc).month <= 10 else 5))
+                _now_et  = (datetime.datetime.now(datetime.timezone.utc) - _et_off).date()
+                _lf_et   = (_lf_utc - _et_off).date()
+                _lf_reset = (_lf_et != _now_et)
+            except Exception:
+                pass
+        _append_live_events(live_events_raw or [], reset=_lf_reset)
 
         # ── Sentiment history: persists forever across window slides ──────────
         update_history(data)

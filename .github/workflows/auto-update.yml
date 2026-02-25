@@ -89,5 +89,10 @@ jobs:
             echo "No changes — skipping commit."
           else
             git commit -m "chore: auto-update data [$(date -u '+%Y-%m-%dT%H:%M:%SZ')]"
+            # Rebase on top of any commits pushed to the remote while this run
+            # was in flight (e.g. developer hotfixes).  -X ours keeps our fresh
+            # data files on conflict so the cron result is never silently dropped.
+            git fetch origin ${{ github.ref_name }}
+            git rebase origin/${{ github.ref_name }} -X ours
             git push origin HEAD:${{ github.ref_name }}
           fi
