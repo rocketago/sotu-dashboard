@@ -1593,6 +1593,52 @@ def seed_events_from_categories(cat_data: dict) -> list[dict]:
     return events
 
 
+def _items_to_live_events(data: dict, window_start_iso: str) -> list[dict]:
+    """
+    Convert YouTube and TikTok category items from the built political_data into
+    live event records so they appear in the live feed alongside search/Reddit events.
+
+    Each item becomes one aggregate event entry — it represents N engagements (count),
+    not a single person.  No age/gender/state are set since these are aggregate data.
+    Timestamps are spread evenly across the current window so they sort naturally.
+    """
+    items_with_cats = [
+        (item, cat.get("label", "General Politics"))
+        for cat in data.get("categories", [])
+        for item in cat.get("items", [])
+        if item.get("source") in ("youtube", "tiktok_watch", "tiktok")
+    ]
+    if not items_with_cats:
+        return []
+
+    # Compute time span from window_start to now (UTC)
+    now_utc = datetime.datetime.utcnow()
+    try:
+        start_dt = datetime.datetime.strptime(window_start_iso[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        start_dt = now_utc - datetime.timedelta(hours=24)
+    span_s = max(int((now_utc - start_dt).total_seconds()), 3600)
+
+    events: list[dict] = []
+    n = len(items_with_cats)
+    for i, (item, cat_label) in enumerate(items_with_cats):
+        # Spread evenly: most recent items at the end of the window
+        offset_s = int((i / max(n - 1, 1)) * span_s)
+        ts = (start_dt + datetime.timedelta(seconds=offset_s)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        source = "tiktok" if item.get("source") == "tiktok_watch" else item.get("source", "youtube")
+        events.append({
+            "time":     ts,
+            "query":    item.get("query") or item.get("topic", ""),
+            "source":   source,
+            "channel":  item.get("channel") or None,
+            "category": cat_label,
+            "count":    item.get("count", 1),
+            # age/gender/state intentionally absent — aggregate, not individual
+        })
+
+    return events
+
+
 # ── AFINN lexicon (mirrors the JS version in index.html) ─────────────────────
 # Positive scores = favorable/hopeful framing; negative = critical/alarming.
 _AFINN: dict[str, int] = {
@@ -2182,6 +2228,13 @@ def main():
             if not existing_events:
                 live_events_raw = seed_events_from_categories(data)
                 print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events.")
+
+        # ── Always inject YouTube/TikTok aggregate items as live events ────────
+        # These come from the already-built category data (with proper categories)
+        # so they appear in expanded topic views alongside search/Reddit events.
+        yt_tt_events = _items_to_live_events(data, since_iso)
+        live_events_raw = list(live_events_raw or []) + yt_tt_events
+        print(f"[INFO] Injected {len(yt_tt_events)} YouTube/TikTok events into live feed.")
         # Reset the live feed at ET day rollover; within the same calendar day,
         # accumulate so per-item engagement rows don't disappear between runs.
         _lf_reset = True
