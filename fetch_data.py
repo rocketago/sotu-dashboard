@@ -1188,16 +1188,16 @@ def fetch_tiktok_watch_videos(since_iso: str, mcp_ctx: tuple | None = None) -> l
             f"Which TikTok videos are being watched most by users aged 18 to 29 "
             f"since {since_iso}? Query DONATIONS_EVENTS_DYM where "
             f"EVENT_TYPE = 'watch_history' and PLATFORM = 'tiktok'. "
-            f"The DATA column is JSON containing a 'url' field with the video URL. "
-            f"Group by the url value extracted from DATA, count watches, "
+            f"The DATA column is JSON containing a 'link' field with the video URL. "
+            f"Group by the link value extracted from DATA, count watches, "
             f"return the top 60 by watch count. "
             f"Return JSON only: [{{\"url\": str, \"count\": int}}]. "
-            f"Include only rows where the url contains 'tiktok' or 'tiktokv'."
+            f"Include only rows where the link value contains 'tiktok' or 'tiktokv'."
         ),
         (
             f"Top TikTok video URLs watched since {since_iso}. "
             f"Use DONATIONS_EVENTS_DYM, EVENT_TYPE='watch_history', PLATFORM='tiktok'. "
-            f"Group by video URL from DATA JSON field, count rows per URL. "
+            f"Group by the 'link' field extracted from DATA JSON, count rows per link. "
             f"Return JSON: [{{\"url\": str, \"count\": int}}]"
         ),
     ]
@@ -1708,6 +1708,24 @@ _AFINN: dict[str, int] = {
 
 _CLEAN_RE = re.compile(r"[^a-z\s]")
 
+# Keywords identifying Trump / Republican content.
+_TRUMP_REPUB_KEYWORDS = (
+    "trump", "republican", "republicans", "gop", "maga",
+    "white house", "executive order", "conservative", "conservatives",
+    "ivanka", "melania", "jd vance", "vance", "desantis", "rubio",
+    "mcconnell", "haley", "pence",
+)
+
+# Keywords identifying Democrat / liberal content.  When an item matches one of
+# these (but NOT a Republican keyword), its AFINN score is INVERTED (100 - score)
+# so that "negative about Democrats" counts as positive for Republicans and vice versa.
+_DEMOCRAT_LIB_KEYWORDS = (
+    "democrat", "democrats", "democratic", "dems",
+    "liberal", "liberals", "progressive", "progressives",
+    "biden", "harris", "pelosi", "schumer", "aoc", "ocasio-cortez",
+    "bernie", "sanders", "warren", "defund", "woke",
+)
+
 
 def _score_item_text(topic: str, query: str) -> float:
     """Return 0-100 AFINN sentiment score for an item's topic + query text."""
@@ -1716,11 +1734,40 @@ def _score_item_text(topic: str, query: str) -> float:
     return max(0.0, min(100.0, raw * 5 + 50))
 
 
+def _score_item_sentiment(item: dict) -> float:
+    """Return 0-100 sentiment score framed relative to Trump/Republicans.
+
+    ALL political items are scored.  The direction is adjusted for framing:
+      - Republican/Trump content  → AFINN score as-is
+      - Democrat/liberal content (not also Republican) → INVERTED (100 - score),
+        because negative-about-Democrats is a positive for Republicans
+      - Neutral political content → AFINN score as-is
+
+    Examples:
+      "SAVE Act fails"                   → low score  (bad for Republicans)
+      "Democrats demand defund ICE"      → high score (anti-Democrat framing)
+      "Trump signs historic deal"        → high score (positive for Republicans)
+    """
+    topic = item.get("topic", "")
+    query = item.get("query", "")
+    text  = (topic + " " + query).lower()
+    raw_score = _score_item_text(topic, query)
+    is_repub = any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
+    is_dem   = any(kw in text for kw in _DEMOCRAT_LIB_KEYWORDS)
+    # Invert only for Democrat-focused content that isn't also about Republicans.
+    if is_dem and not is_repub:
+        return 100.0 - raw_score
+    return raw_score
+
+
 def update_history(data: dict) -> None:
     """
-    Append the current AFINN text-sentiment score to history.json.
-    Score is engagement-count-weighted over all items' topic+query text,
-    matching the JS formula in index.html exactly.
+    Append the current sentiment score to history.json.
+
+    Score is engagement-count-weighted over ALL political items, with framing
+    adjustment: Democrat/liberal content has its AFINN score inverted so that
+    "negative about Democrats" counts as positive for Republicans.  Matches
+    the JS formula in index.html.
     Keeps at most 2016 entries (~21 days at 15-min intervals).
     """
     all_items = [
@@ -1733,7 +1780,7 @@ def update_history(data: dict) -> None:
 
     total_weight = sum(i.get("count", 1) for i in all_items) or 1
     total_sentiment = sum(
-        _score_item_text(i.get("topic", ""), i.get("query", "")) * i.get("count", 1)
+        _score_item_sentiment(i) * i.get("count", 1)
         for i in all_items
     )
     score = round(total_sentiment / total_weight)
