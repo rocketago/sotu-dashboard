@@ -1380,6 +1380,7 @@ def merge_into_structure(
     queries_raw: list,
     youtube_raw: list | None = None,
     news_raw: list | None = None,
+    today_start: str | None = None,
 ) -> dict:
     """
     Merge VerbAI query results (search, Reddit, YouTube, News) into the dashboard
@@ -1519,7 +1520,7 @@ def merge_into_structure(
             "data_source":   "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
             "window":        "rolling_24h",
             "window_label":  "Last 24h · Updated live",
-            "today_start":   _current_window_start(),
+            "today_start":   today_start or _current_window_start(),
             "refresh_interval_minutes": 15,
         },
         "summary": {
@@ -2030,12 +2031,24 @@ def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
     # ── Sliding 24-hour window cursor ───────────────────────────────────────
-    # Always query the full 24-hour window anchored at _current_window_start()
-    # so each run produces a fresh, self-consistent snapshot.  The sliding
-    # window (max(WINDOW_ANCHOR, now−24h)) naturally drops data that has aged
-    # out — no accumulation or cursor tracking needed.
-    since_iso = _current_window_start()
-    print(f"[INFO] Fetch mode=full (sliding 24h window), since={since_iso}")
+    # Normally the window slides: max(WINDOW_ANCHOR, now−24h).  But if we have
+    # never had a successful data pull (last_success_at is null), the sliding
+    # window may have moved past the latest data in Snowflake (which can lag
+    # by hours).  In that case, fall back to WINDOW_ANCHOR so we always cover
+    # the period where data was first expected to be available.
+    _last_success_at = None
+    if MCP_STATUS_FILE.exists():
+        try:
+            with open(MCP_STATUS_FILE) as _sf:
+                _last_success_at = json.load(_sf).get("last_success_at")
+        except Exception:
+            pass
+    if _last_success_at:
+        since_iso = _current_window_start()
+        print(f"[INFO] Fetch mode=full (sliding 24h window), since={since_iso}")
+    else:
+        since_iso = WINDOW_ANCHOR
+        print(f"[INFO] Fetch mode=full (anchored, no prior success), since={since_iso}")
 
     # ── Try direct MCP HTTP session (zero Anthropic tokens) ─────────────────
     mcp_ctx = None
@@ -2096,6 +2109,7 @@ def main():
                 existing = json.load(f)
             existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
             existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
+            existing["meta"]["today_start"] = since_iso
             with open(OUTPUT_FILE, "w") as f:
                 json.dump(existing, f, indent=2, ensure_ascii=False)
             update_history(existing)
@@ -2103,7 +2117,7 @@ def main():
         # Always build a fresh snapshot from the full 24-hour window.
         # The sliding window in _current_window_start() ensures old data drops
         # off naturally; no accumulation is needed.
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw)
+        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw, today_start=since_iso)
 
         with open(OUTPUT_FILE, "w") as f:
             json.dump(data, f, indent=2, ensure_ascii=False)
