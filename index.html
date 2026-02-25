@@ -531,6 +531,7 @@
     .source-news    { background: rgba(119,48,170,0.10);  color: #5a1f8a; border: 1px solid rgba(119,48,170,0.3); }
     .source-reddit  { background: rgba(249,73,95,0.10);   color: #b8192e; border: 1px solid rgba(249,73,95,0.32); }
     .source-youtube { background: rgba(200,30,30,0.10);   color: #a01010; border: 1px solid rgba(200,30,30,0.3); }
+    .source-tiktok  { background: rgba(0,0,0,0.07);       color: #1a1a2e; border: 1px solid rgba(0,0,0,0.18); }
 
     .item-count {
       font-size: 12px;
@@ -619,10 +620,13 @@
 
     .detail-event:last-child { border-bottom: none; }
 
-    .detail-time  { color: var(--muted); min-width: 56px; }
-    .detail-age   { color: var(--accent); font-weight: 600; }
-    .detail-gender{ color: var(--text); }
-    .detail-state { color: var(--text); }
+    .detail-time    { color: var(--muted); min-width: 56px; }
+    .detail-age     { color: var(--accent); font-weight: 600; }
+    .detail-gender  { color: var(--text); }
+    .detail-state   { color: var(--text); }
+    .detail-query   { color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .detail-channel { color: var(--muted); }
+    .detail-count   { color: var(--accent); font-weight: 600; }
 
     .detail-no-data {
       color: var(--muted);
@@ -2038,44 +2042,73 @@
   function buildItemDetail(item, catLabel) {
     const events = liveEvents;
 
-    // Keywords from the item query (len>=4, skip stopwords) for fuzzy matching
+    // Keywords from the item (3+ chars, skip stopwords) for topic matching
     const keywords = ((item.query || '') + ' ' + (item.topic || ''))
-      .toLowerCase().match(/[a-z]{4,}/g)
+      .toLowerCase().match(/[a-z]{3,}/g)
       ?.filter(w => !STOPWORDS.has(w)) || [];
 
-    // Filter events by category; prefer keyword overlap, fall back to category-only
+    // All events in the same category
     const catMatches = events.filter(e => e.category === catLabel);
+
+    // Prefer events whose query shares a keyword with the item.
+    // YouTube/TikTok aggregate events are kept even without keyword overlap
+    // since they were already categorised by topic on ingest.
     let matched = keywords.length
       ? catMatches.filter(e => {
+          const src = e.source || '';
+          if (src === 'youtube' || src === 'tiktok') return true; // always include aggregate sources
           const eq = (e.query || '').toLowerCase();
           return keywords.some(kw => eq.includes(kw));
         })
-      : [];
-    if (matched.length === 0) matched = catMatches;  // fall back to whole category
+      : catMatches;
+    if (matched.length === 0) matched = catMatches; // final fallback
 
-    // Sort newest-first, cap at 8
-    matched = matched
-      .slice()
-      .sort((a, b) => new Date(b.time) - new Date(a.time))
-      .slice(0, 8);
+    // Sort: aggregate (youtube/tiktok) first by count desc, then individual events newest-first
+    matched = matched.slice().sort((a, b) => {
+      const aAgg = a.source === 'youtube' || a.source === 'tiktok';
+      const bAgg = b.source === 'youtube' || b.source === 'tiktok';
+      if (aAgg !== bAgg) return aAgg ? -1 : 1;
+      if (aAgg && bAgg) return (b.count || 0) - (a.count || 0);
+      return new Date(b.time) - new Date(a.time);
+    }).slice(0, 12);
 
     if (matched.length === 0) {
-      return '<div class="detail-no-data">No individual engagement data available for this topic yet.</div>';
+      return '<div class="detail-no-data">No engagement data available for this topic yet.</div>';
     }
 
     const genderIcon = g => g === 'Male' ? '♂' : g === 'Female' ? '♀' : '⚧';
-    const srcLabel   = s => s === 'reddit' ? 'Reddit' : s === 'youtube' ? '▶ YouTube' : 'Search';
+    const srcLabel   = s => {
+      if (s === 'reddit')  return 'Reddit';
+      if (s === 'youtube') return '▶ YouTube';
+      if (s === 'tiktok')  return '♪ TikTok';
+      return 'Search';
+    };
 
-    const rows = matched.map(e => `
+    const rows = matched.map(e => {
+      const src = e.source || 'search';
+      const badge = `<span class="source-badge source-${escHtml(src)}">${srcLabel(src)}</span>`;
+      if (src === 'youtube' || src === 'tiktok') {
+        // Aggregate row: show title, channel, engagement count — no demographics
+        const channel = e.channel ? `<span class="detail-channel">${escHtml(e.channel)}</span>` : '';
+        const count   = e.count   ? `<span class="detail-count">${escHtml(String(e.count))} engagements</span>` : '';
+        return `
+      <div class="detail-event">
+        <span class="detail-query">${escHtml((e.query || '').slice(0, 60))}</span>
+        ${channel}${count}${badge}
+      </div>`;
+      }
+      // Individual row: show demographics
+      return `
       <div class="detail-event">
         <span class="detail-time">${escHtml(timeAgo(e.time))}</span>
-        <span class="detail-age">Age ${escHtml(String(e.age))}</span>
+        <span class="detail-age">Age ${escHtml(String(e.age || '?'))}</span>
         <span class="detail-gender">${genderIcon(e.gender)} ${escHtml(e.gender || '—')}</span>
         <span class="detail-state">📍 ${escHtml(e.state || '—')}</span>
-        <span class="source-badge source-${escHtml(e.source || 'search')}">${srcLabel(e.source)}</span>
-      </div>`).join('');
+        ${badge}
+      </div>`;
+    }).join('');
 
-    return `<div class="detail-header">👥 Who engaged with this</div>${rows}`;
+    return `<div class="detail-header">📊 Engagements for this topic</div>${rows}`;
   }
 
   /* ── SHOW STATUS ── */
