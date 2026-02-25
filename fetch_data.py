@@ -1188,16 +1188,16 @@ def fetch_tiktok_watch_videos(since_iso: str, mcp_ctx: tuple | None = None) -> l
             f"Which TikTok videos are being watched most by users aged 18 to 29 "
             f"since {since_iso}? Query DONATIONS_EVENTS_DYM where "
             f"EVENT_TYPE = 'watch_history' and PLATFORM = 'tiktok'. "
-            f"The DATA column is JSON containing a 'url' field with the video URL. "
-            f"Group by the url value extracted from DATA, count watches, "
+            f"The DATA column is JSON containing a 'link' field with the video URL. "
+            f"Group by the link value extracted from DATA, count watches, "
             f"return the top 60 by watch count. "
             f"Return JSON only: [{{\"url\": str, \"count\": int}}]. "
-            f"Include only rows where the url contains 'tiktok' or 'tiktokv'."
+            f"Include only rows where the link value contains 'tiktok' or 'tiktokv'."
         ),
         (
             f"Top TikTok video URLs watched since {since_iso}. "
             f"Use DONATIONS_EVENTS_DYM, EVENT_TYPE='watch_history', PLATFORM='tiktok'. "
-            f"Group by video URL from DATA JSON field, count rows per URL. "
+            f"Group by the 'link' field extracted from DATA JSON, count rows per link. "
             f"Return JSON: [{{\"url\": str, \"count\": int}}]"
         ),
     ]
@@ -1708,6 +1708,17 @@ _AFINN: dict[str, int] = {
 
 _CLEAN_RE = re.compile(r"[^a-z\s]")
 
+# Keywords used to identify Trump / Republican content for targeted sentiment scoring.
+# Items whose topic+query text contain any of these are treated as Trump/GOP signals;
+# the history score and gauge are computed exclusively from these items (falling back
+# to all items only when none match).
+_TRUMP_REPUB_KEYWORDS = (
+    "trump", "republican", "republicans", "gop", "maga",
+    "white house", "executive order", "conservative", "conservatives",
+    "ivanka", "melania", "jd vance", "vance", "desantis", "rubio",
+    "mcconnell", "haley", "pence",
+)
+
 
 def _score_item_text(topic: str, query: str) -> float:
     """Return 0-100 AFINN sentiment score for an item's topic + query text."""
@@ -1716,11 +1727,22 @@ def _score_item_text(topic: str, query: str) -> float:
     return max(0.0, min(100.0, raw * 5 + 50))
 
 
+def _is_trump_repub_item(item: dict) -> bool:
+    """Return True if this item is about Trump or Republican politics."""
+    text = (
+        (item.get("topic") or "") + " " + (item.get("query") or "")
+    ).lower()
+    return any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
+
+
 def update_history(data: dict) -> None:
     """
     Append the current AFINN text-sentiment score to history.json.
-    Score is engagement-count-weighted over all items' topic+query text,
-    matching the JS formula in index.html exactly.
+
+    Score is engagement-count-weighted over items related to Trump and
+    Republican politics (falling back to all items when none match),
+    measuring how positively/negatively Gen Z is engaging with
+    Trump/Republican content.  Matches the JS formula in index.html.
     Keeps at most 2016 entries (~21 days at 15-min intervals).
     """
     all_items = [
@@ -1731,10 +1753,14 @@ def update_history(data: dict) -> None:
     if not all_items:
         return  # nothing to record
 
-    total_weight = sum(i.get("count", 1) for i in all_items) or 1
+    # Prefer Trump/Republican items for targeted sentiment; fall back to all.
+    tr_items = [i for i in all_items if _is_trump_repub_item(i)]
+    score_items = tr_items if tr_items else all_items
+
+    total_weight = sum(i.get("count", 1) for i in score_items) or 1
     total_sentiment = sum(
         _score_item_text(i.get("topic", ""), i.get("query", "")) * i.get("count", 1)
-        for i in all_items
+        for i in score_items
     )
     score = round(total_sentiment / total_weight)
 

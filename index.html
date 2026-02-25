@@ -1058,7 +1058,7 @@
 
       <!-- Gauge -->
       <div class="gauge-wrap">
-        <h3>Overall Sentiment Score</h3>
+        <h3>Sentiment: Trump &amp; Republicans</h3>
         <svg id="sentiment-gauge" viewBox="0 0 300 175" xmlns="http://www.w3.org/2000/svg">
           <!-- arc rendered by JS -->
         </svg>
@@ -1096,9 +1096,10 @@
     </div>
 
     <div class="history-wrap">
-      <h3>Engagement Sentiment Score Over Time</h3>
+      <h3>Trump &amp; Republican Sentiment Over Time</h3>
       <p class="history-desc">
-        Score 0–100: 100 = overwhelmingly positive engagement momentum, 0 = overwhelmingly negative.
+        Score 0–100: 100 = overwhelmingly positive framing toward Trump and Republicans, 0 = overwhelmingly negative.
+        Scored from content where 18–29 year olds engage with Trump/Republican topics.
         The dashed orange line marks the State of the Union address (Feb 24 at 9 pm ET).
         The x-axis expands as more data accumulates.
       </p>
@@ -1285,20 +1286,30 @@
     return Math.max(0, Math.min(100, raw * 5 + 50));
   }
 
+  // Keywords used to identify Trump / Republican content for targeted sentiment.
+  const TRUMP_REPUB_RE = /trump|republican|republicans|\bgop\b|maga|white house|executive order|conservative|conservatives|ivanka|melania|jd vance|\bvance\b|desantis|rubio|mcconnell|haley|pence/i;
+
+  function isTrumpRepubItem(item) {
+    return TRUMP_REPUB_RE.test((item.topic || '') + ' ' + (item.query || ''));
+  }
+
   function computeSentimentScore(data) {
     let totalWeight = 0, totalSentiment = 0;
     let posWeight = 0, negWeight = 0, neuWeight = 0;
 
-    data.categories.forEach(cat => {
-      cat.items.forEach(item => {
-        const w     = item.count || 1;
-        const score = scoreItemText(item.topic, item.query);
-        totalWeight    += w;
-        totalSentiment += score * w;
-        if      (score >= 55) posWeight += w;
-        else if (score <= 45) negWeight += w;
-        else                  neuWeight += w;
-      });
+    // Collect all items then prefer Trump/Republican subset for targeted sentiment.
+    const allItems = data.categories.flatMap(cat => cat.items);
+    const trItems  = allItems.filter(isTrumpRepubItem);
+    const items    = trItems.length > 0 ? trItems : allItems;
+
+    items.forEach(item => {
+      const w     = item.count || 1;
+      const score = scoreItemText(item.topic, item.query);
+      totalWeight    += w;
+      totalSentiment += score * w;
+      if      (score >= 55) posWeight += w;
+      else if (score <= 45) negWeight += w;
+      else                  neuWeight += w;
     });
 
     const score = totalWeight > 0
@@ -1786,7 +1797,7 @@
       `<span style="color:#04B35D">▲ Positive tone ${posPct}%</span> &nbsp;·&nbsp;
        <span style="color:#4a6a8a">— Neutral ${neuPct}%</span> &nbsp;·&nbsp;
        <span style="color:#F9495F">▼ Negative tone ${negPct}%</span><br>
-       Content sentiment · ${totalWeight.toLocaleString()} engagement-weighted signals`;
+       Trump &amp; Republican content · ${totalWeight.toLocaleString()} engagement-weighted signals`;
 
     const words = extractWords(data);
     renderWordCloud(words);
