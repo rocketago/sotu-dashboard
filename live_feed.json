@@ -21,6 +21,26 @@
       "age": 24,
       "gender": "Male",
       "state": "CA"
+    },
+    {
+      "time": "2026-02-24T01:02:29Z",
+      "query": "social security benefits february 25",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "age": 24,
+      "gender": "Male",
+      "state": "TX"
+    },
+    {
+      "time": "2026-02-24T00:56:35Z",
+      "query": "trump",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 24,
+      "gender": "Male",
+      "state": "TX"
     }
   ]
 }

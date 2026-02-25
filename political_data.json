@@ -11,7 +11,7 @@
   },
   "summary": {
     "total_engagements": 115,
-    "total_unique_users": 8,
+    "total_unique_users": 9,
     "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Sliding 24-hour window · accumulates each run",
@@ -88,7 +88,7 @@
       "label": "General Politics",
       "icon": "🗳️",
       "engagement_count": 8,
-      "unique_users": 1,
+      "unique_users": 2,
       "trending_score": 10,
       "items": [
         {
