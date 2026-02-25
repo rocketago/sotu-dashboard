@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-02-25T02:36:49Z",
+  "generated_at": "2026-02-25T02:52:07Z",
   "day_start": "2026-02-24T00:00:00",
   "events": [
     {
@@ -113,6 +113,16 @@
       "state": "WA"
     },
     {
+      "time": "2026-02-24T02:02:27Z",
+      "query": "a thread cringy bs urinator pinterest quotes",
+      "source": "reddit",
+      "subreddit": "ArianaGrandeSnark",
+      "category": "General Politics",
+      "age": 24,
+      "gender": "Female",
+      "state": "MD"
+    },
+    {
       "query": "Trump Administration Scrambles to Pick Up the Pieces of Broken Tariffs",
       "source": "news",
       "subreddit": null,
@@ -121,6 +131,36 @@
       "age": 23,
       "gender": "Male",
       "state": "NY"
+    },
+    {
+      "time": "2026-02-24T01:32:33Z",
+      "query": "israel rivas",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "age": 24,
+      "gender": "Male",
+      "state": "CA"
+    },
+    {
+      "time": "2026-02-24T01:02:29Z",
+      "query": "social security benefits february 25",
+      "source": "search",
+      "subreddit": null,
+      "category": "Economic Policy",
+      "age": 24,
+      "gender": "Male",
+      "state": "TX"
+    },
+    {
+      "time": "2026-02-24T00:56:35Z",
+      "query": "trump",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 24,
+      "gender": "Male",
+      "state": "TX"
     },
     {
       "query": "Twitter: Last Week Tonight with John Oliver (HBO)",
