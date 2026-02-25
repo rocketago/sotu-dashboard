@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-25T02:52:07Z",
-    "last_mcp_pull": "2026-02-25T02:52:07Z",
+    "generated_at": "2026-02-25T03:50:38Z",
+    "last_mcp_pull": "2026-02-25T03:50:38Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
@@ -11,7 +11,7 @@
   },
   "summary": {
     "total_engagements": 115,
-    "total_unique_users": 9,
+    "total_unique_users": 8,
     "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Sliding 24-hour window · accumulates each run",
@@ -88,7 +88,7 @@
       "label": "General Politics",
       "icon": "🗳️",
       "engagement_count": 8,
-      "unique_users": 2,
+      "unique_users": 1,
       "trending_score": 10,
       "items": [
         {
