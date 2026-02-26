@@ -527,6 +527,14 @@
       flex-shrink: 0;
     }
 
+    .topic-src-counts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      flex-shrink: 0;
+      align-items: center;
+    }
+
     .source-search  { background: rgba(13,162,230,0.12);  color: #006fa8; border: 1px solid rgba(13,162,230,0.35); }
     .source-news    { background: rgba(119,48,170,0.10);  color: #5a1f8a; border: 1px solid rgba(119,48,170,0.3); }
     .source-reddit  { background: rgba(249,73,95,0.10);   color: #b8192e; border: 1px solid rgba(249,73,95,0.32); }
@@ -1162,7 +1170,8 @@
   let currentData    = null;
   let historyData    = null;
   let mcpStatus      = null;
-  let liveEvents     = [];
+  let liveEvents        = [];
+  let topicsByCategory  = {};   // catLabel → [{label, kws, events}]
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -1953,28 +1962,129 @@
   }
 
   /* ── RENDER CATEGORIES ── */
+  /* ── TOPIC CLUSTERING ─────────────────────────────────────────────────────
+     Groups live engagement events into keyword clusters within each category.
+     Events sharing ≥1 non-stopword keyword (≥3 chars) are merged into the
+     same topic cluster.  The cluster label is the query of the first event
+     that seeded it — human-readable and avoids keyword jargon.
+  ── */
+  function clusterEventsByTopic(events) {
+    // An event is added to EVERY cluster whose keyword set overlaps with the
+    // event's keywords — not just the best match.  This means a single engagement
+    // (e.g. a YouTube video covering both tax cuts and ICE funding) correctly
+    // appears under every relevant topic cluster simultaneously.
+    // Cluster keyword sets are fixed at creation time so that adding an event
+    // to multiple clusters doesn't cause them to merge into one super-cluster.
+    const clusters = [];  // [{label, kws: Set<string>, events: []}]
+    for (const e of events) {
+      const kws = ((e.query || '').toLowerCase().match(/[a-z]{3,}/g) || [])
+                    .filter(w => !STOPWORDS.has(w));
+      let addedToAny = false;
+      for (const c of clusters) {
+        if (kws.some(k => c.kws.has(k))) {
+          c.events.push(e);
+          addedToAny = true;
+          // no break — keep checking so event lands in every matching cluster
+        }
+      }
+      if (!addedToAny) {
+        // No existing cluster matched — seed a new one from this event
+        clusters.push({ label: (e.query || '').slice(0, 60) || '—',
+                        kws: new Set(kws), events: [e] });
+      }
+    }
+    return clusters.sort((a, b) => b.events.length - a.events.length);
+  }
+
+  function buildTopicsByCategory(events) {
+    const byCat = {};
+    for (const e of events) {
+      const cat = e.category || 'General Politics';
+      (byCat[cat] = byCat[cat] || []).push(e);
+    }
+    const result = {};
+    for (const [cat, evs] of Object.entries(byCat)) {
+      result[cat] = clusterEventsByTopic(evs);
+    }
+    return result;
+  }
+
   function renderCategories(categories, filterText = '') {
     const grid = document.getElementById('category-grid');
     const maxEngage = Math.max(...categories.map(c => c.engagement_count), 1);
     const query = filterText.toLowerCase();
 
     let html = '';
-    categories.forEach((cat, idx) => {
-      const matchItems = cat.items.filter(item =>
+    categories.forEach((cat) => {
+      // Live-event topic clusters for this category (built from live_feed.json)
+      const catTopics = topicsByCategory[cat.label] || [];
+      const hasTopics = catTopics.length > 0;
+
+      // Filter topics or items by search query
+      const matchTopics = catTopics.filter(t =>
+        !query || t.label.toLowerCase().includes(query));
+      const matchItems  = cat.items.filter(item =>
         !query ||
-        item.topic.toLowerCase().includes(query) ||
-        item.query.toLowerCase().includes(query)
-      );
+        (item.topic || '').toLowerCase().includes(query) ||
+        (item.query || '').toLowerCase().includes(query));
+      const anyMatch = hasTopics ? matchTopics.length > 0 : matchItems.length > 0;
 
-      // Hide cards with no items entirely
-      if (cat.items.length === 0) return;
+      if (!hasTopics && cat.items.length === 0) return;
+      if (query && !anyMatch) return;
 
-      // Hide whole card if filter is active and nothing matches
-      if (query && matchItems.length === 0) return;
+      const displayTopics = hasTopics ? (query ? matchTopics : catTopics) : null;
+      const displayItems  = !hasTopics ? (query ? matchItems : cat.items) : null;
+      const topicCount    = hasTopics ? catTopics.length : cat.items.length;
+      const pct    = Math.round((cat.engagement_count / maxEngage) * 100);
+      const isOpen = allExpanded || (query && anyMatch);
 
-      const displayItems = query ? matchItems : cat.items;
-      const pct = Math.round((cat.engagement_count / maxEngage) * 100);
-      const isOpen = allExpanded || (query && matchItems.length > 0);
+      // Build topic-cluster rows (live data available)
+      const topicRows = displayTopics ? displayTopics.map((topic, i) => {
+        const sc = {search: 0, reddit: 0, youtube: 0, tiktok: 0};
+        topic.events.forEach(e => {
+          const s = e.source || 'search';
+          if (s in sc) sc[s]++; else sc.search++;
+        });
+        const srcBadges = [
+          sc.search  && `<span class="source-badge source-search">${sc.search}&thinsp;Search</span>`,
+          sc.reddit  && `<span class="source-badge source-reddit">${sc.reddit}&thinsp;Reddit</span>`,
+          sc.youtube && `<span class="source-badge source-youtube">${sc.youtube}&thinsp;YouTube</span>`,
+          sc.tiktok  && `<span class="source-badge source-tiktok">${sc.tiktok}&thinsp;TikTok</span>`,
+        ].filter(Boolean).join('');
+        const topicData = escHtml(JSON.stringify({label: topic.label, events: topic.events.slice(0, 20)}));
+        return `
+          <div class="item-row expandable"
+               data-item="${topicData}"
+               data-cat="${escHtml(cat.label)}"
+               onclick="toggleItemDetail(this)">
+            <div class="item-rank">${i + 1}</div>
+            <div class="item-topic">${escHtml(topic.label)}</div>
+            <div class="topic-src-counts">${srcBadges}</div>
+            <div class="score-badge">${topic.events.length}x</div>
+            <span class="item-chevron">▶</span>
+          </div>
+          <div class="item-detail"></div>`;
+      }).join('') : '';
+
+      // Build legacy item rows (fallback: no live data yet)
+      const itemRows = displayItems ? displayItems.map((item, i) => `
+        <div class="item-row expandable"
+             data-item="${escHtml(JSON.stringify(item))}"
+             data-cat="${escHtml(cat.label)}"
+             onclick="toggleItemDetail(this)">
+          <div class="item-rank">${i + 1}</div>
+          <div class="item-topic">
+            ${escHtml(item.topic)}
+            <span class="item-query">"${escHtml(item.query)}"</span>
+          </div>
+          ${item.subreddit ? `<span class="subreddit-tag">r/${escHtml(item.subreddit)}</span>` : ''}
+          ${item.channel  ? `<span class="subreddit-tag">📺 ${escHtml(item.channel)}</span>` : ''}
+          ${sourceBadge(item.source)}
+          <div class="score-badge">${item.source === 'reddit' ? '▲ ' + Number(item.count).toLocaleString() : item.count + 'x'}</div>
+          ${trendIcon(item.trend)}
+          <span class="item-chevron">▶</span>
+        </div>
+        <div class="item-detail"></div>`).join('') : '';
 
       html += `
         <div class="cat-card${isOpen ? ' open' : ''}" id="cat-${cat.id}" data-id="${cat.id}">
@@ -1984,7 +2094,7 @@
               <div class="cat-name">${cat.label}</div>
               <div class="cat-meta">
                 <span>👥 ${cat.unique_users} users</span>
-                <span>📊 ${cat.items.length} topics</span>
+                <span>📊 ${topicCount} topics</span>
               </div>
             </div>
             <div class="engagement-bar-wrap">
@@ -1995,30 +2105,10 @@
             </div>
             <div class="chevron">▼</div>
           </div>
-
           <div class="cat-items">
-            ${displayItems.map((item, i) => `
-              <div class="item-row expandable"
-                   data-item="${escHtml(JSON.stringify(item))}"
-                   data-cat="${escHtml(cat.label)}"
-                   onclick="toggleItemDetail(this)">
-                <div class="item-rank">${i + 1}</div>
-                <div class="item-topic">
-                  ${escHtml(item.topic)}
-                  <span class="item-query">"${escHtml(item.query)}"</span>
-                </div>
-                ${item.subreddit ? `<span class="subreddit-tag">r/${escHtml(item.subreddit)}</span>` : ''}
-                ${item.channel  ? `<span class="subreddit-tag">📺 ${escHtml(item.channel)}</span>` : ''}
-                ${sourceBadge(item.source)}
-                <div class="score-badge">${item.source === 'reddit' ? '▲ ' + Number(item.count).toLocaleString() : item.count + 'x'}</div>
-                ${trendIcon(item.trend)}
-                <span class="item-chevron">▶</span>
-              </div>
-              <div class="item-detail"></div>
-            `).join('')}
+            ${topicRows || itemRows}
           </div>
-        </div>
-      `;
+        </div>`;
     });
 
     grid.innerHTML = html || '<p style="color:var(--muted);padding:20px;">No topics match your filter.</p>';
@@ -2060,30 +2150,23 @@
   }
 
   function buildItemDetail(item, catLabel) {
-    const events = liveEvents;
+    // ── Topic-cluster path (live data): item.events is pre-grouped ──────────
+    // ── Legacy path (no live data): keyword-match from liveEvents ───────────
+    let eventsToShow;
+    if (Array.isArray(item.events)) {
+      eventsToShow = item.events
+        .slice()
+        .sort((a, b) => new Date(b.time) - new Date(a.time));
+    } else {
+      const kws = (((item.query || '') + ' ' + (item.topic || ''))
+        .toLowerCase().match(/[a-z]{3,}/g) || []).filter(w => !STOPWORDS.has(w));
+      const cats = liveEvents.filter(e => e.category === catLabel);
+      const matched = cats.filter(e => kws.some(kw => (e.query || '').toLowerCase().includes(kw)));
+      eventsToShow = (matched.length ? matched : cats)
+        .slice().sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 12);
+    }
 
-    // Keywords from the item (3+ chars, skip stopwords) for topic matching
-    const keywords = ((item.query || '') + ' ' + (item.topic || ''))
-      .toLowerCase().match(/[a-z]{3,}/g)
-      ?.filter(w => !STOPWORDS.has(w)) || [];
-
-    // All events in the same category
-    const catMatches = events.filter(e => e.category === catLabel);
-
-    // Keep only events whose query shares at least one keyword with this item.
-    // All sources (search, Reddit, YouTube, TikTok) must pass the same test —
-    // no free passes — so a YouTube video about immigration doesn't bleed into
-    // a search item about tariffs just because they share a category.
-    let matched = catMatches.filter(e => {
-      if (!keywords.length) return true;
-      const eText = (e.query || '').toLowerCase();
-      return keywords.some(kw => eText.includes(kw));
-    });
-    // Fallback only when the category itself is very sparse (≤3 events total)
-    // so an empty result doesn't silently dump the whole category onto the item.
-    if (matched.length === 0 && catMatches.length <= 3) matched = catMatches;
-
-    if (matched.length === 0) {
+    if (eventsToShow.length === 0) {
       return '<div class="detail-no-data">No engagement data available for this topic yet.</div>';
     }
 
@@ -2095,20 +2178,24 @@
       return 'Search';
     };
 
-    // Sort newest-first across all sources, cap at 12
-    matched = matched.slice().sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 12);
-
-    const rows = matched.map(e => {
+    const rows = eventsToShow.map(e => {
       const src   = e.source || 'search';
       const badge = `<span class="source-badge source-${escHtml(src)}">${srcLabel(src)}</span>`;
-      // For YouTube/TikTok, show the video title + channel before demographics
-      const titleLine = (src === 'youtube' || src === 'tiktok') ? `
+      // YouTube/TikTok rows: show video title + channel above the demo line
+      const isMedia = src === 'youtube' || src === 'tiktok';
+      const titleLine = isMedia ? `
         <div class="detail-media-title">
-          <span class="detail-query">${escHtml((e.query || '').slice(0, 72))}</span>${e.channel ? `<span class="detail-channel">${escHtml(e.channel)}</span>` : ''}
+          <span class="detail-query">${escHtml((e.query || '').slice(0, 72))}</span>
+          ${e.channel ? `<span class="detail-channel">${escHtml(e.channel)}</span>` : ''}
+        </div>` : '';
+      // Search/Reddit rows: show the query text as the engagement content
+      const queryLine = !isMedia ? `
+        <div class="detail-media-title">
+          <span class="detail-query">${escHtml((e.query || '').slice(0, 72))}</span>
         </div>` : '';
       return `
-      <div class="detail-event${(src === 'youtube' || src === 'tiktok') ? ' detail-event--media' : ''}">
-        ${titleLine}
+      <div class="detail-event${isMedia ? ' detail-event--media' : ''}">
+        ${titleLine}${queryLine}
         <div class="detail-demo">
           <span class="detail-time">${escHtml(timeAgo(e.time))}</span>
           <span class="detail-age">Age ${escHtml(String(e.age || '?'))}</span>
@@ -2638,7 +2725,8 @@
       historyData = histRes       ? await histRes.json().catch(()       => null) : null;
       mcpStatus   = mcpStatusRes  ? await mcpStatusRes.json().catch(()  => null) : null;
       const liveFeedData = liveFeedRes ? await liveFeedRes.json().catch(() => null) : null;
-      liveEvents  = (liveFeedData && liveFeedData.events) ? liveFeedData.events : [];
+      liveEvents       = (liveFeedData && liveFeedData.events) ? liveFeedData.events : [];
+      topicsByCategory = buildTopicsByCategory(liveEvents);
 
       renderWindowBanner(data);
       renderSummary(data);
