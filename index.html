@@ -911,7 +911,8 @@
       `<span style="color:#04B35D">▲ Positive tone ${posPct}%</span> &nbsp;·&nbsp;
        <span style="color:#4a6a8a">— Neutral ${neuPct}%</span> &nbsp;·&nbsp;
        <span style="color:#F9495F">▼ Negative tone ${negPct}%</span><br>
-       Trump &amp; Republican content · ${totalWeight.toLocaleString()} engagement-weighted signals`;
+       Trump &amp; Republican content · ${totalWeight.toLocaleString()} engagement-weighted signals<br>
+       <span style="opacity:0.7">24h rolling window</span>`;
 
     const words = extractWords(data);
     renderWordCloud(words);
