@@ -3,1018 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>U.S. Political Pulse — Young Voter Tracker (Live)</title>
-  <style>
-    :root {
-      --bg:        #F0F4F8;
-      --surface:   #FFFFFF;
-      --surface2:  #EEF4FB;
-      --border:    #C8D9EE;
-      --accent:    #0DA2E6;
-      --accent2:   #7730AA;
-      --warn:      #F9495F;
-      --up:        #04B35D;
-      --down:      #F9495F;
-      --stable:    #4a6a8a;
-      --text:      #072243;
-      --muted:     #5a7a9a;
-      --radius:    5px;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      font-size: 14px;
-      min-height: 100vh;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── TOP BAR ── */
-    header {
-      background: #FFFFFF;
-      border-bottom: 3px solid transparent;
-      border-image: linear-gradient(90deg, #F9495F 0%, #0DA2E6 100%) 1;
-      padding: 12px 28px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      box-shadow: 0 2px 8px rgba(7,34,67,0.07);
-    }
-
-    .vot-logo-link {
-      display: flex;
-      align-items: center;
-      flex-shrink: 0;
-      text-decoration: none;
-    }
-
-    .vot-logo {
-      height: 38px;
-      width: auto;
-    }
-
-    /* ── LIVE UPDATES TOGGLE ── */
-    .live-toggle-btn {
-      background: transparent;
-      border: 1.5px solid var(--accent);
-      border-radius: 8px;
-      color: var(--accent);
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      padding: 7px 14px;
-      transition: opacity 0.15s, transform 0.1s, background 0.2s, color 0.2s;
-      white-space: nowrap;
-      flex-shrink: 0;
-    }
-    .live-toggle-btn:hover   { opacity: 0.85; }
-    .live-toggle-btn:active  { transform: scale(0.97); }
-    .live-toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-    .live-toggle-btn.live-on {
-      background: var(--accent);
-      color: #fff;
-    }
-
-    /* ── DATA LOADING OVERLAY ── */
-    .data-loading-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 9000;
-      background: rgba(240,244,248,0.92);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .loading-card {
-      background: #FFFFFF;
-      border-radius: 16px;
-      box-shadow: 0 24px 64px rgba(7,34,67,0.14);
-      padding: 48px 56px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 24px;
-      max-width: 440px;
-      width: 90%;
-      text-align: center;
-    }
-
-    .loading-logo { height: 44px; width: auto; }
-
-    .flag-spinner {
-      width: 68px;
-      height: auto;
-      display: block;
-    }
-
-    .flag-base { fill: #C8D9EE; }
-
-    .flag-fill {
-      fill: #F9495F;
-      animation: flag-fill 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-
-    @keyframes flag-fill {
-      0%   { clip-path: inset(100% 0% 0% 0%); }
-      60%  { clip-path: inset(0%   0% 0% 0%); }
-      85%  { clip-path: inset(0%   0% 0% 0%); }
-      100% { clip-path: inset(100% 0% 0% 0%); }
-    }
-
-    .loading-title {
-      font-size: 18px;
-      font-weight: 700;
-      color: #072243;
-      letter-spacing: -0.2px;
-    }
-
-    .loading-msg {
-      font-size: 13px;
-      color: #5a7a9a;
-      min-height: 18px;
-      transition: opacity 0.3s;
-    }
-
-    .loading-progress {
-      width: 100%;
-      height: 4px;
-      background: #EEF4FB;
-      border-radius: 4px;
-      overflow: hidden;
-    }
-
-    .loading-progress-bar {
-      height: 100%;
-      background: linear-gradient(90deg, #F9495F, #0DA2E6);
-      border-radius: 4px;
-      width: 0%;
-      transition: width 4s ease;
-    }
-
-    .loading-cancel {
-      font-size: 12px;
-      color: #5a7a9a;
-      background: none;
-      border: none;
-      cursor: pointer;
-      text-decoration: underline;
-      text-underline-offset: 2px;
-    }
-
-    .loading-cancel:hover { color: #072243; }
-
-    header h1 {
-      font-size: 17px;
-      font-weight: 700;
-      flex: 1;
-    }
-
-    .live-pill {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      background: rgba(249, 73, 95, 0.12);
-      border: 1px solid rgba(249, 73, 95, 0.4);
-      border-radius: 20px;
-      padding: 5px 12px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--warn);
-    }
-
-    .live-dot {
-      width: 7px;
-      height: 7px;
-      border-radius: 50%;
-      background: var(--warn);
-      animation: pulse 1.4s ease-in-out infinite;
-    }
-
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50%       { opacity: 0.4; transform: scale(0.7); }
-    }
-
-    .live-pill.paused {
-      background: rgba(107, 116, 148, 0.12);
-      border-color: rgba(107, 116, 148, 0.3);
-      color: var(--muted);
-    }
-
-    .live-pill.paused .live-dot {
-      background: var(--muted);
-      animation: none;
-    }
-
-    .cron-countdown {
-      font-weight: 400;
-      opacity: 0.8;
-      font-variant-numeric: tabular-nums;
-      letter-spacing: 0.02em;
-    }
-
-    .refresh-info {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* ── WINDOW BANNER ── */
-    .window-banner {
-      background: linear-gradient(90deg, rgba(13,162,230,0.10) 0%, rgba(249,73,95,0.06) 100%);
-      border-bottom: 2px solid transparent;
-      border-image: linear-gradient(90deg, rgba(13,162,230,0.4), rgba(249,73,95,0.25)) 1;
-      padding: 8px 28px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      font-size: 12px;
-    }
-
-    .window-banner .window-label {
-      font-weight: 700;
-      color: var(--accent);
-      font-size: 13px;
-    }
-
-    .window-banner .window-desc {
-      color: var(--muted);
-    }
-
-    .window-banner .source-counts {
-      margin-left: auto;
-      display: flex;
-      gap: 14px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .window-banner .source-counts span {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .latency-pill {
-      font-size: 9px;
-      font-weight: 700;
-      letter-spacing: 0.4px;
-      padding: 1px 5px;
-      border-radius: 8px;
-      text-transform: uppercase;
-    }
-
-    .latency-live {
-      background: rgba(4, 179, 93, 0.15);
-      color: var(--up);
-      border: 1px solid rgba(4, 179, 93, 0.3);
-    }
-
-    .latency-delayed {
-      background: rgba(249, 73, 95, 0.12);
-      color: var(--warn);
-      border: 1px solid rgba(249, 73, 95, 0.3);
-    }
-
-    /* ── SUMMARY BAR ── */
-    .summary-bar {
-      display: flex;
-      gap: 16px;
-      padding: 16px 28px;
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      flex-wrap: wrap;
-    }
-
-    .stat-card {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 12px 20px;
-      min-width: 160px;
-      flex: 1;
-    }
-
-    .stat-card .label {
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      margin-bottom: 4px;
-    }
-
-    .stat-card .value {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .stat-card .sub {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* ── MAIN LAYOUT ── */
-    .content-layout {
-      display: flex;
-      align-items: flex-start;
-      max-width: 1600px;
-      margin: 0 auto;
-    }
-
-    main {
-      flex: 1;
-      padding: 24px 28px;
-      min-width: 0;
-    }
-
-    @media (max-width: 900px) {
-      .content-layout { flex-direction: column; }
-    }
-
-    .section-header {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      margin-bottom: 18px;
-    }
-
-    .section-header h2 {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--text);
-    }
-
-    .section-header .demo-tag {
-      background: rgba(13, 162, 230, 0.12);
-      border: 1px solid rgba(13, 162, 230, 0.35);
-      border-radius: 20px;
-      padding: 2px 10px;
-      font-size: 11px;
-      color: var(--accent);
-      font-weight: 600;
-    }
-
-    /* ── CATEGORY GRID ── */
-    .category-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
-      gap: 16px;
-    }
-
-    /* ── CATEGORY CARD ── */
-    .cat-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      overflow: hidden;
-      transition: border-color 0.2s;
-    }
-
-    .cat-card:hover {
-      border-color: var(--accent);
-    }
-
-    .cat-header {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      cursor: pointer;
-      user-select: none;
-      transition: background 0.15s;
-    }
-
-    .cat-header:hover {
-      background: var(--surface2);
-    }
-
-    .cat-icon {
-      font-size: 20px;
-      flex-shrink: 0;
-    }
-
-    .cat-info {
-      flex: 1;
-    }
-
-    .cat-name {
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 3px;
-    }
-
-    .cat-meta {
-      display: flex;
-      gap: 12px;
-      font-size: 11px;
-      color: var(--muted);
-    }
-
-    .cat-meta span {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    .engagement-bar-wrap {
-      flex: 0 0 90px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      gap: 4px;
-    }
-
-    .engagement-num {
-      font-size: 18px;
-      font-weight: 800;
-      color: var(--text);
-    }
-
-    .engagement-bar {
-      width: 80px;
-      height: 4px;
-      background: var(--border);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-
-    .engagement-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent), var(--accent2));
-      border-radius: 2px;
-      transition: width 0.6s ease;
-    }
-
-    .chevron {
-      color: var(--muted);
-      font-size: 11px;
-      flex-shrink: 0;
-      transition: transform 0.25s;
-    }
-
-    .cat-card.open .chevron {
-      transform: rotate(180deg);
-    }
-
-    /* ── ITEMS LIST ── */
-    .cat-items {
-      display: none;
-      border-top: 1px solid var(--border);
-      padding: 4px 0;
-    }
-
-    .cat-card.open .cat-items {
-      display: block;
-    }
-
-    .item-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 9px 16px;
-      transition: background 0.12s;
-    }
-
-    .item-row:hover {
-      background: var(--surface2);
-    }
-
-    .item-row.expandable {
-      cursor: pointer;
-    }
-
-    .item-rank {
-      width: 20px;
-      text-align: center;
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--muted);
-      flex-shrink: 0;
-    }
-
-    .item-topic {
-      flex: 1;
-      font-size: 13px;
-      color: var(--text);
-    }
-
-    .item-query {
-      font-size: 11px;
-      color: var(--muted);
-      font-style: italic;
-      display: block;
-      margin-top: 2px;
-    }
-
-    .source-badge {
-      font-size: 10px;
-      font-weight: 600;
-      padding: 2px 7px;
-      border-radius: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      flex-shrink: 0;
-    }
-
-    .topic-src-counts {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px;
-      flex-shrink: 0;
-      align-items: center;
-    }
-
-    .source-search  { background: rgba(13,162,230,0.12);  color: #006fa8; border: 1px solid rgba(13,162,230,0.35); }
-    .source-news    { background: rgba(119,48,170,0.10);  color: #5a1f8a; border: 1px solid rgba(119,48,170,0.3); }
-    .source-reddit  { background: rgba(249,73,95,0.10);   color: #b8192e; border: 1px solid rgba(249,73,95,0.32); }
-    .source-youtube { background: rgba(200,30,30,0.10);   color: #a01010; border: 1px solid rgba(200,30,30,0.3); }
-    .source-tiktok  { background: rgba(0,0,0,0.07);       color: #1a1a2e; border: 1px solid rgba(0,0,0,0.18); }
-
-    .item-count {
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--muted);
-      width: 32px;
-      text-align: right;
-      flex-shrink: 0;
-    }
-
-    .trend-arrow {
-      font-size: 12px;
-      flex-shrink: 0;
-      width: 16px;
-      text-align: center;
-    }
-
-    .trend-up     { color: var(--up); }
-    .trend-down   { color: var(--down); }
-    .trend-stable { color: var(--stable); }
-
-    .subreddit-tag {
-      font-size: 10px;
-      color: var(--muted);
-      font-style: normal;
-      background: var(--surface2);
-      border-radius: 4px;
-      padding: 1px 6px;
-      white-space: nowrap;
-    }
-
-    .score-badge {
-      font-size: 11px;
-      font-weight: 700;
-      color: var(--warn);
-      white-space: nowrap;
-      min-width: 48px;
-      text-align: right;
-    }
-
-    .item-row a.item-link {
-      display: contents;
-      color: inherit;
-      text-decoration: none;
-    }
-
-    .item-row.expandable:hover .item-topic {
-      color: var(--accent);
-    }
-
-    .item-chevron {
-      font-size: 10px;
-      color: var(--muted);
-      flex-shrink: 0;
-      transition: transform 0.15s;
-    }
-
-    .item-row.expandable.open .item-chevron {
-      transform: rotate(90deg);
-    }
-
-    .item-detail {
-      display: none;
-      padding: 8px 16px 10px 46px;
-      background: var(--surface2);
-      border-bottom: 1px solid var(--border);
-      font-size: 12px;
-    }
-
-    .detail-header {
-      font-weight: 600;
-      color: var(--text);
-      margin-bottom: 6px;
-    }
-
-    .detail-event {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 0;
-      color: var(--text);
-      font-size: 11px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .detail-event--media {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 3px;
-    }
-
-    .detail-event:last-child { border-bottom: none; }
-
-    .detail-media-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      width: 100%;
-    }
-
-    .detail-demo {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .detail-time    { color: var(--muted); min-width: 56px; }
-    .detail-age     { color: var(--accent); font-weight: 600; }
-    .detail-gender  { color: var(--text); }
-    .detail-state   { color: var(--text); }
-    .detail-query   { color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .detail-channel { color: var(--muted); flex-shrink: 0; }
-    .detail-count   { color: var(--accent); font-weight: 600; }
-
-    .detail-no-data {
-      color: var(--muted);
-      font-style: italic;
-    }
-
-    /* ── MINI SPARKLINE ── */
-    .sparkline-row {
-      padding: 0 16px 10px;
-      display: flex;
-      align-items: flex-end;
-      gap: 3px;
-      height: 28px;
-    }
-
-    .spark-bar {
-      flex: 1;
-      background: var(--accent);
-      opacity: 0.35;
-      border-radius: 2px 2px 0 0;
-      min-height: 3px;
-      transition: opacity 0.2s;
-    }
-
-    .spark-bar:hover { opacity: 0.8; }
-
-    /* ── FOOTER ── */
-    footer {
-      text-align: center;
-      padding: 24px;
-      color: var(--muted);
-      font-size: 12px;
-      border-top: 1px solid var(--border);
-      margin-top: 40px;
-    }
-
-    /* ── LOADING / ERROR ── */
-    #status-bar {
-      position: fixed;
-      bottom: 18px;
-      right: 18px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 12px;
-      color: var(--muted);
-      display: none;
-      z-index: 200;
-    }
-
-    #status-bar.visible { display: block; }
-    #status-bar.success { border-color: var(--up); color: var(--up); }
-    #status-bar.error   { border-color: var(--down); color: var(--down); }
-
-    /* ── SEARCH FILTER ── */
-    .filter-row {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 20px;
-      align-items: center;
-    }
-
-    .filter-input {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 8px 14px;
-      font-size: 13px;
-      width: 260px;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .filter-input:focus {
-      border-color: var(--accent);
-    }
-
-    .expand-btn {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      color: var(--text);
-      padding: 8px 14px;
-      font-size: 12px;
-      cursor: pointer;
-      transition: background 0.15s, border-color 0.15s;
-    }
-
-    .expand-btn:hover {
-      background: var(--surface2);
-      border-color: var(--accent);
-    }
-
-    /* ── TAB NAV ── */
-    .tab-nav {
-      display: flex;
-      gap: 4px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 0;
-    }
-
-    .tab-btn {
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      color: var(--muted);
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 10px 18px;
-      margin-bottom: -1px;
-      transition: color 0.15s, border-color 0.15s;
-      letter-spacing: 0.2px;
-    }
-
-    .tab-btn:hover {
-      color: var(--text);
-    }
-
-    .tab-btn.active {
-      color: var(--accent);
-      border-bottom-color: var(--accent);
-    }
-
-    .tab-pane { display: none; }
-    .tab-pane.active { display: block; }
-
-    /* ── SENTIMENT LAYOUT ── */
-    .sentiment-layout {
-      display: grid;
-      grid-template-columns: 340px 1fr;
-      gap: 24px;
-      align-items: start;
-    }
-
-    @media (max-width: 900px) {
-      .sentiment-layout { grid-template-columns: 1fr; }
-    }
-
-    /* ── GAUGE ── */
-    .gauge-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px 20px 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .gauge-wrap h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    #sentiment-gauge { width: 100%; max-width: 300px; display: block; }
-
-    /* Score display sits below the arc, outside the SVG */
-    .gauge-score-display {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      margin-top: 4px;
-    }
-
-    .gauge-score-num {
-      font-size: 56px;
-      font-weight: 800;
-      line-height: 1;
-      font-family: Inter, sans-serif;
-      transition: color 0.4s;
-    }
-
-    .gauge-score-text {
-      font-size: 13px;
-      font-weight: 700;
-      letter-spacing: 0.3px;
-      transition: color 0.4s;
-    }
-
-    .gauge-legend {
-      display: flex;
-      justify-content: space-between;
-      width: 100%;
-      font-size: 10px;
-      color: var(--muted);
-      padding: 0 4px;
-      margin-top: -4px;
-    }
-
-    .sentiment-meta {
-      margin-top: 10px;
-      font-size: 11px;
-      color: var(--muted);
-      text-align: center;
-      line-height: 1.7;
-    }
-
-    /* ── WORD CLOUD TOOLTIP ── */
-    .wc-tooltip {
-      position: fixed;
-      z-index: 9999;
-      background: #FFFFFF;
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 10px 13px;
-      min-width: 220px;
-      max-width: 320px;
-      box-shadow: 0 8px 32px rgba(7,34,67,0.14);
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.12s;
-    }
-
-    .wc-tooltip.visible { opacity: 1; }
-
-    .wc-tt-word {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--text);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .wc-tt-item {
-      padding: 5px 0;
-      border-top: 1px solid rgba(7,34,67,0.08);
-    }
-
-    .wc-tt-query {
-      display: block;
-      font-size: 11px;
-      color: var(--text);
-      line-height: 1.45;
-      margin-bottom: 3px;
-      font-style: italic;
-    }
-
-    .wc-tt-meta {
-      font-size: 10px;
-      color: var(--muted);
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .wc-tt-src {
-      background: rgba(13,162,230,0.12);
-      color: #006fa8;
-      border-radius: 3px;
-      padding: 1px 5px;
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-    }
-
-    /* ── WORD CLOUD ── */
-    .wordcloud-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 20px;
-    }
-
-    .wordcloud-wrap h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-bottom: 16px;
-    }
-
-    #word-cloud {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px 12px;
-      align-items: center;
-      min-height: 200px;
-      padding: 8px 0;
-    }
-
-    .wc-word {
-      line-height: 1.2;
-      font-weight: 700;
-      cursor: default;
-      transition: opacity 0.2s;
-      letter-spacing: 0.2px;
-    }
-
-    .wc-word:hover { opacity: 0.75; }
-
-    /* ── HISTORY TAB ── */
-    .history-wrap {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 24px;
-    }
-
-    .history-wrap h3 {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.8px;
-      color: var(--muted);
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-
-    .history-wrap p.history-desc {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 20px;
-      line-height: 1.6;
-    }
-
-    #history-chart {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    .history-legend {
-      display: flex;
-      gap: 20px;
-      margin-top: 14px;
-      font-size: 11px;
-      color: var(--muted);
-      flex-wrap: wrap;
-    }
-
-    .history-legend span {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-line {
-      display: inline-block;
-      width: 24px;
-      height: 3px;
-      border-radius: 2px;
-    }
-
-    .legend-dash {
-      display: inline-block;
-      width: 24px;
-      height: 0;
-      border-top: 2px dashed currentColor;
-    }
-
-  </style>
+  <title>U.S. Political Pulse — Young Voter Tracker (Demo)</title>
+  <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 
@@ -1022,7 +12,7 @@
   <a href="https://votersoftomorrow.org" target="_blank" rel="noopener" class="vot-logo-link">
     <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="vot-logo" />
   </a>
-  <h1>U.S. Political Pulse — Young Voter Tracker</h1>
+  <h1>U.S. Political Pulse — Young Voter Tracker (Demo)</h1>
   <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-15-minute auto-update cron">
     ⏸ Live Updates: OFF
   </button>
@@ -1049,44 +39,16 @@
 
   <!-- Tab Navigation -->
   <nav class="tab-nav">
-    <button class="tab-btn active" id="tab-btn-topics"    onclick="switchTab('topics')">Topics</button>
-    <button class="tab-btn"        id="tab-btn-sentiment" onclick="switchTab('sentiment')">Sentiment</button>
-    <button class="tab-btn"        id="tab-btn-history"   onclick="switchTab('history')">History</button>
+    <button class="tab-btn active" id="tab-btn-topics"  onclick="switchTab('topics')">Topics</button>
+    <button class="tab-btn"        id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
+    <button class="tab-btn"        id="tab-btn-history" onclick="switchTab('history')">History</button>
   </nav>
 
   <!-- ── TOPICS TAB ── -->
   <div id="tab-topics" class="tab-pane active">
-    <div class="section-header">
-      <h2>Today's Topics by Policy Category</h2>
-      <div class="demo-tag">Ages 18–29</div>
-    </div>
 
-    <div class="filter-row">
-      <input
-        class="filter-input"
-        id="topic-filter"
-        type="text"
-        placeholder="Filter topics..."
-        autocomplete="off"
-      />
-      <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
-        Expand All
-      </button>
-    </div>
-
-    <div class="category-grid" id="category-grid">
-      <!-- populated by JS -->
-    </div>
-  </div>
-
-  <!-- ── SENTIMENT TAB ── -->
-  <div id="tab-sentiment" class="tab-pane">
-    <div class="section-header">
-      <h2>Political Sentiment Analysis</h2>
-      <div class="demo-tag">Ages 18–29</div>
-    </div>
-
-    <div class="sentiment-layout">
+    <!-- Sentiment: dial + word cloud -->
+    <div class="sentiment-layout" style="margin-bottom:28px">
 
       <!-- Gauge -->
       <div class="gauge-wrap">
@@ -1118,6 +80,40 @@
       </div>
 
     </div>
+
+    <!-- Topics section -->
+    <div class="section-header">
+      <h2>Today's Topics by Policy Category</h2>
+      <div class="demo-tag">Ages 18–29</div>
+    </div>
+
+    <div class="filter-row">
+      <input
+        class="filter-input"
+        id="topic-filter"
+        type="text"
+        placeholder="Filter topics..."
+        autocomplete="off"
+      />
+      <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
+        Expand All
+      </button>
+    </div>
+
+    <div class="category-grid" id="category-grid">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- ── SOURCES TAB ── -->
+  <div id="tab-sources" class="tab-pane">
+    <div class="section-header">
+      <h2>Top Content by Platform</h2>
+      <div class="demo-tag">Ages 18–29</div>
+    </div>
+    <div class="sources-grid" id="sources-grid">
+      <!-- populated by JS -->
+    </div>
   </div>
 
   <!-- ── HISTORY TAB ── -->
@@ -1139,7 +135,7 @@
         <span><span class="legend-line" style="background:#0DA2E6"></span> All 18–29</span>
         <span><span class="legend-line" style="background:#38BDF8;opacity:0.85;background-image:repeating-linear-gradient(to right,#38BDF8 0,#38BDF8 6px,transparent 6px,transparent 9px)"></span> Male</span>
         <span><span class="legend-line" style="background:#FB7185;opacity:0.85;background-image:repeating-linear-gradient(to right,#FB7185 0,#FB7185 6px,transparent 6px,transparent 9px)"></span> Female</span>
-        <span><span class="legend-line" style="background:#A78BFA;opacity:0.75;background-image:repeating-linear-gradient(to right,#A78BFA 0,#A78BFA 4px,transparent 4px,transparent 9px)"></span> Polling (MC/Harvard)</span>
+        <span><span class="legend-line" style="background:#A78BFA;opacity:0.75;background-image:repeating-linear-gradient(to right,#A78BFA 0,#A78BFA 4px,transparent 4px,transparent 9px)"></span> Yale / Harvard Youth Polls</span>
         <span><span class="legend-dash" style="color:#F9A349"></span> Key events</span>
         <span><span class="legend-dash" style="color:#0DA2E6;opacity:0.5"></span> Now</span>
       </div>
@@ -1177,11 +173,11 @@
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
-    ['topics', 'sentiment', 'history'].forEach(t => {
+    ['topics', 'sources', 'history'].forEach(t => {
       document.getElementById('tab-' + t).classList.toggle('active', t === name);
       document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
     });
-    if (name === 'sentiment' && currentData) renderSentimentPane(currentData);
+    if (name === 'sources' && currentData) renderSourcesPane(currentData);
     if (name === 'history') renderHistoryChart();
   }
 
@@ -1900,6 +896,63 @@
 
     const words = extractWords(data);
     renderWordCloud(words);
+  }
+
+  /* ── RENDER SOURCES PANE ── */
+  function renderSourcesPane(data) {
+    const grid = document.getElementById('sources-grid');
+    if (!grid) return;
+
+    const PLATFORMS = [
+      { key: 'search',  label: 'Search',  icon: '🔍', color: '#0DA2E6', urlFn: item => `https://www.google.com/search?q=${encodeURIComponent(item.query || item.topic || '')}` },
+      { key: 'reddit',  label: 'Reddit',  icon: '💬', color: '#b8192e', urlFn: item => item.subreddit ? `https://www.reddit.com/r/${encodeURIComponent(item.subreddit)}/search/?q=${encodeURIComponent(item.query || '')}` : `https://www.reddit.com/search/?q=${encodeURIComponent(item.query || item.topic || '')}` },
+      { key: 'youtube', label: 'YouTube', icon: '▶',  color: '#a01010', urlFn: item => `https://www.youtube.com/results?search_query=${encodeURIComponent(item.query || item.topic || '')}` },
+      { key: 'tiktok',  label: 'TikTok',  icon: '♪',  color: '#1a1a2e', urlFn: item => `https://www.tiktok.com/search?q=${encodeURIComponent(item.query || item.topic || '')}` },
+    ];
+
+    // Collect all items per platform, sort by count, take top 5
+    const allItems = data.categories.flatMap(cat =>
+      (cat.items || []).map(item => ({ ...item, _cat: cat.label }))
+    );
+
+    grid.innerHTML = PLATFORMS.map(plat => {
+      const items = allItems
+        .filter(item => (item.source || 'search') === plat.key || (plat.key === 'tiktok' && (item.source === 'tiktok_watch' || item.source === 'tiktok_search')))
+        .sort((a, b) => (b.count || 0) - (a.count || 0))
+        .slice(0, 5);
+
+      const listHtml = items.length
+        ? items.map((item, i) => {
+            const title    = (item.query || item.topic || '').slice(0, 80) || '—';
+            const url      = plat.urlFn(item);
+            const meta     = item.subreddit ? `r/${item.subreddit}` : item.channel ? item.channel : item._cat;
+            const countLbl = item.count > 1 ? `${Number(item.count).toLocaleString()}×` : '';
+            return `
+            <li class="source-content-item">
+              <a class="source-content-link" href="${escHtml(url)}" target="_blank" rel="noopener noreferrer">
+                <div class="source-content-rank">${i + 1}</div>
+                <div class="source-content-body">
+                  <div class="source-content-title" title="${escHtml(title)}">${escHtml(title)}</div>
+                  <div class="source-content-meta">
+                    <span>${escHtml(meta)}</span>
+                    ${countLbl ? `<span class="source-content-count">${countLbl}</span>` : ''}
+                  </div>
+                </div>
+              </a>
+            </li>`;
+          }).join('')
+        : `<li class="source-empty">No ${plat.label} data in current window</li>`;
+
+      return `
+        <div class="source-platform-card">
+          <div class="source-platform-header" style="border-left:3px solid ${plat.color}">
+            <span class="source-platform-icon" style="color:${plat.color}">${plat.icon}</span>
+            <span class="source-platform-name">${plat.label}</span>
+            <span class="source-platform-count">${items.length} items</span>
+          </div>
+          <ul class="source-content-list">${listHtml}</ul>
+        </div>`;
+    }).join('');
   }
 
   /* ── TREND DISPLAY ── */
@@ -2637,16 +1690,14 @@
     { ts: new Date('2026-11-04T05:00:00Z'), label: 'Midterms',  sub: 'Nov 3, 2026',       color: '#E74C3C' },
   ];
 
-  // ── Polling baseline: Trump net approval among 18-29 year-olds ────────────
-  // Source: Morning Consult weekly youth tracker + Harvard Youth Poll (biannual).
-  // Values represent approval-rating % mapped to the 0-100 chart scale
-  // (50 = even approve/disapprove; lower = net negative; higher = net positive).
-  // These are approximate estimates; update as new polls are published.
-  const POLLING_BASELINE = [
-    { ts: new Date('2026-01-20T00:00:00Z'), score: 38 },  // inauguration — Harvard Youth Poll
-    { ts: new Date('2026-02-01T00:00:00Z'), score: 36 },  // MC weekly average
-    { ts: new Date('2026-02-15T00:00:00Z'), score: 35 },  // MC weekly average
-    { ts: new Date('2026-02-26T00:00:00Z'), score: 34 },  // MC weekly average (SOTU week)
+  // ── Polling data: Trump approval/disapproval among 18-29 year-olds ─────────
+  // Sources: Harvard Youth Poll (IOP, biannual) + Yale Youth Survey (quarterly).
+  // score = approval %, plotted on the 0-100 chart axis (50 = net-even).
+  // Hover each dot to see full approve/disapprove breakdown.
+  const POLLING_DATA = [
+    { ts: new Date('2026-01-20T00:00:00Z'), approve: 34, disapprove: 58, source: 'Harvard Youth Poll', label: 'Jan 20, 2026 — Inauguration' },
+    { ts: new Date('2026-02-03T00:00:00Z'), approve: 32, disapprove: 60, source: 'Yale Youth Survey',   label: 'Feb 3, 2026' },
+    { ts: new Date('2026-02-24T00:00:00Z'), approve: 30, disapprove: 63, source: 'Yale Youth Survey',   label: 'Feb 24, 2026 — SOTU Week' },
   ];
 
   function renderHistoryChart() {
@@ -2785,15 +1836,15 @@
       svg += `<text x="${(PAD.left + cW / 2).toFixed(1)}" y="${(PAD.top + cH / 2 + 5).toFixed(1)}" text-anchor="middle" fill="#5a7a9a" font-size="13" font-family="Inter,sans-serif">No historical data yet — scores will appear after the next data refresh.</text>`;
     }
 
-    // ── Polling baseline overlay ───────────────────────────────────────────
-    const pollMapped = POLLING_BASELINE
-      .map(p => ({ x: xS(p.ts), y: yS(p.score), score: p.score }))
+    // ── Polling overlay (Yale + Harvard Youth Polls) ──────────────────────
+    const pollMapped = POLLING_DATA
+      .map(p => ({ x: xS(p.ts), y: yS(p.approve), approve: p.approve, disapprove: p.disapprove, source: p.source, label: p.label }))
       .filter(p => p.x >= PAD.left && p.x <= PAD.left + cW);
     if (pollMapped.length > 1) {
       const pD = 'M ' + pollMapped.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
       svg += `<path d="${pD}" fill="none" stroke="#A78BFA" stroke-width="1.5" stroke-dasharray="4,5" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/>`;
       pollMapped.forEach(p => {
-        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#A78BFA" stroke="#FFFFFF" stroke-width="1.5" opacity="0.85" title="Polling: ${p.score}%"/>`;
+        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="#A78BFA" stroke="#FFFFFF" stroke-width="1.5" opacity="0.9" style="cursor:pointer" data-poll-approve="${p.approve}" data-poll-disapprove="${p.disapprove}" data-poll-source="${escHtml(p.source)}" data-poll-label="${escHtml(p.label)}" onmouseenter="showPollTip(event)" onmouseleave="hideHistTip()"/>`;
       });
     }
 
@@ -2826,6 +1877,26 @@
     document.getElementById('hist-tip').style.display = 'none';
   }
 
+  function showPollTip(e) {
+    const el         = e.currentTarget || e.target;
+    const approve    = parseInt(el.getAttribute('data-poll-approve'),    10);
+    const disapprove = parseInt(el.getAttribute('data-poll-disapprove'), 10);
+    const source     = el.getAttribute('data-poll-source');
+    const label      = el.getAttribute('data-poll-label');
+    const net        = approve - disapprove;
+    const netStr     = net >= 0 ? `+${net}` : `${net}`;
+    const tip        = document.getElementById('hist-tip');
+    tip.innerHTML =
+      `<strong>${source}</strong><br>` +
+      `<span style="opacity:.8">${label}</span><br>` +
+      `<span style="color:#04B35D">▲ Approve ${approve}%</span> &nbsp;·&nbsp; ` +
+      `<span style="color:#F9495F">▼ Disapprove ${disapprove}%</span><br>` +
+      `Net: <strong style="color:${net >= 0 ? '#04B35D' : '#F9495F'}">${netStr}%</strong> among 18–29`;
+    tip.style.display = 'block';
+    tip.style.left    = (e.clientX + 14) + 'px';
+    tip.style.top     = (e.clientY - 60) + 'px';
+  }
+
   /* ── LOAD DATA ── */
   async function loadData() {
     try {
@@ -2851,10 +1922,13 @@
       const filterText = document.getElementById('topic-filter').value;
       renderCategories(data.categories, filterText);
 
-      // Re-render sentiment pane if it's active, or prime it for first visit
-      const sentimentPane = document.getElementById('tab-sentiment');
-      if (sentimentPane && sentimentPane.classList.contains('active')) {
-        renderSentimentPane(data);
+      // Render sentiment (gauge + word cloud) — embedded in Topics tab, always visible
+      renderSentimentPane(data);
+
+      // Re-render sources pane if active
+      const sourcesPane = document.getElementById('tab-sources');
+      if (sourcesPane && sourcesPane.classList.contains('active')) {
+        renderSourcesPane(data);
       }
 
       // Re-render history chart if active
