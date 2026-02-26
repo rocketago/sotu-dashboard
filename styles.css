@@ -52,126 +52,13 @@ header {
   width: auto;
 }
 
-/* ── LIVE UPDATES TOGGLE ── */
-.live-toggle-btn {
-  background: transparent;
-  border: 1.5px solid var(--accent);
-  border-radius: 8px;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.3px;
-  padding: 7px 14px;
-  transition: opacity 0.15s, transform 0.1s, background 0.2s, color 0.2s;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.live-toggle-btn:hover   { opacity: 0.85; }
-.live-toggle-btn:active  { transform: scale(0.97); }
-.live-toggle-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
-.live-toggle-btn.live-on {
-  background: var(--accent);
-  color: #fff;
-}
-
-/* ── DATA LOADING OVERLAY ── */
-.data-loading-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 9000;
-  background: rgba(240,244,248,0.92);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.loading-card {
-  background: #FFFFFF;
-  border-radius: 16px;
-  box-shadow: 0 24px 64px rgba(7,34,67,0.14);
-  padding: 48px 56px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  max-width: 440px;
-  width: 90%;
-  text-align: center;
-}
-
-.loading-logo { height: 44px; width: auto; }
-
-.flag-spinner {
-  width: 68px;
-  height: auto;
-  display: block;
-}
-
-.flag-base { fill: #C8D9EE; }
-
-.flag-fill {
-  fill: #F9495F;
-  animation: flag-fill 2.2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-}
-
-@keyframes flag-fill {
-  0%   { clip-path: inset(100% 0% 0% 0%); }
-  60%  { clip-path: inset(0%   0% 0% 0%); }
-  85%  { clip-path: inset(0%   0% 0% 0%); }
-  100% { clip-path: inset(100% 0% 0% 0%); }
-}
-
-.loading-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: #072243;
-  letter-spacing: -0.2px;
-}
-
-.loading-msg {
-  font-size: 13px;
-  color: #5a7a9a;
-  min-height: 18px;
-  transition: opacity 0.3s;
-}
-
-.loading-progress {
-  width: 100%;
-  height: 4px;
-  background: #EEF4FB;
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.loading-progress-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #F9495F, #0DA2E6);
-  border-radius: 4px;
-  width: 0%;
-  transition: width 4s ease;
-}
-
-.loading-cancel {
-  font-size: 12px;
-  color: #5a7a9a;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.loading-cancel:hover { color: #072243; }
-
 header h1 {
   font-size: 17px;
   font-weight: 700;
   flex: 1;
 }
 
+/* ── LIVE PILL (always active — cron fires server-side) ── */
 .live-pill {
   display: flex;
   align-items: center;
@@ -183,6 +70,7 @@ header h1 {
   font-size: 12px;
   font-weight: 600;
   color: var(--warn);
+  flex-shrink: 0;
 }
 
 .live-dot {
@@ -198,27 +86,19 @@ header h1 {
   50%       { opacity: 0.4; transform: scale(0.7); }
 }
 
-.live-pill.paused {
-  background: rgba(107, 116, 148, 0.12);
-  border-color: rgba(107, 116, 148, 0.3);
+/* ── COUNTDOWN NEXT TO PILL ── */
+.cron-next {
+  font-size: 12px;
   color: var(--muted);
-}
-
-.live-pill.paused .live-dot {
-  background: var(--muted);
-  animation: none;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .cron-countdown {
-  font-weight: 400;
-  opacity: 0.8;
+  font-weight: 700;
+  color: var(--text);
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
-}
-
-.refresh-info {
-  font-size: 12px;
-  color: var(--muted);
 }
 
 /* ── WINDOW BANNER ── */
@@ -243,39 +123,45 @@ header h1 {
   color: var(--muted);
 }
 
+/* Per-platform entries in the window banner right side */
 .window-banner .source-counts {
   margin-left: auto;
   display: flex;
-  gap: 14px;
+  gap: 18px;
   font-size: 11px;
   color: var(--muted);
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
-.window-banner .source-counts span {
+.source-platform-entry {
   display: flex;
   align-items: center;
   gap: 4px;
 }
 
-.latency-pill {
-  font-size: 9px;
+.source-platform-empty {
+  opacity: 0.5;
+}
+
+.sp-icon {
+  font-size: 12px;
+}
+
+.sp-label {
+  font-weight: 600;
+  color: var(--text);
+  opacity: 0.75;
+}
+
+.sp-count {
   font-weight: 700;
-  letter-spacing: 0.4px;
-  padding: 1px 5px;
-  border-radius: 8px;
-  text-transform: uppercase;
+  color: var(--accent);
 }
 
-.latency-live {
-  background: rgba(4, 179, 93, 0.15);
-  color: var(--up);
-  border: 1px solid rgba(4, 179, 93, 0.3);
-}
-
-.latency-delayed {
-  background: rgba(249, 73, 95, 0.12);
-  color: var(--warn);
-  border: 1px solid rgba(249, 73, 95, 0.3);
+.sp-ts {
+  color: var(--muted);
+  font-size: 10px;
 }
 
 /* ── SUMMARY BAR ── */
