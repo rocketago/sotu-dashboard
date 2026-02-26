@@ -2,17 +2,21 @@ name: Auto-update political data
 
 on:
   schedule:
-    # Run every 15 minutes starting at 12:15am ET (UTC-5 / EST).
-    # Three entries cover the full day while skipping the 12:00am ET midnight slot.
-    - cron: '15,30,45 5 * * *'       # 12:15 am – 12:45 am ET
+    # 12:15 am ET gets its own entry so we can detect it via
+    # github.event.schedule and guarantee it is never cancelled.
+    - cron: '15 5 * * *'             # 12:15 am ET  ← protected day-start
+    - cron: '30,45 5 * * *'          # 12:30 am – 12:45 am ET
     - cron: '0,15,30,45 6-23 * * *'  #  1:00 am –  6:59 pm ET
     - cron: '0,15,30,45 0-4 * * *'   #  7:00 pm – 11:45 pm ET
   workflow_dispatch:
 
-# One run at a time; new triggers queue rather than cancel.
+# One run at a time.
+# All regular runs cancel any in-progress run so the freshest data wins.
+# Exception: the 12:15 am ET day-start trigger is never cancelled — it
+# must always complete so the daily reset is guaranteed.
 concurrency:
   group: auto-update
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event.schedule != '15 5 * * *' }}
 
 jobs:
   fetch-and-push:
