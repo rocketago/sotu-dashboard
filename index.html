@@ -618,14 +618,34 @@
       border-bottom: 1px solid var(--border);
     }
 
+    .detail-event--media {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 3px;
+    }
+
     .detail-event:last-child { border-bottom: none; }
+
+    .detail-media-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+    }
+
+    .detail-demo {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+    }
 
     .detail-time    { color: var(--muted); min-width: 56px; }
     .detail-age     { color: var(--accent); font-weight: 600; }
     .detail-gender  { color: var(--text); }
     .detail-state   { color: var(--text); }
     .detail-query   { color: var(--text); font-weight: 500; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .detail-channel { color: var(--muted); }
+    .detail-channel { color: var(--muted); flex-shrink: 0; }
     .detail-count   { color: var(--accent); font-weight: 600; }
 
     .detail-no-data {
@@ -2063,15 +2083,6 @@
       : catMatches;
     if (matched.length === 0) matched = catMatches; // final fallback
 
-    // Sort: aggregate (youtube/tiktok) first by count desc, then individual events newest-first
-    matched = matched.slice().sort((a, b) => {
-      const aAgg = a.source === 'youtube' || a.source === 'tiktok';
-      const bAgg = b.source === 'youtube' || b.source === 'tiktok';
-      if (aAgg !== bAgg) return aAgg ? -1 : 1;
-      if (aAgg && bAgg) return (b.count || 0) - (a.count || 0);
-      return new Date(b.time) - new Date(a.time);
-    }).slice(0, 12);
-
     if (matched.length === 0) {
       return '<div class="detail-no-data">No engagement data available for this topic yet.</div>';
     }
@@ -2084,27 +2095,27 @@
       return 'Search';
     };
 
+    // Sort newest-first across all sources, cap at 12
+    matched = matched.slice().sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 12);
+
     const rows = matched.map(e => {
-      const src = e.source || 'search';
+      const src   = e.source || 'search';
       const badge = `<span class="source-badge source-${escHtml(src)}">${srcLabel(src)}</span>`;
-      if (src === 'youtube' || src === 'tiktok') {
-        // Aggregate row: show title, channel, engagement count — no demographics
-        const channel = e.channel ? `<span class="detail-channel">${escHtml(e.channel)}</span>` : '';
-        const count   = e.count   ? `<span class="detail-count">${escHtml(String(e.count))} engagements</span>` : '';
-        return `
-      <div class="detail-event">
-        <span class="detail-query">${escHtml((e.query || '').slice(0, 60))}</span>
-        ${channel}${count}${badge}
-      </div>`;
-      }
-      // Individual row: show demographics
+      // For YouTube/TikTok, show the video title + channel before demographics
+      const titleLine = (src === 'youtube' || src === 'tiktok') ? `
+        <div class="detail-media-title">
+          <span class="detail-query">${escHtml((e.query || '').slice(0, 72))}</span>${e.channel ? `<span class="detail-channel">${escHtml(e.channel)}</span>` : ''}
+        </div>` : '';
       return `
-      <div class="detail-event">
-        <span class="detail-time">${escHtml(timeAgo(e.time))}</span>
-        <span class="detail-age">Age ${escHtml(String(e.age || '?'))}</span>
-        <span class="detail-gender">${genderIcon(e.gender)} ${escHtml(e.gender || '—')}</span>
-        <span class="detail-state">📍 ${escHtml(e.state || '—')}</span>
-        ${badge}
+      <div class="detail-event${(src === 'youtube' || src === 'tiktok') ? ' detail-event--media' : ''}">
+        ${titleLine}
+        <div class="detail-demo">
+          <span class="detail-time">${escHtml(timeAgo(e.time))}</span>
+          <span class="detail-age">Age ${escHtml(String(e.age || '?'))}</span>
+          <span class="detail-gender">${genderIcon(e.gender)} ${escHtml(e.gender || '—')}</span>
+          <span class="detail-state">📍 ${escHtml(e.state || '—')}</span>
+          ${badge}
+        </div>
       </div>`;
     }).join('');
 
