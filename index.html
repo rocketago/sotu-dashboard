@@ -1419,27 +1419,47 @@
 
 
   /* ── CRON COUNTDOWN ────────────────────────────────────────────────────────────────
-   * Anchored to the actual last-update timestamp (data.meta.generated_at + 15 min)
-   * rather than the nearest UTC 15-min boundary.  This means the timer reflects
-   * reality even when GitHub Actions fires a few minutes late.
+   * Counts down to the next :00/:15/:30/:45 UTC boundary (what the cron targets).
    *
-   * Self-monitoring: once the countdown expires the code switches to a lightweight
-   * 30-second poll that watches generated_at.  The moment new data lands it fires a
-   * full loadData() refresh and resets the timer.  No manual intervention needed.
+   * Self-monitoring: after each boundary passes, compares the clock boundary that
+   * "should" have triggered a data update against the last known generated_at.  If
+   * the boundary has passed but generated_at hasn't changed, we're overdue — show
+   * amber "updating…" and switch to a lightweight 30-second poll.  The moment new
+   * data lands the poll fires a full loadData(), resets the timestamp, and the
+   * normal countdown resumes automatically.
+   *
+   * This avoids false "updating…" on page load when the data file is slightly stale
+   * (e.g., loaded 14 min after last run) because the overdue check is boundary-based,
+   * not age-based.
    * ────────────────────────────────────────────────────────────────────────────── */
+  const CRON_INTERVAL_MS    = 15 * 60 * 1000;
   let _cronCountdownTimer   = null;
   let _lastKnownGeneratedAt = null;   // iso string — last seen data.meta.generated_at
-  let _nextUpdateMs         = 0;      // epoch-ms when next fetch is expected
   let _overdueInterval      = null;   // fast-poll handle while cron is running late
 
-  /** Called by loadData() each time we get a new generated_at. */
+  /**
+   * Called by loadData() with the current data.meta.generated_at.
+   * Records the timestamp and cancels overdue-polling when fresh data arrives.
+   */
   function notifyNewData(generatedAt) {
-    if (!generatedAt || generatedAt === _lastKnownGeneratedAt) return;
+    if (!generatedAt) return;
+    const isNew = (generatedAt !== _lastKnownGeneratedAt);
     _lastKnownGeneratedAt = generatedAt;
-    _nextUpdateMs = new Date(generatedAt).getTime() + 15 * 60 * 1000;
-    if (_overdueInterval) { clearInterval(_overdueInterval); _overdueInterval = null; }
-    const el = document.getElementById('cron-countdown');
-    if (el) el.style.color = '';
+    if (isNew && _overdueInterval) {
+      clearInterval(_overdueInterval);
+      _overdueInterval = null;
+      const el = document.getElementById('cron-countdown');
+      if (el) el.style.color = '';
+    }
+  }
+
+  /** Returns true if the 15-min boundary that should have updated the current data
+   *  has already passed, meaning the cron is running late. */
+  function isCronOverdue() {
+    if (!_lastKnownGeneratedAt) return false;
+    const lastMs    = new Date(_lastKnownGeneratedAt).getTime();
+    const expectedBy = Math.ceil((lastMs + 1) / CRON_INTERVAL_MS) * CRON_INTERVAL_MS;
+    return expectedBy < Date.now();
   }
 
   /** Lightweight 30-second poll that fires only while the cron is running late. */
@@ -1467,28 +1487,20 @@
       if (!el) return;
       const now = Date.now();
 
-      // Before first data load: fall back to clock-boundary alignment.
-      if (!_nextUpdateMs) {
-        const INTERVAL  = 15 * 60 * 1000;
-        const remaining = Math.ceil((now + 1) / INTERVAL) * INTERVAL - now;
-        const mins = Math.floor(remaining / 60000);
-        const secs = Math.floor((remaining % 60000) / 1000);
-        el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
-        el.style.color = '';
-        return;
-      }
-
-      const remaining = _nextUpdateMs - now;
-      if (remaining <= 0) {
+      // Overdue: the expected boundary passed but generated_at hasn't changed.
+      if (isCronOverdue()) {
         el.textContent = 'updating…';
         el.style.color = '#F9A349';   // amber — cron is running a bit late
         startOverduePolling();
-      } else {
-        el.style.color = '';
-        const mins = Math.floor(remaining / 60000);
-        const secs = Math.floor((remaining % 60000) / 1000);
-        el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+        return;
       }
+
+      // Normal: count down to the next :00/:15/:30/:45 UTC boundary.
+      el.style.color  = '';
+      const remaining = Math.ceil((now + 1) / CRON_INTERVAL_MS) * CRON_INTERVAL_MS - now;
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent  = `${mins}:${String(secs).padStart(2, '0')}`;
     }
     tick();
     _cronCountdownTimer = setInterval(tick, 1000);
