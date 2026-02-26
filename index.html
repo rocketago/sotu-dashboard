@@ -1132,7 +1132,7 @@
       <p class="history-desc">
         Score 0–100: 100 = overwhelmingly positive framing, 0 = overwhelmingly negative.
         Scored from search, YouTube, Reddit, and TikTok content consumed by 18–29 year olds.
-        Key political events are marked on the chart. Chart runs through the 2026 midterm elections.
+        Key political events are marked on the chart as they approach within the next week.
       </p>
       <div id="history-chart"><!-- populated by JS --></div>
       <div class="history-legend">
@@ -2656,11 +2656,10 @@
     const now    = new Date();
     const points = (historyData && Array.isArray(historyData.points)) ? historyData.points : [];
 
-    // X-axis: from first data point through 2 weeks after the midterm elections —
-    // giving Voters of Tomorrow the full 2026 election-cycle view in one chart.
-    const firstPt  = points.length > 0 ? new Date(points[0].ts) : new Date('2026-01-20T00:00:00Z');
-    const startDay = new Date(Date.UTC(firstPt.getUTCFullYear(), firstPt.getUTCMonth(), firstPt.getUTCDate()));
-    const endDay   = new Date('2026-11-17T05:00:00Z');  // 2 weeks after midterms
+    // X-axis: from Jan 20 (inauguration) through 1 week ahead of today.
+    // Key event flags appear as they enter the upcoming-week window.
+    const startDay = new Date(Date.UTC(2026, 0, 20));  // Jan 20, 2026
+    const endDay   = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 7));
 
     const totalMs = endDay - startDay;
 
@@ -2697,7 +2696,7 @@
       svg += `<text x="${(PAD.left - 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#4a6a8a" font-size="11" font-family="Inter,sans-serif">${sc}</text>`;
     });
 
-    // X-axis: one tick per month — 9-month arc fits cleanly at this scale
+    // X-axis: one tick per month across the visible window
     let d = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), 1));
     while (d <= endDay) {
       const x  = xS(d);
