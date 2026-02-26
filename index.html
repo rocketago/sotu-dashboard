@@ -1082,12 +1082,21 @@
       `</span>`;
     }
     const ttCount = (s.tiktok_watch_events_today || 0) + (s.tiktok_search_events_today || 0);
+    // Supplement summary counts with live_feed event counts so platforms with
+    // events in the feed but not yet scored into categories still show as active.
+    const liveBySource = {};
+    liveEvents.forEach(e => { const src = e.source || 'search'; liveBySource[src] = (liveBySource[src] || 0) + 1; });
+    const searchCt  = Math.max(s.search_events_today  || 0, liveBySource['search']  || 0);
+    const redditCt  = Math.max(s.reddit_events_today  || 0, liveBySource['reddit']  || 0);
+    const youtubeCt = Math.max(s.youtube_events_today || 0, liveBySource['youtube'] || 0);
+    const newsCt    = Math.max(s.news_events_today    || 0, liveBySource['news']    || 0);
+    const ttCt      = Math.max(ttCount, (liveBySource['tiktok'] || 0) + (liveBySource['tiktok_watch'] || 0) + (liveBySource['tiktok_search'] || 0));
     document.getElementById('source-counts').innerHTML =
-      platformSpan('🔍', 'Search',  s.search_events_today,  (s.search_events_today  || 0) > 0) +
-      platformSpan('💬', 'Reddit',  s.reddit_events_today,  (s.reddit_events_today  || 0) > 0) +
-      platformSpan('▶',  'YouTube', s.youtube_events_today, (s.youtube_events_today || 0) > 0) +
-      platformSpan('📰', 'News',    s.news_events_today,    (s.news_events_today    || 0) > 0) +
-      platformSpan('♪',  'TikTok',  ttCount,                ttCount > 0);
+      platformSpan('🔍', 'Search',  searchCt,  searchCt  > 0) +
+      platformSpan('💬', 'Reddit',  redditCt,  redditCt  > 0) +
+      platformSpan('▶',  'YouTube', youtubeCt, youtubeCt > 0) +
+      platformSpan('📰', 'News',    newsCt,    newsCt    > 0) +
+      platformSpan('♪',  'TikTok',  ttCt,      ttCt      > 0);
   }
 
   /* ── RENDER SUMMARY ── */
