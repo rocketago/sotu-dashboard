@@ -9,10 +9,12 @@ on:
     - cron: '0,15,30,45 0-4 * * *'   #  7:00 pm – 11:45 pm ET
   workflow_dispatch:
 
-# One run at a time; new triggers queue rather than cancel.
+# One run at a time; cancel any in-progress run when a new trigger fires.
+# For a data-fetch cron this is correct: the newest run always has the
+# freshest data, and a stuck/slow run should never block the next slot.
 concurrency:
   group: auto-update
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   fetch-and-push:
