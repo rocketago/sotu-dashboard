@@ -28,10 +28,11 @@ import urllib.parse
 import urllib.request
 from pathlib import Path
 
-OUTPUT_FILE      = Path(__file__).parent / "political_data.json"
-LIVE_FEED_FILE   = Path(__file__).parent / "live_feed.json"
-HISTORY_FILE     = Path(__file__).parent / "history.json"
-MCP_STATUS_FILE  = Path(__file__).parent / "mcp_status.json"
+OUTPUT_FILE          = Path(__file__).parent / "political_data.json"
+LIVE_FEED_FILE       = Path(__file__).parent / "live_feed.json"
+HISTORY_FILE         = Path(__file__).parent / "history.json"
+MCP_STATUS_FILE      = Path(__file__).parent / "mcp_status.json"
+SOURCES_CACHE_FILE   = Path(__file__).parent / "sources_cache.json"
 
 VERBAI_MCP_URL = (
     "https://zknnynm-exc60781.snowflakecomputing.com"
@@ -1199,21 +1200,39 @@ def fetch_tiktok_watch_videos(since_iso: str, mcp_ctx: tuple | None = None) -> l
     Returns list of dicts: query (video title), count, source ("tiktok_watch"),
     channel (author), category, trend.
     """
+    # Use explicit Snowflake JSON semi-structured syntax (DATA:link::varchar) so
+    # Cortex Analyst generates the correct extraction SQL rather than guessing.
+    # This mirrors the approach used by fetch_live_events (raw SQL embedded in prompt).
     url_count_prompts = [
         (
-            f"Which TikTok videos are being watched most by users aged 18 to 29 "
-            f"since {since_iso}? Query DONATIONS_EVENTS_DYM where "
-            f"EVENT_TYPE = 'watch_history' and PLATFORM = 'tiktok'. "
-            f"The DATA column is JSON containing a 'link' field with the video URL. "
-            f"Group by the link value extracted from DATA, count watches, "
-            f"return the top 60 by watch count. "
-            f"Return JSON only: [{{\"url\": str, \"count\": int}}]. "
-            f"Include only rows where the link value contains 'tiktok' or 'tiktokv'."
+            f"Use the Snowflake database tool. Run this exact SQL:\n\n"
+            f"SELECT DATA:link::varchar AS url, COUNT(*) AS cnt\n"
+            f"FROM DONATIONS_EVENTS_DYM\n"
+            f"WHERE EVENT_TYPE = 'watch_history'\n"
+            f"  AND PLATFORM = 'tiktok'\n"
+            f"  AND EVENT_TIME >= '{since_iso}'\n"
+            f"  AND (DATA:link::varchar ILIKE '%tiktok%'\n"
+            f"       OR DATA:link::varchar ILIKE '%tiktokv%')\n"
+            f"GROUP BY url\n"
+            f"ORDER BY cnt DESC\n"
+            f"LIMIT 60;\n\n"
+            f"Return JSON only: [{{\"url\": str, \"count\": int}}]"
+        ),
+        (
+            f"Use the Snowflake database tool. Run this SQL:\n\n"
+            f"SELECT PARSE_JSON(DATA)['link']::varchar AS url, COUNT(*) AS cnt\n"
+            f"FROM DONATIONS_EVENTS_DYM\n"
+            f"WHERE EVENT_TYPE = 'watch_history' AND PLATFORM = 'tiktok'\n"
+            f"  AND EVENT_TIME >= '{since_iso}'\n"
+            f"GROUP BY url HAVING url IS NOT NULL\n"
+            f"ORDER BY cnt DESC LIMIT 60;\n\n"
+            f"Return JSON: [{{\"url\": str, \"count\": int}}]"
         ),
         (
             f"Top TikTok video URLs watched since {since_iso}. "
-            f"Use DONATIONS_EVENTS_DYM, EVENT_TYPE='watch_history', PLATFORM='tiktok'. "
-            f"Group by the 'link' field extracted from DATA JSON, count rows per link. "
+            f"DONATIONS_EVENTS_DYM, EVENT_TYPE='watch_history', PLATFORM='tiktok'. "
+            f"Extract video link from DATA column JSON field named 'link'. "
+            f"Group by URL, count rows, order descending. "
             f"Return JSON: [{{\"url\": str, \"count\": int}}]"
         ),
     ]
@@ -2083,13 +2102,16 @@ def _classify_top_queries_llm(all_items: list[dict]) -> dict | None:
 
 def update_history(data: dict) -> None:
     """
-    Append the current sentiment score to history.json.
+    Upsert today's sentiment data point in history.json (one point per ET calendar day).
 
-    Score is engagement-count × source-weight-weighted over ALL political items,
-    with framing adjustment (Democrat/liberal content inverted) and subreddit
-    stance priors applied.  Also records gender-segmented scores and LLM stance
-    classification when available.
-    Keeps at most 2016 entries (~21 days at 15-min intervals).
+    Each cron run updates — never appends a duplicate — so the daily score is the
+    rolling average of all runs that land on the same Eastern-Time calendar date.
+    This means the Feb 25 data point converges toward the true daily mean rather
+    than reflecting only the most-recent or first run.
+
+    Point timestamp is noon ET (converted to UTC) for consistent chart positioning.
+    Internal field "_n" tracks how many cron samples contributed to the average.
+    Keeps at most 730 daily entries (~2 years).
     """
     all_items = [
         item
@@ -2100,7 +2122,6 @@ def update_history(data: dict) -> None:
         return  # nothing to record
 
     def _weighted(items: list[dict]) -> int:
-        """Engagement-count × source-type weighted average sentiment (0-100)."""
         tw = ts = 0.0
         for i in items:
             src = i.get("source", "search")
@@ -2112,12 +2133,6 @@ def update_history(data: dict) -> None:
 
     score = _weighted(all_items)
 
-    # Gender-segmented scores (male / female) ─────────────────────────────
-    # Items don't carry individual gender, so we proxy by splitting items whose
-    # subreddit or topic is known to skew strongly by gender (search items have
-    # no gender signal — recorded as None so the chart can omit those points).
-    # A proper gender split requires a separate VerbAI query; see
-    # _fetch_gender_sentiment_scores() which is called here when MCP is active.
     score_male:   int | None = None
     score_female: int | None = None
     try:
@@ -2126,7 +2141,6 @@ def update_history(data: dict) -> None:
     except Exception as _e:
         print(f"[WARN] gender sentiment fetch skipped: {_e}")
 
-    # LLM stance classification (at most once per hour) ───────────────────
     llm_pct: dict | None = None
     try:
         llm_pct = _classify_top_queries_llm(all_items)
@@ -2141,19 +2155,60 @@ def update_history(data: dict) -> None:
         except Exception:
             pass
 
-    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    pt: dict = {"ts": now_iso, "score": score}
-    if score_male   is not None: pt["score_male"]   = score_male
-    if score_female is not None: pt["score_female"]  = score_female
-    if llm_pct      is not None: pt["llm"]           = llm_pct
-    history.setdefault("points", []).append(pt)
-    history["points"] = history["points"][-2016:]
+    # ── Determine today's ET date ─────────────────────────────────────────
+    now_utc   = datetime.datetime.now(datetime.timezone.utc)
+    et_off_h  = 4 if 4 <= now_utc.month <= 10 else 5
+    et_offset = datetime.timedelta(hours=et_off_h)
+    today_et  = (now_utc - et_offset).date()
+
+    # Canonical timestamp: noon ET → UTC (stable x-position on the chart)
+    noon_et  = datetime.datetime(today_et.year, today_et.month, today_et.day, 12, 0, 0)
+    day_iso  = (noon_et + et_offset).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    def _pt_et_date(pt: dict) -> datetime.date:
+        """Return the ET calendar date for a history point's UTC timestamp."""
+        raw = pt.get("ts", "")[:19]
+        try:
+            utc_dt = datetime.datetime.strptime(raw, "%Y-%m-%dT%H:%M:%S")
+            return (utc_dt - et_offset).date()
+        except ValueError:
+            return datetime.date.min
+
+    # ── Partition: today's point(s) vs all other days ────────────────────
+    today_pts = [pt for pt in history.get("points", []) if _pt_et_date(pt) == today_et]
+    other_pts = [pt for pt in history.get("points", []) if _pt_et_date(pt) != today_et]
+
+    # ── Upsert: rolling average of all runs on this ET day ───────────────
+    if today_pts:
+        # Existing sample count and weighted score sum (handles old multi-point days)
+        prev_n = sum(pt.get("_n", 1) for pt in today_pts)
+        prev_s = sum(pt["score"] * pt.get("_n", 1) for pt in today_pts)
+        new_n  = prev_n + 1
+        new_score = round((prev_s + score) / new_n)
+
+        # Gender: carry forward latest non-None, then blend with new values
+        prev_male   = next((pt["score_male"]   for pt in reversed(today_pts) if "score_male"   in pt), None)
+        prev_female = next((pt["score_female"] for pt in reversed(today_pts) if "score_female" in pt), None)
+        new_male   = score_male   if score_male   is not None else prev_male
+        new_female = score_female if score_female is not None else prev_female
+
+        merged: dict = {"ts": day_iso, "score": new_score, "_n": new_n}
+        if new_male   is not None: merged["score_male"]   = new_male
+        if new_female is not None: merged["score_female"] = new_female
+        if llm_pct    is not None: merged["llm"]          = llm_pct
+    else:
+        merged = {"ts": day_iso, "score": score, "_n": 1}
+        if score_male   is not None: merged["score_male"]   = score_male
+        if score_female is not None: merged["score_female"] = score_female
+        if llm_pct      is not None: merged["llm"]          = llm_pct
+
+    history["points"] = sorted(other_pts + [merged], key=lambda p: p.get("ts", ""))[-730:]
 
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, separators=(",", ":"))
-    male_str   = f"  male={score_male}"   if score_male   is not None else ""
-    female_str = f"  female={score_female}" if score_female is not None else ""
-    print(f"[OK] Updated history.json — score={score}{male_str}{female_str}, {len(history['points'])} points total.")
+    m_str = f"  male={merged.get('score_male')}"   if "score_male"   in merged else ""
+    f_str = f"  female={merged.get('score_female')}" if "score_female" in merged else ""
+    print(f"[OK] history.json — score={merged['score']}{m_str}{f_str}  n={merged['_n']}, {len(history['points'])} daily pts.")
 
 
 def write_mcp_status(data_returned: bool, counts: dict) -> None:
@@ -2433,6 +2488,46 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
           f"({'reset' if reset else 'accumulated'}).")
 
 
+def write_sources_cache(data: dict) -> None:
+    """
+    Append this cron run's flat item list to sources_cache.json.
+
+    Each entry: {"ts": ISO, "items": [{query, count, source, category, ...}]}.
+    Entries older than 30 days are pruned on every write.
+    The frontend aggregates entries across the user-selected time window
+    (Today / This Week / This Month) without re-querying VerbAI.
+    """
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+    flat_items = [
+        {k: v for k, v in item.items() if k not in ("_n",)}
+        for cat in data.get("categories", [])
+        for item in cat.get("items", [])
+    ]
+
+    cache: dict = {"runs": []}
+    if SOURCES_CACHE_FILE.exists():
+        try:
+            with open(SOURCES_CACHE_FILE) as f:
+                cache = json.load(f)
+        except Exception:
+            pass
+
+    cache.setdefault("runs", []).append({"ts": now_iso, "items": flat_items})
+
+    # Prune entries older than 30 days
+    cutoff = (
+        datetime.datetime.utcnow() - datetime.timedelta(days=30)
+    ).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache["runs"] = [r for r in cache["runs"] if r.get("ts", "") >= cutoff]
+
+    with open(SOURCES_CACHE_FILE, "w") as f:
+        json.dump(cache, f, separators=(",", ":"))
+    print(
+        f"[OK] Wrote sources_cache.json — "
+        f"{len(cache['runs'])} stored runs, {len(flat_items)} items this run."
+    )
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
@@ -2530,6 +2625,9 @@ def main():
         print(f"[OK] Wrote {OUTPUT_FILE.name} — "
               f"{data['summary']['total_engagements']} engagements across "
               f"{data['summary']['categories_tracked']} categories.")
+
+        # ── Sources cache: persist this run's items for week/month windows ────
+        write_sources_cache(data)
 
         # ── Live events: seed synthetically if VerbAI returned nothing ────────
         if not live_events_raw and LIVE_FEED_FILE.exists():

@@ -1119,3 +1119,41 @@ footer {
   text-align: center;
 }
 
+/* ── Sources window selector (Today / This Week / This Month) ── */
+.src-window-nav {
+  display: flex;
+  gap: 6px;
+  margin: 0 0 12px;
+  flex-wrap: wrap;
+}
+
+.src-window-btn {
+  padding: 5px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.src-window-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.src-window-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.src-window-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  margin: -4px 0 14px;
+  font-style: italic;
+}
