@@ -2416,6 +2416,11 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
             merged.append(e)
 
     merged.sort(key=lambda e: e.get("time", ""), reverse=True)
+
+    # Evict events outside the rolling 24-hour window.
+    # Event "time" values are UTC ISO strings ("Z" suffix); compare directly.
+    cutoff_str = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    merged = [e for e in merged if e.get("time", "") >= cutoff_str]
     merged = merged[:300]
 
     now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
