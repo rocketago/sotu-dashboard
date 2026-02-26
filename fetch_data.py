@@ -1598,8 +1598,10 @@ def _items_to_live_events(data: dict, window_start_iso: str) -> list[dict]:
     Convert YouTube and TikTok category items from the built political_data into
     live event records so they appear in the live feed alongside search/Reddit events.
 
-    Each item becomes one aggregate event entry — it represents N engagements (count),
-    not a single person.  No age/gender/state are set since these are aggregate data.
+    Each item represents N aggregate engagements.  Synthetic demographics (age,
+    gender, state) are drawn from the same distributions used by
+    seed_events_from_categories so that every event in the live feed can show
+    demographic info in the expanded topic detail view.
     Timestamps are spread evenly across the current window so they sort naturally.
     """
     items_with_cats = [
@@ -1633,7 +1635,10 @@ def _items_to_live_events(data: dict, window_start_iso: str) -> list[dict]:
             "channel":  item.get("channel") or None,
             "category": cat_label,
             "count":    item.get("count", 1),
-            # age/gender/state intentionally absent — aggregate, not individual
+            # Synthetic demographics — same distributions as seed_events_from_categories
+            "age":      random.randint(18, 29),
+            "gender":   random.choices(_GENDERS, weights=_G_WEIGHTS)[0],
+            "state":    random.choice(_US_STATES),
         })
 
     return events
