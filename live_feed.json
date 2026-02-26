@@ -1,7 +1,18 @@
 {
-  "generated_at": "2026-02-26T15:36:15Z",
-  "day_start": "2026-02-25T10:36:15",
+  "generated_at": "2026-02-26T17:48:43Z",
+  "day_start": "2026-02-25T12:48:43",
   "events": [
+    {
+      "time": "2026-02-26T17:48:43Z",
+      "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 17,
+      "age": 26,
+      "gender": "Female",
+      "state": "IN"
+    },
     {
       "time": "2026-02-26T15:36:15Z",
       "query": "No. 2 House Democrat to skip Trump's State of the Union address",
@@ -58,6 +69,17 @@
       "state": "NH"
     },
     {
+      "time": "2026-02-26T13:39:11Z",
+      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Economic Policy",
+      "count": 25,
+      "age": 29,
+      "gender": "Non-binary",
+      "state": "OR"
+    },
+    {
       "time": "2026-02-26T11:26:51Z",
       "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
       "source": "youtube",
@@ -111,6 +133,17 @@
       "age": 27,
       "gender": "Male",
       "state": "CO"
+    },
+    {
+      "time": "2026-02-26T09:29:40Z",
+      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+      "source": "youtube",
+      "channel": "13WMAZ",
+      "category": "Presidential Politics",
+      "count": 1,
+      "age": 19,
+      "gender": "Male",
+      "state": "SC"
     },
     {
       "time": "2026-02-26T08:47:23Z",
@@ -253,6 +286,17 @@
       "state": "MI"
     },
     {
+      "time": "2026-02-26T05:20:09Z",
+      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+      "source": "youtube",
+      "channel": "FOX 9 Minneapolis-St. Paul",
+      "category": "Presidential Politics",
+      "count": 5,
+      "age": 18,
+      "gender": "Female",
+      "state": "SC"
+    },
+    {
       "time": "2026-02-26T05:11:58Z",
       "query": "No. 2 House Democrat to skip Trump's State of the Union address",
       "source": "youtube",
@@ -372,6 +416,17 @@
       "age": 27,
       "gender": "Male",
       "state": "CT"
+    },
+    {
+      "time": "2026-02-26T01:10:37Z",
+      "query": "10 highlights from Trump's 2026 State of the Union",
+      "source": "youtube",
+      "channel": "CBS News",
+      "category": "Presidential Politics",
+      "count": 8,
+      "age": 23,
+      "gender": "Female",
+      "state": "DE"
     },
     {
       "time": "2026-02-26T01:02:41Z",
@@ -495,6 +550,17 @@
       "state": "SD"
     },
     {
+      "time": "2026-02-25T21:01:06Z",
+      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+      "source": "youtube",
+      "channel": "Jimmy Kimmel Live",
+      "category": "Presidential Politics",
+      "count": 9,
+      "age": 23,
+      "gender": "Male",
+      "state": "VT"
+    },
+    {
       "time": "2026-02-25T21:00:12Z",
       "query": "congressional voting district for 80219",
       "source": "search",
@@ -611,71 +677,6 @@
       "age": 23,
       "gender": "Male",
       "state": "IA"
-    },
-    {
-      "time": "2026-02-25T17:42:08Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 26,
-      "gender": "Male",
-      "state": "HI"
-    },
-    {
-      "time": "2026-02-25T17:00:09Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 20,
-      "gender": "Female",
-      "state": "IL"
-    },
-    {
-      "time": "2026-02-25T16:53:31Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 22,
-      "gender": "Female",
-      "state": "FL"
-    },
-    {
-      "time": "2026-02-25T16:44:07Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 24,
-      "gender": "Female",
-      "state": "NY"
-    },
-    {
-      "time": "2026-02-25T16:38:15Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 27,
-      "gender": "Male",
-      "state": "GA"
-    },
-    {
-      "time": "2026-02-25T15:57:46Z",
-      "query": "government shutdown dhs funding",
-      "source": "search",
-      "subreddit": null,
-      "category": "Legislative Politics",
-      "age": 22,
-      "gender": "Female",
-      "state": "WA"
     }
   ]
 }
