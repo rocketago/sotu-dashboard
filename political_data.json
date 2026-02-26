@@ -1,12 +1,12 @@
 {
   "meta": {
-    "generated_at": "2026-02-26T03:32:28Z",
-    "last_mcp_pull": "2026-02-26T03:32:28Z",
+    "generated_at": "2026-02-26T04:08:12Z",
+    "last_mcp_pull": "2026-02-26T04:08:12Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
     "window_label": "Last 24h · Updated live",
-    "today_start": "2026-02-24T22:26:56",
+    "today_start": "2026-02-24T23:02:26",
     "refresh_interval_minutes": 15
   },
   "summary": {
