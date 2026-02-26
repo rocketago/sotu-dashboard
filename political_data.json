@@ -11,7 +11,7 @@
   },
   "summary": {
     "total_engagements": 97,
-    "total_unique_users": 7,
+    "total_unique_users": 252,
     "top_category": "Presidential Politics",
     "categories_tracked": 11,
     "data_window": "Sliding 24-hour window · accumulates each run",
@@ -28,7 +28,7 @@
       "label": "Presidential Politics",
       "icon": "🏛️",
       "engagement_count": 55,
-      "unique_users": 4,
+      "unique_users": 97,
       "trending_score": 100,
       "items": [
         {
@@ -98,7 +98,7 @@
       "label": "Economic Policy",
       "icon": "💰",
       "engagement_count": 25,
-      "unique_users": 2,
+      "unique_users": 112,
       "trending_score": 45,
       "items": [
         {
@@ -118,7 +118,7 @@
       "label": "Legislative Politics",
       "icon": "📜",
       "engagement_count": 17,
-      "unique_users": 1,
+      "unique_users": 43,
       "trending_score": 31,
       "items": [
         {
