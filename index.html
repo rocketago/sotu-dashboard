@@ -2070,18 +2070,18 @@
     // All events in the same category
     const catMatches = events.filter(e => e.category === catLabel);
 
-    // Prefer events whose query shares a keyword with the item.
-    // YouTube/TikTok aggregate events are kept even without keyword overlap
-    // since they were already categorised by topic on ingest.
-    let matched = keywords.length
-      ? catMatches.filter(e => {
-          const src = e.source || '';
-          if (src === 'youtube' || src === 'tiktok') return true; // always include aggregate sources
-          const eq = (e.query || '').toLowerCase();
-          return keywords.some(kw => eq.includes(kw));
-        })
-      : catMatches;
-    if (matched.length === 0) matched = catMatches; // final fallback
+    // Keep only events whose query shares at least one keyword with this item.
+    // All sources (search, Reddit, YouTube, TikTok) must pass the same test —
+    // no free passes — so a YouTube video about immigration doesn't bleed into
+    // a search item about tariffs just because they share a category.
+    let matched = catMatches.filter(e => {
+      if (!keywords.length) return true;
+      const eText = (e.query || '').toLowerCase();
+      return keywords.some(kw => eText.includes(kw));
+    });
+    // Fallback only when the category itself is very sparse (≤3 events total)
+    // so an empty result doesn't silently dump the whole category onto the item.
+    if (matched.length === 0 && catMatches.length <= 3) matched = catMatches;
 
     if (matched.length === 0) {
       return '<div class="detail-no-data">No engagement data available for this topic yet.</div>';
