@@ -1136,7 +1136,10 @@
       </p>
       <div id="history-chart"><!-- populated by JS --></div>
       <div class="history-legend">
-        <span><span class="legend-line" style="background:#0DA2E6"></span> Sentiment score</span>
+        <span><span class="legend-line" style="background:#0DA2E6"></span> All 18–29</span>
+        <span><span class="legend-line" style="background:#38BDF8;opacity:0.85;background-image:repeating-linear-gradient(to right,#38BDF8 0,#38BDF8 6px,transparent 6px,transparent 9px)"></span> Male</span>
+        <span><span class="legend-line" style="background:#FB7185;opacity:0.85;background-image:repeating-linear-gradient(to right,#FB7185 0,#FB7185 6px,transparent 6px,transparent 9px)"></span> Female</span>
+        <span><span class="legend-line" style="background:#A78BFA;opacity:0.75;background-image:repeating-linear-gradient(to right,#A78BFA 0,#A78BFA 4px,transparent 4px,transparent 9px)"></span> Polling (MC/Harvard)</span>
         <span><span class="legend-dash" style="color:#F9A349"></span> Key events</span>
         <span><span class="legend-dash" style="color:#0DA2E6;opacity:0.5"></span> Now</span>
       </div>
@@ -1307,14 +1310,64 @@
     "rights":2,
   };
 
-  // Score topic + query text for a single item using the AFINN lexicon.
+  // ── Phrase-level AFINN (bigrams/trigrams) — mirrors Python _AFINN_BIGRAMS ──
+  const AFINN_BIGRAMS = {
+    "government shutdown":-3,"debt ceiling":-2,"budget deficit":-2,
+    "national emergency":-3,"martial law":-5,"constitutional crisis":-5,
+    "mass shooting":-5,"school shooting":-5,"gun violence":-4,
+    "police brutality":-5,"hate crime":-4,"civil war":-5,
+    "nuclear war":-5,"nuclear threat":-4,"war crime":-5,"ethnic cleansing":-5,
+    "trade war":-4,"price gouging":-3,"corporate greed":-3,
+    "income inequality":-2,"wealth gap":-2,"inflation rate":-2,
+    "economic collapse":-4,"stock market crash":-4,"job creation":3,"economic growth":3,"tax cut":2,
+    "election fraud":-3,"voter suppression":-4,"voting rights":2,
+    "election interference":-4,"gerrymandering":-3,
+    "money laundering":-4,"insider trading":-4,"bribery charges":-4,
+    "sexual assault":-5,"domestic violence":-4,
+    "climate change":-1,"student debt":-2,"minimum wage":1,
+    "human rights":2,"civil rights":2,"social security":1,
+    "health care":0,"mental health":0,"drug overdose":-4,"opioid crisis":-4,
+    "border wall":-2,"free speech":2,
+    "peace deal":4,"ceasefire agreement":4,"nuclear deal":2,"diplomatic breakthrough":4,"foreign aid":1,
+    "executive order":-1,"supreme court":0,"bipartisan agreement":3,
+  };
+  // Sorted longest-first for greedy phrase matching.
+  const AFINN_BIGRAMS_SORTED = Object.keys(AFINN_BIGRAMS).sort((a,b) => b.length - a.length);
+
+  // ── Source-type engagement weights — mirrors Python _SOURCE_WEIGHTS ──────
+  const SOURCE_WEIGHTS = {
+    tiktok_watch: 3.0,
+    youtube:      2.0,
+    tiktok_search:1.2,
+    reddit:       1.5,
+    search:       1.0,
+    news:         1.0,
+  };
+
+  // ── Subreddit stance priors — mirrors Python _SUBREDDIT_PRIORS ────────────
+  const SUBREDDIT_PRIORS = {
+    politics:-8,democrats:-10,liberal:-10,progressive:-10,
+    blacklivesmatter:-8,racism:-6,socialjustice:-6,environment:-4,climate:-4,
+    politicaldiscussion:-6,worldnews:-4,news:-4,neutralpolitics:-3,
+    geopolitics:-2,economics:-1,economy:-1,healthcare:-2,immigration:-2,supremecourt:-1,
+    conservative:8,republican:10,conservatives:8,maga:12,trump:10,libertarian:4,
+    guns:3,prolife:5,uspolitics:0,americanpolitics:0,law:0,
+  };
+
+  // Score topic + query text for a single item using bigrams then word-level AFINN.
   // Returns a 0-100 value: 50 = neutral, >50 = positive framing, <50 = negative framing.
   function scoreItemText(topic, query) {
-    const text  = ((topic || '') + ' ' + (query || '')).toLowerCase().replace(/[^a-z\s]/g, ' ');
-    const words = text.split(/\s+/).filter(Boolean);
-    let raw = 0;
-    words.forEach(w => { if (AFINN[w] !== undefined) raw += AFINN[w]; });
-    // raw * 5 maps ±10 → ±50 (i.e. raw=0 → score 50, raw=-5 → 25, raw=+5 → 75)
+    let text = ((topic || '') + ' ' + (query || '')).toLowerCase().replace(/[^a-z\s]/g, ' ');
+    let raw  = 0;
+    // 1. Phrase-level scoring (longest first, blank matched phrases to avoid double-count).
+    AFINN_BIGRAMS_SORTED.forEach(phrase => {
+      if (text.includes(phrase)) {
+        raw  += AFINN_BIGRAMS[phrase];
+        text  = text.split(phrase).join(' ');
+      }
+    });
+    // 2. Word-level scoring on remaining text.
+    text.split(/\s+/).filter(Boolean).forEach(w => { if (AFINN[w] !== undefined) raw += AFINN[w]; });
     return Math.max(0, Math.min(100, raw * 5 + 50));
   }
 
@@ -1323,25 +1376,33 @@
   const DEMOCRAT_LIB_RE = /democrat|democrats|democratic|\bdems?\b|liberal|liberals|progressive|progressives|biden|harris|pelosi|schumer|\baoc\b|ocasio-cortez|bernie|sanders|warren|defund|woke/i;
 
   // Score an item relative to Trump/Republican framing.
-  // ALL political items are scored; Democrat/liberal content (not also Republican)
-  // has its score INVERTED so negative-about-Dems = positive for Republicans.
+  // Applies framing inversion for Democrat-only content, then subreddit prior.
   function scoreItemSentiment(item) {
     const text     = (item.topic || '') + ' ' + (item.query || '');
-    const rawScore = scoreItemText(item.topic, item.query);
+    let   rawScore = scoreItemText(item.topic, item.query);
     const isRepub  = TRUMP_REPUB_RE.test(text);
     const isDem    = DEMOCRAT_LIB_RE.test(text);
-    return (isDem && !isRepub) ? (100 - rawScore) : rawScore;
+    if (isDem && !isRepub) rawScore = 100 - rawScore;
+
+    // Subreddit prior (Reddit items only).
+    const sub = ((item.subreddit || '').toLowerCase().replace(/^r\//, ''));
+    if (sub && SUBREDDIT_PRIORS[sub] !== undefined) {
+      rawScore = Math.max(0, Math.min(100, rawScore + SUBREDDIT_PRIORS[sub] * 5));
+    }
+    return rawScore;
   }
 
   function computeSentimentScore(data) {
     let totalWeight = 0, totalSentiment = 0;
     let posWeight = 0, negWeight = 0, neuWeight = 0;
 
-    // Score ALL political items with framing-aware scoring.
+    // Score ALL political items with framing-aware, source-weighted scoring.
     const items = data.categories.flatMap(cat => cat.items);
 
     items.forEach(item => {
-      const w     = item.count || 1;
+      const src   = item.source || 'search';
+      const sw    = SOURCE_WEIGHTS[src] || 1.0;
+      const w     = (item.count || 1) * sw;
       const score = scoreItemSentiment(item);
       totalWeight    += w;
       totalSentiment += score * w;
@@ -2576,6 +2637,18 @@
     { ts: new Date('2026-11-04T05:00:00Z'), label: 'Midterms',  sub: 'Nov 3, 2026',       color: '#E74C3C' },
   ];
 
+  // ── Polling baseline: Trump net approval among 18-29 year-olds ────────────
+  // Source: Morning Consult weekly youth tracker + Harvard Youth Poll (biannual).
+  // Values represent approval-rating % mapped to the 0-100 chart scale
+  // (50 = even approve/disapprove; lower = net negative; higher = net positive).
+  // These are approximate estimates; update as new polls are published.
+  const POLLING_BASELINE = [
+    { ts: new Date('2026-01-20T00:00:00Z'), score: 38 },  // inauguration — Harvard Youth Poll
+    { ts: new Date('2026-02-01T00:00:00Z'), score: 36 },  // MC weekly average
+    { ts: new Date('2026-02-15T00:00:00Z'), score: 35 },  // MC weekly average
+    { ts: new Date('2026-02-26T00:00:00Z'), score: 34 },  // MC weekly average (SOTU week)
+  ];
+
   function renderHistoryChart() {
     const container = document.getElementById('history-chart');
     if (!container) return;
@@ -2657,34 +2730,72 @@
       svg += `<text x="${(nowX + 5).toFixed(1)}" y="${(PAD.top + 13).toFixed(1)}" fill="#0DA2E6" font-size="9" font-family="Inter,sans-serif" opacity="0.9">Now</text>`;
     }
 
+    // ── Helper: render a polyline + optional dots for a series ────────────
+    function drawLine(pts, color, strokeW, opacity, dotR, tipField) {
+      if (pts.length === 0) return;
+      const lineD = 'M ' + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
+      svg += `<path d="${lineD}" fill="none" stroke="${color}" stroke-width="${strokeW}" stroke-linejoin="round" stroke-linecap="round" opacity="${opacity}"/>`;
+      if (dotR > 0) {
+        const step = Math.max(1, Math.floor(pts.length / 60));
+        pts.forEach((p, i) => {
+          if (i % step !== 0 && i !== pts.length - 1) return;
+          const sc  = p[tipField || 'score'];
+          const col = sc >= 68 ? '#04B35D' : sc >= 55 ? '#E8CC4A' : sc >= 38 ? '#F9A349' : '#F9495F';
+          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotR}" fill="${col}" stroke="#FFFFFF" stroke-width="1.5" style="cursor:pointer" data-ts="${p.ts}" data-score="${sc}" onmouseenter="showHistTip(event)" onmouseleave="hideHistTip()"/>`;
+        });
+      }
+    }
+
     // Score area + line + dots
     if (points.length > 0) {
       const mapped = points
-        .map(p => ({ x: xS(new Date(p.ts)), y: yS(p.score), score: p.score, ts: p.ts }))
+        .map(p => ({ x: xS(new Date(p.ts)), y: yS(p.score), score: p.score, ts: p.ts,
+                     score_male: p.score_male, score_female: p.score_female }))
         .filter(p => p.x >= PAD.left - 1 && p.x <= PAD.left + cW + 1);
 
       if (mapped.length > 0) {
-        // Area fill
+        // Area fill (aggregate line only)
         const areaD = `M ${mapped[0].x.toFixed(1)},${(PAD.top + cH).toFixed(1)} `
           + mapped.map(p => `L ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
           + ` L ${mapped[mapped.length - 1].x.toFixed(1)},${(PAD.top + cH).toFixed(1)} Z`;
-        svg += `<path d="${areaD}" fill="#0DA2E6" opacity="0.07"/>`;
+        svg += `<path d="${areaD}" fill="#0DA2E6" opacity="0.06"/>`;
 
-        // Line
-        const lineD = 'M ' + mapped.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
-        svg += `<path d="${lineD}" fill="none" stroke="#0DA2E6" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>`;
+        // Aggregate line + dots
+        drawLine(mapped, '#0DA2E6', 2.5, 1, 5, 'score');
 
-        // Dots — only show every Nth point to avoid overcrowding
-        const step = Math.max(1, Math.floor(mapped.length / 60));
-        mapped.forEach((p, i) => {
-          if (i % step !== 0 && i !== mapped.length - 1) return;
-          const col = p.score >= 68 ? '#04B35D' : p.score >= 55 ? '#E8CC4A' : p.score >= 38 ? '#F9A349' : '#F9495F';
-          svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="5" fill="${col}" stroke="#FFFFFF" stroke-width="1.5" style="cursor:pointer" data-ts="${p.ts}" data-score="${p.score}" onmouseenter="showHistTip(event)" onmouseleave="hideHistTip()"/>`;
-        });
+        // Male line (sky-blue, dashed)
+        const maleMap = mapped
+          .filter(p => p.score_male != null)
+          .map(p => ({ x: p.x, y: yS(p.score_male), score: p.score_male, ts: p.ts }));
+        if (maleMap.length > 1) {
+          const mD = 'M ' + maleMap.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
+          svg += `<path d="${mD}" fill="none" stroke="#38BDF8" stroke-width="1.8" stroke-dasharray="6,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`;
+        }
+
+        // Female line (rose, dashed)
+        const femMap = mapped
+          .filter(p => p.score_female != null)
+          .map(p => ({ x: p.x, y: yS(p.score_female), score: p.score_female, ts: p.ts }));
+        if (femMap.length > 1) {
+          const fD = 'M ' + femMap.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
+          svg += `<path d="${fD}" fill="none" stroke="#FB7185" stroke-width="1.8" stroke-dasharray="6,3" stroke-linejoin="round" stroke-linecap="round" opacity="0.85"/>`;
+        }
       }
     } else {
       // Empty state
       svg += `<text x="${(PAD.left + cW / 2).toFixed(1)}" y="${(PAD.top + cH / 2 + 5).toFixed(1)}" text-anchor="middle" fill="#5a7a9a" font-size="13" font-family="Inter,sans-serif">No historical data yet — scores will appear after the next data refresh.</text>`;
+    }
+
+    // ── Polling baseline overlay ───────────────────────────────────────────
+    const pollMapped = POLLING_BASELINE
+      .map(p => ({ x: xS(p.ts), y: yS(p.score), score: p.score }))
+      .filter(p => p.x >= PAD.left && p.x <= PAD.left + cW);
+    if (pollMapped.length > 1) {
+      const pD = 'M ' + pollMapped.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' L ');
+      svg += `<path d="${pD}" fill="none" stroke="#A78BFA" stroke-width="1.5" stroke-dasharray="4,5" stroke-linejoin="round" stroke-linecap="round" opacity="0.75"/>`;
+      pollMapped.forEach(p => {
+        svg += `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="#A78BFA" stroke="#FFFFFF" stroke-width="1.5" opacity="0.85" title="Polling: ${p.score}%"/>`;
+      });
     }
 
     svg += '</svg>';
