@@ -33,6 +33,7 @@ LIVE_FEED_FILE       = Path(__file__).parent / "live_feed.json"
 HISTORY_FILE         = Path(__file__).parent / "history.json"
 MCP_STATUS_FILE      = Path(__file__).parent / "mcp_status.json"
 SOURCES_CACHE_FILE   = Path(__file__).parent / "sources_cache.json"
+POLLING_DATA_FILE    = Path(__file__).parent / "polling_data.json"
 
 VERBAI_MCP_URL = (
     "https://zknnynm-exc60781.snowflakecomputing.com"
@@ -2174,35 +2175,61 @@ def update_history(data: dict) -> None:
         except ValueError:
             return datetime.date.min
 
-    # ── Partition: today's point(s) vs all other days ────────────────────
-    today_pts = [pt for pt in history.get("points", []) if _pt_et_date(pt) == today_et]
-    other_pts = [pt for pt in history.get("points", []) if _pt_et_date(pt) != today_et]
+    # ── Full consolidation: collapse ALL multi-point ET dates at once ─────
+    # This retroactively fixes any legacy multi-point days on every run so
+    # the chart always has exactly one data point per ET calendar date.
+    def _noon_utc(d: datetime.date) -> str:
+        off_h = 4 if 4 <= d.month <= 10 else 5
+        return (
+            datetime.datetime(d.year, d.month, d.day, 12, 0, 0)
+            + datetime.timedelta(hours=off_h)
+        ).strftime("%Y-%m-%dT%H:%M:%SZ")
 
-    # ── Upsert: rolling average of all runs on this ET day ───────────────
-    if today_pts:
-        # Existing sample count and weighted score sum (handles old multi-point days)
-        prev_n = sum(pt.get("_n", 1) for pt in today_pts)
-        prev_s = sum(pt["score"] * pt.get("_n", 1) for pt in today_pts)
-        new_n  = prev_n + 1
-        new_score = round((prev_s + score) / new_n)
+    bucket_map: dict[datetime.date, list[dict]] = {}
+    for pt in history.get("points", []):
+        d = _pt_et_date(pt)
+        bucket_map.setdefault(d, []).append(pt)
 
-        # Gender: carry forward latest non-None, then blend with new values
-        prev_male   = next((pt["score_male"]   for pt in reversed(today_pts) if "score_male"   in pt), None)
-        prev_female = next((pt["score_female"] for pt in reversed(today_pts) if "score_female" in pt), None)
-        new_male   = score_male   if score_male   is not None else prev_male
-        new_female = score_female if score_female is not None else prev_female
+    # Remove bad date bucket
+    bucket_map.pop(datetime.date.min, None)
 
-        merged: dict = {"ts": day_iso, "score": new_score, "_n": new_n}
-        if new_male   is not None: merged["score_male"]   = new_male
-        if new_female is not None: merged["score_female"] = new_female
-        if llm_pct    is not None: merged["llm"]          = llm_pct
-    else:
-        merged = {"ts": day_iso, "score": score, "_n": 1}
-        if score_male   is not None: merged["score_male"]   = score_male
-        if score_female is not None: merged["score_female"] = score_female
-        if llm_pct      is not None: merged["llm"]          = llm_pct
+    # Upsert today's new measurement
+    today_bucket = bucket_map.get(today_et, [])
+    prev_n = sum(p.get("_n", 1) for p in today_bucket)
+    prev_s = sum(p["score"] * p.get("_n", 1) for p in today_bucket)
+    new_n  = prev_n + 1
+    new_score = round((prev_s + score) / new_n)
+    prev_male   = next((p["score_male"]   for p in reversed(today_bucket) if "score_male"   in p), None)
+    prev_female = next((p["score_female"] for p in reversed(today_bucket) if "score_female" in p), None)
+    merged: dict = {
+        "ts": day_iso, "score": new_score, "_n": new_n,
+    }
+    if (score_male   if score_male   is not None else prev_male)   is not None:
+        merged["score_male"]   = score_male   if score_male   is not None else prev_male
+    if (score_female if score_female is not None else prev_female) is not None:
+        merged["score_female"] = score_female if score_female is not None else prev_female
+    if llm_pct is not None:
+        merged["llm"] = llm_pct
+    bucket_map[today_et] = [merged]
 
-    history["points"] = sorted(other_pts + [merged], key=lambda p: p.get("ts", ""))[-730:]
+    # Collapse all other multi-point buckets into a single daily average
+    consolidated = []
+    for et_date, bucket in bucket_map.items():
+        if len(bucket) == 1:
+            consolidated.append(bucket[0])
+        else:
+            n   = sum(p.get("_n", 1) for p in bucket)
+            avg = round(sum(p["score"] * p.get("_n", 1) for p in bucket) / n)
+            pt  = {"ts": _noon_utc(et_date), "score": avg, "_n": n}
+            sm  = next((p["score_male"]   for p in reversed(bucket) if "score_male"   in p), None)
+            sf  = next((p["score_female"] for p in reversed(bucket) if "score_female" in p), None)
+            ll  = next((p["llm"]         for p in reversed(bucket) if "llm"          in p), None)
+            if sm is not None: pt["score_male"]   = sm
+            if sf is not None: pt["score_female"] = sf
+            if ll is not None: pt["llm"]          = ll
+            consolidated.append(pt)
+
+    history["points"] = sorted(consolidated, key=lambda p: p.get("ts", ""))[-730:]
 
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, separators=(",", ":"))
@@ -2488,6 +2515,83 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
           f"({'reset' if reset else 'accumulated'}).")
 
 
+def fetch_new_polling(since_iso: str, mcp_ctx) -> list[dict]:
+    """
+    Query VerbAI for any newly-published youth approval-rating polls released
+    today (since since_iso).  Runs only on the first cron of each ET day.
+
+    Returns a list of poll dicts: [{ts, approve, disapprove, source, label}].
+    Returns [] when nothing new is found or queries fail.
+    """
+    if not mcp_ctx:
+        print("[INFO] Polling fetch skipped — no MCP context (Claude fallback path).")
+        return []
+    tool_name, session_id, url, token = mcp_ctx
+    prompt = (
+        f"Have any new youth polls (Trump approval/disapproval rating among 18–29 year olds) "
+        f"been published or ingested since {since_iso}? "
+        f"Look in AGENT_SYNC or any news/search tables for poll results from Harvard Youth Poll, "
+        f"Yale Youth Survey, Morning Consult, or similar sources. "
+        f"If you find any, return JSON: "
+        f'[{{"ts": "<ISO date>", "approve": <int>, "disapprove": <int>, "source": "<pollster>", "label": "<short label>"}}] '
+        f"Return an empty array [] if nothing new is found."
+    )
+    try:
+        text = _call_verbai_agent(prompt, tool_name, session_id, url, token)
+        matches = re.findall(r"\[.*?\]", text, re.DOTALL)
+        for m in matches:
+            try:
+                data = json.loads(m)
+                if isinstance(data, list):
+                    valid = [
+                        p for p in data
+                        if isinstance(p, dict)
+                        and "ts" in p and "approve" in p and "disapprove" in p and "source" in p
+                    ]
+                    if valid:
+                        print(f"[OK] Polling fetch — {len(valid)} new poll(s) found.")
+                        return valid
+            except json.JSONDecodeError:
+                pass
+    except Exception as e:
+        print(f"[WARN] Polling fetch failed: {e}")
+    return []
+
+
+def update_polling_data(new_polls: list[dict]) -> None:
+    """
+    Append new_polls to polling_data.json, deduping by ts+source.
+    No-op if new_polls is empty.
+    """
+    if not new_polls:
+        return
+    existing: dict = {"polls": []}
+    if POLLING_DATA_FILE.exists():
+        try:
+            with open(POLLING_DATA_FILE) as f:
+                existing = json.load(f)
+        except Exception:
+            pass
+    known = {
+        (p.get("ts", "")[:10], p.get("source", ""))
+        for p in existing.get("polls", [])
+    }
+    added = 0
+    for poll in new_polls:
+        key = (poll.get("ts", "")[:10], poll.get("source", ""))
+        if key not in known:
+            existing.setdefault("polls", []).append(poll)
+            known.add(key)
+            added += 1
+    if added:
+        existing["polls"].sort(key=lambda p: p.get("ts", ""))
+        with open(POLLING_DATA_FILE, "w") as f:
+            json.dump(existing, f, indent=2, ensure_ascii=False)
+        print(f"[OK] Wrote polling_data.json — added {added} new poll(s).")
+    else:
+        print("[INFO] No new polls to add — polling_data.json unchanged.")
+
+
 def write_sources_cache(data: dict) -> None:
     """
     Append this cron run's flat item list to sources_cache.json.
@@ -2598,6 +2702,23 @@ def main():
 
     # Merge TikTok watch video titles into queries (same shape: query/count/source/category)
     queries_raw = list(queries_raw or []) + list(tiktok_watch_raw or [])
+
+    # ── First-run-of-day: fetch new youth polling data ────────────────────────
+    # Runs only during the 12:15 am ET cron (ET hour == 0, minute < 30) so we
+    # don't hammer VerbAI with polling queries on every 15-minute tick.
+    _now_utc   = datetime.datetime.now(datetime.timezone.utc)
+    _et_off_h  = 4 if 4 <= _now_utc.month <= 10 else 5
+    _now_et    = _now_utc - datetime.timedelta(hours=_et_off_h)
+    _first_run = (_now_et.hour == 0 and _now_et.minute < 30)
+    if _first_run:
+        print("[INFO] First cron of the day — checking for new youth polling data...")
+        _midnight_iso = _now_et.replace(hour=0, minute=0, second=0, microsecond=0).strftime(
+            "%Y-%m-%dT%H:%M:%S"
+        )
+        new_polls = fetch_new_polling(_midnight_iso, mcp_ctx)
+        update_polling_data(new_polls)
+    else:
+        print(f"[INFO] Polling check skipped (ET time {_now_et.strftime('%H:%M')} — not first run).")
 
     # ── Write outputs ─────────────────────────────────────────────────────────
     any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)

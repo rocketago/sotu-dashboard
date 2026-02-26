@@ -1,0 +1,26 @@
+{
+  "description": "Trump approval/disapproval among 18–29 year-olds. Sources: Harvard Youth Poll (IOP), Yale Youth Survey, and Voters of Tomorrow polling. Scores are approval %. Add entries manually for VoT-sourced polls.",
+  "polls": [
+    {
+      "ts": "2026-01-20T00:00:00Z",
+      "approve": 34,
+      "disapprove": 58,
+      "source": "Harvard Youth Poll",
+      "label": "Jan 20, 2026 — Inauguration"
+    },
+    {
+      "ts": "2026-02-03T00:00:00Z",
+      "approve": 32,
+      "disapprove": 60,
+      "source": "Yale Youth Survey",
+      "label": "Feb 3, 2026"
+    },
+    {
+      "ts": "2026-02-24T00:00:00Z",
+      "approve": 30,
+      "disapprove": 63,
+      "source": "Yale Youth Survey",
+      "label": "Feb 24, 2026 — SOTU Week"
+    }
+  ]
+}

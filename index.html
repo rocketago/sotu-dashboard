@@ -13,15 +13,11 @@
     <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="vot-logo" />
   </a>
   <h1>U.S. Political Pulse — Young Voter Tracker (Demo)</h1>
-  <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-15-minute auto-update cron">
-    ⏸ Live Updates: OFF
-  </button>
-  <div class="live-pill paused" id="live-pill">
-    <div class="live-dot" id="live-dot"></div>
-    <span id="live-label">PAUSED</span>
-    <span id="cron-countdown" class="cron-countdown" hidden></span>
+  <div class="live-pill" id="live-pill">
+    <div class="live-dot"></div>
+    <span>LIVE</span>
   </div>
-  <div class="refresh-info">Updated every 15 min</div>
+  <span class="cron-next">Next live update in <span id="cron-countdown" class="cron-countdown">--:--</span></span>
 </header>
 
 <div class="window-banner" id="window-banner">
@@ -169,6 +165,7 @@
   const MCP_STATUS_URL    = './mcp_status.json';
   const LIVE_FEED_URL     = './live_feed.json';
   const SOURCES_CACHE_URL = './sources_cache.json';
+  const POLLING_URL       = './polling_data.json';
   const REFRESH_MS        = 15 * 60 * 1000;
 
   let allExpanded    = true;
@@ -179,6 +176,7 @@
   let topicsByCategory  = {};   // catLabel → [{label, kws, events}]
   let sourcesCache      = null; // {runs: [{ts, items[]}]}
   let sourcesWindow     = 'day'; // 'day' | 'week' | 'month'
+  let pollingData       = null; // {polls: [{ts, approve, disapprove, source, label}]}
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -1069,29 +1067,27 @@
       });
     }
 
-    // Data window: from today_start to now
-    const windowStr = m.today_start
-      ? `📊 Data window: ${fmtETNtz(m.today_start)} → now`
-      : '';
+    document.getElementById('window-desc').textContent = '';
 
-    // Most recent pull (cron run)
-    let pullStr = '';
-    if (mcpStatus && mcpStatus.last_attempt_at) {
-      const noData = mcpStatus.data_returned === false;
-      const flag   = noData ? ' ⚠️ no data' : '';
-      pullStr = `🕐 Last pull: ${fmtEST(mcpStatus.last_attempt_at)}${flag}`;
-    } else if (m.last_mcp_pull) {
-      pullStr = `🕐 Last pull: ${fmtEST(m.last_mcp_pull)}`;
+    // Per-platform latest data time — use generated_at as the best proxy
+    const dataTs = m.generated_at ? fmtEST(m.generated_at) : '—';
+    function platformSpan(icon, label, count, hasData) {
+      const countStr = Number(count || 0).toLocaleString();
+      const tsStr    = hasData ? dataTs : 'No recent data';
+      return `<span class="source-platform-entry${hasData ? '' : ' source-platform-empty'}">` +
+        `<span class="sp-icon">${icon}</span>` +
+        `<span class="sp-label">${label}</span>` +
+        `<span class="sp-count">${countStr}</span>` +
+        `<span class="sp-ts">${tsStr}</span>` +
+      `</span>`;
     }
-
-    document.getElementById('window-desc').textContent =
-      [windowStr, pullStr].filter(Boolean).join('   ·   ');
-    document.getElementById('source-counts').innerHTML = `
-      <span>🔍 ${(s.search_events_today || 0).toLocaleString()} searches <span class="latency-pill latency-live">~1 min lag</span></span>
-      <span>▶ ${(s.youtube_events_today || 0).toLocaleString()} YouTube videos</span>
-      <span>💬 ${(s.reddit_events_today || 0).toLocaleString()} Reddit posts <span class="latency-pill latency-delayed">~40 min lag</span></span>
-      <span>📰 ${(s.news_events_today || 0).toLocaleString()} news events</span>
-    `;
+    const ttCount = (s.tiktok_watch_events_today || 0) + (s.tiktok_search_events_today || 0);
+    document.getElementById('source-counts').innerHTML =
+      platformSpan('🔍', 'Search',  s.search_events_today,  (s.search_events_today  || 0) > 0) +
+      platformSpan('💬', 'Reddit',  s.reddit_events_today,  (s.reddit_events_today  || 0) > 0) +
+      platformSpan('▶',  'YouTube', s.youtube_events_today, (s.youtube_events_today || 0) > 0) +
+      platformSpan('📰', 'News',    s.news_events_today,    (s.news_events_today    || 0) > 0) +
+      platformSpan('♪',  'TikTok',  ttCount,                ttCount > 0);
   }
 
   /* ── RENDER SUMMARY ── */
@@ -1397,340 +1393,24 @@
   }
 
 
-  /* ── LOADING OVERLAY ── */
-  let _pollInterval  = null;
-  let _pollTimeout   = null;
-  let _stepTimer     = null;
 
-  // Step messages + their trigger times (seconds after dispatch)
-  const LOAD_STEPS = [
-    [5,   'GitHub Actions runner is starting up…'],
-    [18,  'Connecting to VerbAI MCP…'],
-    [35,  'Querying Gen Z engagement data…'],
-    [55,  'Fetching searches, Reddit & YouTube…'],
-    [80,  'Processing political categories…'],
-    [105, 'Computing sentiment scores…'],
-    [125, 'Writing results to repository…'],
-    [145, 'Snowflake can be slow — still running…'],
-    [170, 'Almost there, hang tight…'],
-  ];
-
-  function showLoadingOverlay(msg) {
-    const overlay = document.getElementById('data-loading-overlay');
-    const msgEl   = document.getElementById('loading-msg');
-    const bar     = document.getElementById('loading-progress-bar');
-    if (msgEl) msgEl.textContent = msg || 'Workflow dispatched — waiting for runner';
-    if (bar)   { bar.style.transition = 'none'; bar.style.width = '0%'; }
-    overlay.style.display = 'flex';
-    // Animate bar to ~80% over 2.5 min (the typical script runtime)
-    requestAnimationFrame(() => {
-      if (bar) { bar.style.transition = 'width 155s cubic-bezier(0.1,0,0.4,1)'; bar.style.width = '82%'; }
-    });
-  }
-
-  function hideLoadingOverlay() {
-    const overlay = document.getElementById('data-loading-overlay');
-    const bar     = document.getElementById('loading-progress-bar');
-    if (bar) { bar.style.transition = 'width 0.5s ease'; bar.style.width = '100%'; }
-    setTimeout(() => { overlay.style.display = 'none'; }, 500);
-    if (_pollInterval) { clearInterval(_pollInterval); _pollInterval = null; }
-    if (_pollTimeout)  { clearTimeout(_pollTimeout);   _pollTimeout  = null; }
-    if (_stepTimer)    { clearTimeout(_stepTimer);     _stepTimer    = null; }
-  }
-
-  function cancelLoading() {
-    hideLoadingOverlay();
-  }
-
-  function scheduleSteps(startTime) {
-    const msgEl = document.getElementById('loading-msg');
-    function next(idx) {
-      if (idx >= LOAD_STEPS.length) return;
-      const [delay, msg] = LOAD_STEPS[idx];
-      const wait = (startTime + delay * 1000) - Date.now();
-      _stepTimer = setTimeout(() => {
-        if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = msg; msgEl.style.opacity = '1'; }, 180); }
-        next(idx + 1);
-      }, Math.max(wait, 0));
-    }
-    next(0);
-  }
-
-  async function pollForNewData(knownTs) {
-    _pollInterval = setInterval(async () => {
-      try {
-        const res = await fetch(DATA_URL + '?_=' + Date.now());
-        if (!res.ok) return;
-        const d = await res.json();
-        const newTs = d.meta && d.meta.generated_at;
-        if (newTs && newTs !== knownTs) {
-          // Fresh data arrived
-          const msgEl = document.getElementById('loading-msg');
-          if (msgEl) { msgEl.style.opacity = '0'; setTimeout(() => { msgEl.textContent = 'New data ready — loading dashboard…'; msgEl.style.opacity = '1'; }, 180); }
-          clearInterval(_pollInterval); _pollInterval = null;
-          _clearCronRun();
-          const fireQueued = _cronQueued;
-          // Keep _cronQueued true until _cronFire() clears it so the countdown
-          // stays frozen at "Queued" until the queued workflow actually begins.
-          if (!fireQueued) _cronQueued = false;
-          await loadData();
-          setTimeout(() => {
-            hideLoadingOverlay();
-            showStatus('Dashboard refreshed with latest data ✓', 'success');
-          }, 600);
-          // If a boundary was crossed while the run was active, dispatch that queued run now
-          if (fireQueued) setTimeout(_cronFire, 1000);
-        }
-      } catch (_) { /* network blip — keep polling */ }
-    }, 5000);
-
-    // Give up after 3 minutes
-    _pollTimeout = setTimeout(() => {
-      hideLoadingOverlay();
-      showStatus('Timed out waiting for data — check GitHub Actions for status', 'error');
-    }, 180000);
-  }
-
-  /* ── LIVE UPDATES TOGGLE ── */
-  const GH_CONTENTS_URL = 'https://api.github.com/repos/rocketago/sotu-dashboard/contents/cron_enabled.json';
-
-  /* ── Cron countdown timer ── */
+  /* ── CRON COUNTDOWN (display only — cron fires server-side via GitHub Actions) ── */
   let _cronCountdownTimer = null;
-  let _lastCronBoundary   = null;
-  let _cronRunActive      = false;  // true from dispatch until new data arrives (or safety timeout)
-  let _cronQueued         = false;  // one boundary crossed while active — fire once run ends
-  let _cronRunTimer       = null;   // 12-min safety valve
 
-  function _clearCronRun() {
-    _cronRunActive = false;
-    if (_cronRunTimer) { clearTimeout(_cronRunTimer); _cronRunTimer = null; }
-  }
-
-  /* Silently dispatch the fetch workflow at each 15-min boundary.
-     If no token is stored, falls back to a plain loadData() refresh. */
-  async function _cronFire() {
-    if (_cronRunActive) return;               // guard — should not be reachable
-    _cronRunActive = true;
-    _cronQueued    = false;                   // consume the queued slot
-    // 12-min safety valve: if CI never produces new data, unblock the timer
-    if (_cronRunTimer) clearTimeout(_cronRunTimer);
-    _cronRunTimer = setTimeout(() => {
-      _cronRunActive = false;
-      _cronRunTimer  = null;
-      _cronQueued    = false;                 // stale after 12 min — discard
-    }, 12 * 60 * 1000);
-
-    const token = localStorage.getItem('gh_actions_token');
-    if (!token) { _clearCronRun(); loadData(); return; }
-    const knownTs = currentData && currentData.meta ? currentData.meta.generated_at : null;
-    try {
-      const res = await fetch(
-        'https://api.github.com/repos/rocketago/sotu-dashboard/actions/workflows/auto-update.yml/dispatches',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': 'Bearer ' + token,
-            'Accept': 'application/vnd.github+json',
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ ref: 'main' }),
-        }
-      );
-      if (res.status === 204) {
-        pollForNewData(knownTs);
-      } else if (res.status === 401 || res.status === 403) {
-        localStorage.removeItem('gh_actions_token');
-        _clearCronRun();
-        loadData();
-      } else {
-        _clearCronRun();
-        loadData(); // dispatch failed — at least refresh from cached JSON
-      }
-    } catch (_) { _clearCronRun(); loadData(); }
-  }
-
-  function startCronCountdown() {
-    stopCronCountdown();
+  function startCountdown() {
+    if (_cronCountdownTimer) clearInterval(_cronCountdownTimer);
     function tick() {
       const el = document.getElementById('cron-countdown');
-      if (!el || el.hidden) return;
-      const now = Date.now();
-      const INTERVAL = 15 * 60 * 1000;
-      // nextFire = the upcoming 15-min wall-clock mark (advances once now crosses it).
-      const nextFire = Math.ceil((now + 1) / INTERVAL) * INTERVAL;
-      // Initialise target on first call.
-      if (_lastCronBoundary === null) _lastCronBoundary = nextFire;
-
-      // Count toward the stored target so the display reaches 0:00 before we
-      // fire — using nextFire directly would skip 0:00 because nextFire has
-      // already advanced to the next mark by the time the boundary is crossed.
-      const remaining = Math.max(0, _lastCronBoundary - now);
-
-      // Render first so the user sees 0:00 before the workflow is dispatched.
-      if (_cronQueued) {
-        el.textContent = '· Queued';
-      } else {
-        const mins = Math.floor(remaining / 60000);
-        const secs = Math.floor((remaining % 60000) / 1000);
-        el.textContent = `· ${mins}:${String(secs).padStart(2, '0')}`;
-      }
-
-      // Detect boundary crossing: nextFire advances past _lastCronBoundary
-      // the tick after now >= _lastCronBoundary (i.e. remaining just hit 0).
-      if (nextFire !== _lastCronBoundary) {
-        _lastCronBoundary = nextFire;   // advance target for the next countdown
-        if (_cronRunActive || _cronQueued) {
-          _cronQueued = true;           // cap at one queued dispatch
-        } else {
-          _cronFire();
-        }
-      }
+      if (!el) return;
+      const now       = Date.now();
+      const INTERVAL  = 15 * 60 * 1000;
+      const remaining = Math.max(0, Math.ceil((now + 1) / INTERVAL) * INTERVAL - now);
+      const mins = Math.floor(remaining / 60000);
+      const secs = Math.floor((remaining % 60000) / 1000);
+      el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
     }
     tick();
     _cronCountdownTimer = setInterval(tick, 1000);
-  }
-
-  function stopCronCountdown() {
-    if (_cronCountdownTimer) { clearInterval(_cronCountdownTimer); _cronCountdownTimer = null; }
-    _lastCronBoundary = null;
-    _clearCronRun();
-    _cronQueued = false;
-  }
-
-  function updateLiveBtn(enabled) {
-    const btn = document.getElementById('live-toggle-btn');
-    if (!btn) return;
-    btn.classList.toggle('live-on', enabled);
-    btn.textContent = enabled ? '▶ Live Updates: ON' : '⏸ Live Updates: OFF';
-    btn.title = enabled
-      ? 'Click to disable automatic 15-minute updates'
-      : 'Click to enable automatic 15-minute updates';
-    const pill      = document.getElementById('live-pill');
-    const liveLabel = document.getElementById('live-label');
-    const countdown = document.getElementById('cron-countdown');
-    if (pill)      pill.classList.toggle('paused', !enabled);
-    if (liveLabel) liveLabel.textContent = enabled ? 'LIVE' : 'PAUSED';
-    if (countdown) {
-      countdown.hidden = !enabled;
-      if (enabled) startCronCountdown(); else stopCronCountdown();
-    }
-
-  }
-
-  async function loadLiveUpdatesState() {
-    try {
-      const headers = {};
-      const tok = localStorage.getItem('gh_actions_token');
-      if (tok) headers['Authorization'] = 'token ' + tok;
-      const res = await fetch(GH_CONTENTS_URL + '?_=' + Date.now(), { headers });
-      if (!res.ok) return;
-      const d = await res.json();
-      const content = atob(d.content.replace(/\n/g, ''));
-      const data = JSON.parse(content);
-      updateLiveBtn(!!data.enabled);
-    } catch (e) { /* silently ignore — button stays in default off state */ }
-  }
-
-  async function toggleLiveUpdates() {
-    const btn = document.getElementById('live-toggle-btn');
-    if (!btn) return;
-
-    let token = localStorage.getItem('gh_actions_token');
-    if (!token) {
-      token = prompt(
-        'Enter a GitHub Personal Access Token with repo/contents:write scope.\n' +
-        'It will be stored in localStorage for future use.\n\nToken:'
-      );
-      if (!token || !token.trim()) return;
-      token = token.trim();
-      localStorage.setItem('gh_actions_token', token);
-    }
-
-    btn.disabled = true;
-    const wasOn = btn.classList.contains('live-on');
-    btn.textContent = wasOn ? '⏸ Disabling…' : '▶ Enabling…';
-
-    try {
-      // 1. GET current file to retrieve SHA
-      const getRes = await fetch(GH_CONTENTS_URL, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-        },
-      });
-
-      if (getRes.status === 401 || getRes.status === 403) {
-        localStorage.removeItem('gh_actions_token');
-        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
-        btn.disabled = false; updateLiveBtn(wasOn); return;
-      }
-      if (!getRes.ok) {
-        showStatus('Could not read cron_enabled.json from GitHub (' + getRes.status + ')', 'error');
-        btn.disabled = false; updateLiveBtn(wasOn); return;
-      }
-
-      const fileInfo   = await getRes.json();
-      const sha        = fileInfo.sha;
-      const newEnabled = !wasOn;
-      const newContent = btoa(JSON.stringify({enabled: newEnabled}) + '\n');
-
-      // 2. PUT updated content back
-      const putRes = await fetch(GH_CONTENTS_URL, {
-        method: 'PUT',
-        headers: {
-          'Authorization': 'Bearer ' + token,
-          'Accept': 'application/vnd.github+json',
-          'X-GitHub-Api-Version': '2022-11-28',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: newEnabled ? 'chore: enable live auto-updates' : 'chore: disable live auto-updates',
-          content: newContent,
-          sha: sha,
-        }),
-      });
-
-      if (putRes.status === 200 || putRes.status === 201) {
-        updateLiveBtn(newEnabled);
-        showStatus(newEnabled ? 'Live auto-updates enabled (every 15 min)' : 'Live auto-updates disabled', 'success');
-      } else if (putRes.status === 401 || putRes.status === 403) {
-        localStorage.removeItem('gh_actions_token');
-        showStatus('GitHub token invalid or expired — token cleared, click again to re-enter', 'error');
-        updateLiveBtn(wasOn);
-      } else {
-        const body = await putRes.text().catch(() => '');
-        showStatus('Failed to update cron_enabled.json (' + putRes.status + ')' +
-          (body ? ': ' + body.slice(0, 120) : ''), 'error');
-        updateLiveBtn(wasOn);
-      }
-    } catch (err) {
-      showStatus('Network error: ' + err.message, 'error');
-      updateLiveBtn(wasOn);
-    }
-    btn.disabled = false;
-  }
-
-  /* ── LOAD AUTO-UPDATE STATUS ── */
-  async function loadStatus() {
-    try {
-      const res = await fetch(STATUS_URL + '?_=' + Date.now());
-      if (!res.ok) return;
-      const status = await res.json();
-      const pill   = document.getElementById('live-pill');
-      const label  = document.getElementById('live-label');
-      const footer = document.getElementById('auto-update-footer');
-      if (status.auto_update_enabled) {
-        pill.classList.remove('paused');
-        if (label)  label.textContent  = 'LIVE';
-        if (footer) footer.textContent = 'Refreshes every 15 minutes';
-      } else {
-        pill.classList.add('paused');
-        if (label)  label.textContent  = 'PAUSED';
-        if (footer) footer.textContent = 'Auto-update paused';
-      }
-    } catch (_) { /* status.json missing or malformed — keep defaults */ }
   }
 
   /* ── HISTORY CHART ── */
@@ -1742,15 +1422,12 @@
     { ts: new Date('2026-11-04T05:00:00Z'), label: 'Midterms',  sub: 'Nov 3, 2026',       color: '#E74C3C' },
   ];
 
-  // ── Polling data: Trump approval/disapproval among 18-29 year-olds ─────────
-  // Sources: Harvard Youth Poll (IOP, biannual) + Yale Youth Survey (quarterly).
-  // score = approval %, plotted on the 0-100 chart axis (50 = net-even).
-  // Hover each dot to see full approve/disapprove breakdown.
-  const POLLING_DATA = [
-    { ts: new Date('2026-01-20T00:00:00Z'), approve: 34, disapprove: 58, source: 'Harvard Youth Poll', label: 'Jan 20, 2026 — Inauguration' },
-    { ts: new Date('2026-02-03T00:00:00Z'), approve: 32, disapprove: 60, source: 'Yale Youth Survey',   label: 'Feb 3, 2026' },
-    { ts: new Date('2026-02-24T00:00:00Z'), approve: 30, disapprove: 63, source: 'Yale Youth Survey',   label: 'Feb 24, 2026 — SOTU Week' },
-  ];
+  // ── Polling data: loaded from polling_data.json (auto-updated + manually editable) ──
+  // Returns an array with ts converted to Date objects for chart rendering.
+  function getPollingData() {
+    if (!pollingData || !Array.isArray(pollingData.polls)) return [];
+    return pollingData.polls.map(p => ({ ...p, ts: new Date(p.ts) }));
+  }
 
   function renderHistoryChart() {
     const container = document.getElementById('history-chart');
@@ -1889,7 +1566,7 @@
     }
 
     // ── Polling overlay (Yale + Harvard Youth Polls) ──────────────────────
-    const pollMapped = POLLING_DATA
+    const pollMapped = getPollingData()
       .map(p => ({ x: xS(p.ts), y: yS(p.approve), approve: p.approve, disapprove: p.disapprove, source: p.source, label: p.label }))
       .filter(p => p.x >= PAD.left && p.x <= PAD.left + cW);
     if (pollMapped.length > 1) {
@@ -1953,12 +1630,13 @@
   async function loadData() {
     try {
       const ts = Date.now();
-      const [dataRes, histRes, mcpStatusRes, liveFeedRes, srcCacheRes] = await Promise.all([
+      const [dataRes, histRes, mcpStatusRes, liveFeedRes, srcCacheRes, pollRes] = await Promise.all([
         fetch(DATA_URL          + '?_=' + ts),
         fetch(HISTORY_URL       + '?_=' + ts).catch(() => null),
         fetch(MCP_STATUS_URL    + '?_=' + ts).catch(() => null),
         fetch(LIVE_FEED_URL     + '?_=' + ts).catch(() => null),
         fetch(SOURCES_CACHE_URL + '?_=' + ts).catch(() => null),
+        fetch(POLLING_URL       + '?_=' + ts).catch(() => null),
       ]);
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
@@ -1966,6 +1644,7 @@
       historyData  = histRes      ? await histRes.json().catch(()      => null) : null;
       mcpStatus    = mcpStatusRes ? await mcpStatusRes.json().catch(() => null) : null;
       sourcesCache = srcCacheRes  ? await srcCacheRes.json().catch(()  => null) : null;
+      pollingData  = pollRes      ? await pollRes.json().catch(()       => null) : null;
       const liveFeedData = liveFeedRes ? await liveFeedRes.json().catch(() => null) : null;
       liveEvents       = (liveFeedData && liveFeedData.events) ? liveFeedData.events : [];
       topicsByCategory = buildTopicsByCategory(liveEvents);
@@ -2004,41 +1683,11 @@
   });
 
   /* ── INIT + AUTO-REFRESH ── */
-  loadStatus();
-  loadLiveUpdatesState();
+  startCountdown();
   loadData();
-  setInterval(loadStatus, REFRESH_MS);
-  setInterval(loadData,   REFRESH_MS);
+  setInterval(loadData, REFRESH_MS);
 </script>
 
-<!-- ── DATA LOADING OVERLAY ── -->
-<div id="data-loading-overlay" class="data-loading-overlay" style="display:none">
-  <div class="loading-card">
-    <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="loading-logo" />
-    <svg class="flag-spinner" viewBox="0 0 60 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <!-- Grey base (always visible) -->
-      <g class="flag-base">
-        <polygon points="22,0 22,8 17,4 5,18 0,18 0,12 14,0"/>
-        <rect x="26" y="0"  width="34" height="12"/>
-        <rect x="0"  y="20" width="60" height="12"/>
-        <rect x="0"  y="40" width="60" height="12"/>
-      </g>
-      <!-- Pink-red fill layer, revealed bottom-to-top -->
-      <g class="flag-fill">
-        <polygon points="22,0 22,8 17,4 5,18 0,18 0,12 14,0"/>
-        <rect x="26" y="0"  width="34" height="12"/>
-        <rect x="0"  y="20" width="60" height="12"/>
-        <rect x="0"  y="40" width="60" height="12"/>
-      </g>
-    </svg>
-    <div class="loading-title">Fetching latest data&hellip;</div>
-    <div class="loading-msg" id="loading-msg">Workflow dispatched — waiting for runner</div>
-    <div class="loading-progress">
-      <div class="loading-progress-bar" id="loading-progress-bar"></div>
-    </div>
-    <button class="loading-cancel" onclick="cancelLoading()">Cancel and dismiss</button>
-  </div>
-</div>
 
 </body>
 </html>

@@ -2,7 +2,11 @@ name: Auto-update political data
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    # Run every 15 minutes starting at 12:15am ET (UTC-5 / EST).
+    # Three entries cover the full day while skipping the 12:00am ET midnight slot.
+    - cron: '15,30,45 5 * * *'       # 12:15 am – 12:45 am ET
+    - cron: '0,15,30,45 6-23 * * *'  #  1:00 am –  6:59 pm ET
+    - cron: '0,15,30,45 0-4 * * *'   #  7:00 pm – 11:45 pm ET
   workflow_dispatch:
 
 # One run at a time; new triggers queue rather than cancel.
@@ -11,32 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  check-enabled:
-    runs-on: ubuntu-latest
-    outputs:
-      should_run: ${{ steps.gate.outputs.should_run }}
-    steps:
-      - name: Checkout cron gate file
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
-          sparse-checkout: cron_enabled.json
-          sparse-checkout-cone-mode: false
-
-      - name: Check cron_enabled.json
-        id: gate
-        run: |
-          if [ -f cron_enabled.json ]; then
-            enabled=$(python3 -c "import json; d=json.load(open('cron_enabled.json')); print('true' if d.get('enabled') else 'false')")
-          else
-            enabled=false
-          fi
-          echo "should_run=$enabled" >> "$GITHUB_OUTPUT"
-          echo "Cron gate: should_run=$enabled"
-
   fetch-and-push:
-    needs: check-enabled
-    if: needs.check-enabled.outputs.should_run == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 10   # cron fires every 15 min — must finish well inside that window
     permissions:
@@ -83,7 +62,7 @@ jobs:
         run: |
           git config user.name  "Claude Auto-Update"
           git config user.email "noreply@anthropic.com"
-          git add political_data.json history.json mcp_status.json live_feed.json sources_cache.json
+          git add political_data.json history.json mcp_status.json live_feed.json sources_cache.json polling_data.json
           # Only commit if something changed
           if git diff --cached --quiet; then
             echo "No changes — skipping commit."
