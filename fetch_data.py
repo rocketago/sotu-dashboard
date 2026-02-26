@@ -444,7 +444,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
     """
     Call the VerbAI MCP tool via the Claude CLI and return the text result.
 
-    Uses claude-haiku for faster token generation and a 600s timeout to
+    Uses claude-haiku for faster token generation and a 120s timeout to
     accommodate CLI startup + MCP initialisation + Snowflake cold-start.
     --max-turns 5 caps the internal agent loop so the process cannot spin
     indefinitely if Cortex Analyst returns sparse results.
@@ -462,7 +462,7 @@ def run_verb_ai_query(prompt: str) -> str | None:
             cmd,
             capture_output=True,
             text=True,
-            timeout=600,
+            timeout=120,
         )
         print(f"[CLAUDE] exit={result.returncode} "
               f"stdout={len(result.stdout)}b stderr={len(result.stderr)}b")
@@ -1557,7 +1557,7 @@ def merge_into_structure(
             "window":        "rolling_24h",
             "window_label":  "Last 24h · Updated live",
             "today_start":   today_start or _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":    total_eng,
@@ -2442,7 +2442,7 @@ def _fresh_day_structure() -> dict:
             "window":                   "rolling_24h",
             "window_label":             "Last 24h · Updated live",
             "today_start":              _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":    0,
@@ -2837,7 +2837,7 @@ def build_political_data_from_events(
             "window":                   "rolling_24h",
             "window_label":             "Last 24h · Updated live",
             "today_start":              since_iso or _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":          total_eng,
@@ -2970,7 +2970,7 @@ def main():
             live_events_raw  = f_live.result()
     else:
         # Claude fallback: subprocesses in parallel
-        print("[INFO] Running 5 Claude queries in parallel (timeout=600s each)...")
+        print("[INFO] Running 5 Claude queries in parallel (timeout=120s each)...")
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
             f_queries     = pool.submit(fetch_search_queries,      since_iso, None)
             f_youtube     = pool.submit(fetch_youtube_videos,      since_iso, None)
