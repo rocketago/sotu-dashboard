@@ -1,7 +1,7 @@
 {
   "meta": {
-    "generated_at": "2026-02-26T13:58:10Z",
-    "last_mcp_pull": "2026-02-26T10:33:54Z",
+    "generated_at": "2026-02-26T14:45:16Z",
+    "last_mcp_pull": "2026-02-26T14:45:16Z",
     "demographic": "Ages 18-29",
     "data_source": "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
     "window": "rolling_24h",
@@ -28,7 +28,7 @@
       "label": "Presidential Politics",
       "icon": "🏛️",
       "engagement_count": 55,
-      "unique_users": 97,
+      "unique_users": 109,
       "trending_score": 100,
       "items": [
         {
@@ -98,7 +98,7 @@
       "label": "Economic Policy",
       "icon": "💰",
       "engagement_count": 25,
-      "unique_users": 112,
+      "unique_users": 94,
       "trending_score": 45,
       "items": [
         {
@@ -118,7 +118,7 @@
       "label": "Legislative Politics",
       "icon": "📜",
       "engagement_count": 17,
-      "unique_users": 43,
+      "unique_users": 49,
       "trending_score": 31,
       "items": [
         {
