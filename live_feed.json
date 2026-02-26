@@ -1,7 +1,15 @@
 {
-  "generated_at": "2026-02-26T04:08:12Z",
-  "day_start": "2026-02-24T23:08:12",
+  "generated_at": "2026-02-26T04:38:08Z",
+  "day_start": "2026-02-24T23:38:08",
   "events": [
+    {
+      "time": "2026-02-26T04:38:08Z",
+      "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 17
+    },
     {
       "time": "2026-02-26T04:08:12Z",
       "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms",
@@ -41,6 +49,14 @@
       "channel": "ABC News",
       "category": "Legislative Politics",
       "count": 4
+    },
+    {
+      "time": "2026-02-26T00:28:49Z",
+      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Economic Policy",
+      "count": 25
     },
     {
       "time": "2026-02-25T23:54:08Z",
@@ -83,6 +99,14 @@
       "count": 4
     },
     {
+      "time": "2026-02-25T20:19:30Z",
+      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+      "source": "youtube",
+      "channel": "13WMAZ",
+      "category": "Presidential Politics",
+      "count": 1
+    },
+    {
       "time": "2026-02-25T19:24:28Z",
       "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
       "source": "youtube",
@@ -107,12 +131,62 @@
       "count": 1
     },
     {
+      "time": "2026-02-25T18:26:03Z",
+      "query": "kristi noem press conference",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 23,
+      "gender": "Male",
+      "state": "WA"
+    },
+    {
+      "time": "2026-02-25T18:23:29Z",
+      "query": "state of the union 2026 highlights",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 21,
+      "gender": "Male",
+      "state": "NY"
+    },
+    {
+      "time": "2026-02-25T18:23:29Z",
+      "query": "lionel richie we are the world china gala",
+      "source": "search",
+      "subreddit": null,
+      "category": "Foreign Policy",
+      "age": 21,
+      "gender": "Male",
+      "state": "NY"
+    },
+    {
       "time": "2026-02-25T18:05:04Z",
       "query": "No. 2 House Democrat to skip Trump's State of the Union address",
       "source": "youtube",
       "channel": "ABC News",
       "category": "Legislative Politics",
       "count": 17
+    },
+    {
+      "time": "2026-02-25T17:14:12Z",
+      "query": "fox news live white house press briefing",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 24,
+      "gender": "Female",
+      "state": "TN"
+    },
+    {
+      "time": "2026-02-25T17:14:07Z",
+      "query": "fox news live white house press briefing",
+      "source": "search",
+      "subreddit": null,
+      "category": "Presidential Politics",
+      "age": 24,
+      "gender": "Female",
+      "state": "TN"
     },
     {
       "time": "2026-02-25T16:29:53Z",
@@ -129,6 +203,14 @@
       "channel": "13WMAZ",
       "category": "Presidential Politics",
       "count": 1
+    },
+    {
+      "time": "2026-02-25T16:10:11Z",
+      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+      "source": "youtube",
+      "channel": "FOX 9 Minneapolis-St. Paul",
+      "category": "Presidential Politics",
+      "count": 5
     },
     {
       "time": "2026-02-25T15:54:15Z",
@@ -148,7 +230,7 @@
     },
     {
       "time": "2026-02-25T15:00:30Z",
-      "query": "trump",
+      "query": "trump latest news",
       "source": "search",
       "subreddit": null,
       "category": "Presidential Politics",
@@ -158,7 +240,7 @@
     },
     {
       "time": "2026-02-25T15:00:30Z",
-      "query": "trump latest news",
+      "query": "trump",
       "source": "search",
       "subreddit": null,
       "category": "Presidential Politics",
@@ -259,6 +341,14 @@
       "count": 4
     },
     {
+      "time": "2026-02-25T12:00:52Z",
+      "query": "10 highlights from Trump's 2026 State of the Union",
+      "source": "youtube",
+      "channel": "CBS News",
+      "category": "Presidential Politics",
+      "count": 8
+    },
+    {
       "time": "2026-02-25T10:40:44Z",
       "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
       "source": "youtube",
@@ -289,6 +379,14 @@
       "channel": "Jack Neel",
       "category": "Presidential Politics",
       "count": 4
+    },
+    {
+      "time": "2026-02-25T07:51:33Z",
+      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+      "source": "youtube",
+      "channel": "Jimmy Kimmel Live",
+      "category": "Presidential Politics",
+      "count": 9
     },
     {
       "time": "2026-02-25T07:46:09Z",
@@ -347,6 +445,14 @@
       "count": 9
     },
     {
+      "time": "2026-02-25T03:42:14Z",
+      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Presidential Politics",
+      "count": 10
+    },
+    {
       "time": "2026-02-25T03:32:26Z",
       "query": "10 highlights from Trump's 2026 State of the Union",
       "source": "youtube",
@@ -385,6 +491,14 @@
       "channel": "Jimmy Kimmel Live",
       "category": "Presidential Politics",
       "count": 9
+    },
+    {
+      "time": "2026-02-24T23:32:55Z",
+      "query": "LIVE: President Trump delivers State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Presidential Politics",
+      "count": 22
     },
     {
       "time": "2026-02-24T23:02:26Z",
