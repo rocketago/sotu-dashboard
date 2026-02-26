@@ -2503,7 +2503,9 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
     # Event "time" values are UTC ISO strings ("Z" suffix); compare directly.
     cutoff_str = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
     merged = [e for e in merged if e.get("time", "") >= cutoff_str]
-    merged = merged[:300]
+    # Raised from 300 → 2000: live_feed.json is now the master 24-hour dataset
+    # covering all sources (search, reddit, youtube, tiktok, news).
+    merged = merged[:2000]
 
     now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
     with open(LIVE_FEED_FILE, "w") as f:
@@ -2632,6 +2634,289 @@ def write_sources_cache(data: dict) -> None:
     )
 
 
+def _enrich_events_with_aggregate_counts(
+    events: list[dict], queries_raw: list[dict]
+) -> list[dict]:
+    """
+    Replace count=1 placeholders on individual search/reddit events with the
+    aggregate counts returned by fetch_search_queries.  This gives the dial,
+    word cloud, and Sources tab accurate population-level weights while
+    preserving per-event demographic detail in the live feed.
+
+    For events whose query text does not appear in queries_raw (very recent or
+    low-volume searches), count remains 1 — they still appear in the feed and
+    in the dashboard, they just contribute proportionally less weight.
+    """
+    count_lookup: dict[str, int] = {}
+    for item in (queries_raw or []):
+        key = (item.get("query") or "").lower().strip()
+        if key:
+            count_lookup[key] = max(count_lookup.get(key, 0), int(item.get("count") or 1))
+
+    enriched: list[dict] = []
+    for ev in events:
+        if ev.get("source") in ("search", "reddit"):
+            key = (ev.get("query") or "").lower().strip()
+            agg = count_lookup.get(key)
+            if agg and agg > (ev.get("count") or 1):
+                ev = {**ev, "count": agg}
+        enriched.append(ev)
+    return enriched
+
+
+def _raw_media_to_live_events(
+    youtube_raw: list[dict] | None,
+    tiktok_watch_raw: list[dict] | None,
+    news_raw: list[dict] | None,
+    since_iso: str,
+) -> list[dict]:
+    """
+    Convert aggregate media items (YouTube, TikTok watch, News) directly from
+    the raw fetch results into live-feed event records — no political_data.json
+    needed as an intermediary.
+
+    Mirrors _items_to_live_events but accepts the raw lists rather than the
+    fully-built data dict, so it can run before build_political_data_from_events.
+    """
+    all_media = (
+        [{"source": "youtube",      **item} for item in (youtube_raw      or [])]
+        + [{"source": "tiktok_watch", **item} for item in (tiktok_watch_raw or [])]
+        + [{"source": "news",         **item} for item in (news_raw         or [])]
+    )
+    if not all_media:
+        return []
+
+    now_utc  = datetime.datetime.utcnow()
+    try:
+        start_dt = datetime.datetime.strptime(since_iso[:19], "%Y-%m-%dT%H:%M:%S")
+    except ValueError:
+        start_dt = now_utc - datetime.timedelta(hours=24)
+    span_s = max(int((now_utc - start_dt).total_seconds()), 3600)
+
+    events: list[dict] = []
+    n = len(all_media)
+    for i, item in enumerate(all_media):
+        offset_s = int((i / max(n - 1, 1)) * span_s)
+        ts = (start_dt + datetime.timedelta(seconds=offset_s)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        events.append({
+            "time":     ts,
+            "query":    item.get("query") or item.get("topic", ""),
+            "source":   item["source"],
+            "channel":  item.get("channel") or None,
+            "subreddit": item.get("subreddit") or None,
+            "category": item.get("category") or "General Politics",
+            "count":    int(item.get("count") or 1),
+            "trend":    item.get("trend", "stable"),
+            # Synthetic demographics — same distributions as seed_events_from_categories
+            "age":      random.randint(18, 29),
+            "gender":   random.choices(_GENDERS, weights=_G_WEIGHTS)[0],
+            "state":    random.choice(_US_STATES),
+        })
+    return events
+
+
+def build_political_data_from_events(
+    all_events: list[dict],
+    since_iso: str,
+) -> dict:
+    """
+    Derive political_data.json from the comprehensive live_feed event list.
+
+    all_events contains every political engagement for the current 24-hour window:
+    individual search/reddit events (enriched with aggregate counts), plus YouTube,
+    TikTok, and News items converted to event records.  Building political_data.json
+    from this single list ensures the dial, word cloud, summary stats, and category
+    cards all reflect the same complete picture as the live feed.
+
+    Replaces the old merge_into_structure() call in main().
+    """
+    # Load existing file as fallback for when all_events is empty
+    existing: dict = {}
+    if OUTPUT_FILE.exists():
+        try:
+            with open(OUTPUT_FILE) as f:
+                existing = json.load(f)
+        except Exception:
+            pass
+
+    # ── Place & aggregate each event into its category ─────────────────────────
+    # Key: (query_lower[:80], source) → item dict (keep highest count seen)
+    cat_map: dict[str, dict[tuple, dict]] = {label: {} for label in CATEGORY_META}
+
+    for ev in all_events:
+        raw_label = ev.get("category") or "General Politics"
+        cat_label = _normalize_category(raw_label)
+        if cat_label not in cat_map:
+            cat_label = "General Politics"
+
+        q    = (ev.get("query") or "").strip()
+        src  = ev.get("source") or "search"
+        key  = (q.lower()[:80], src)
+        cnt  = int(ev.get("count") or 1)
+
+        # Sanitise Reddit URL if present
+        raw_url = ev.get("url")
+        if raw_url and ("shreddit/events" in raw_url or "gql-fed.reddit.com" in raw_url):
+            sub       = ev.get("subreddit", "")
+            title_enc = q.replace(" ", "+")[:120]
+            raw_url   = (
+                f"https://www.reddit.com/r/{sub}/search/?q={title_enc}&sort=top&t=week"
+                if sub else None
+            )
+
+        if key in cat_map[cat_label]:
+            # Accumulate: keep the highest count seen for this (query, source) pair
+            existing_item = cat_map[cat_label][key]
+            if cnt > existing_item["count"]:
+                existing_item["count"] = cnt
+        else:
+            cat_map[cat_label][key] = {
+                "topic":     q,
+                "query":     q,
+                "count":     cnt,
+                "source":    src,
+                "subreddit": ev.get("subreddit"),
+                "channel":   ev.get("channel"),
+                "url":       raw_url,
+                "trend":     ev.get("trend", "stable"),
+            }
+
+    # ── Build per-category item lists ──────────────────────────────────────────
+    query_map: dict[str, list] = {}
+    for label, items_dict in cat_map.items():
+        query_map[label] = _dedup_items(list(items_dict.values()))
+
+    # Fallback: keep existing data when this run returned nothing
+    if all(len(v) == 0 for v in query_map.values()) and existing.get("categories"):
+        for c in existing["categories"]:
+            if c["label"] in query_map:
+                query_map[c["label"]] = c.get("items", [])
+
+    # ── Assemble final category list ───────────────────────────────────────────
+    categories: list[dict] = []
+    total_eng = 0
+
+    for label, meta in CATEGORY_META.items():
+        items = sorted(query_map.get(label, []), key=lambda x: -x.get("count", 0))
+        eng   = sum(i.get("count", 1) for i in items) if items else 0
+        total_eng += eng
+        categories.append({
+            "id":               meta["id"],
+            "label":            label,
+            "icon":             meta["icon"],
+            "engagement_count": eng,
+            "unique_users":     len({e.get("state","?") for e in all_events
+                                     if _normalize_category(e.get("category","")) == label}),
+            "trending_score":   0,   # computed below
+            "items":            items,
+        })
+
+    categories.sort(key=lambda c: -c["engagement_count"])
+    max_eng = max((c["engagement_count"] for c in categories), default=0) or 1
+    for c in categories:
+        c["trending_score"] = round((c["engagement_count"] / max_eng) * 100)
+
+    top_cat  = categories[0]["label"] if categories else "N/A"
+    now_iso  = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # ── Count events by source ─────────────────────────────────────────────────
+    src_counts: dict[str, int] = {}
+    for ev in all_events:
+        s = ev.get("source") or "search"
+        src_counts[s] = src_counts.get(s, 0) + int(ev.get("count") or 1)
+
+    got_data      = bool(all_events)
+    last_mcp_pull = now_iso if got_data else existing.get("meta", {}).get("last_mcp_pull")
+
+    return {
+        "meta": {
+            "generated_at":             now_iso,
+            "last_mcp_pull":            last_mcp_pull,
+            "demographic":              "Ages 18-29",
+            "data_source":              "VerbAI MCP (Search, YouTube, Reddit, TikTok, News events)",
+            "window":                   "rolling_24h",
+            "window_label":             "Last 24h · Updated live",
+            "today_start":              since_iso or _current_window_start(),
+            "refresh_interval_minutes": 15,
+        },
+        "summary": {
+            "total_engagements":          total_eng,
+            "total_unique_users":         sum(c["unique_users"] for c in categories),
+            "top_category":               top_cat,
+            "categories_tracked":         sum(1 for c in categories if c["engagement_count"] > 0),
+            "data_window":                "Sliding 24-hour window · accumulates each run",
+            "search_events_today":        src_counts.get("search",        0),
+            "reddit_events_today":        src_counts.get("reddit",        0),
+            "youtube_events_today":       src_counts.get("youtube",       0),
+            "tiktok_search_events_today": src_counts.get("tiktok_search", 0),
+            "tiktok_watch_events_today":  src_counts.get("tiktok_watch",  0),
+            "news_events_today":          src_counts.get("news",          0),
+        },
+        "categories": categories,
+    }
+
+
+def write_sources_cache_from_events(events: list[dict]) -> None:
+    """
+    Append this cron run's political events to sources_cache.json.
+
+    Unlike the old write_sources_cache(data) which drew items from the already-
+    built political_data.json categories, this function works directly from the
+    comprehensive live_feed event list.  Events are aggregated by (query, source)
+    so the Sources tab can rank by popularity without double-counting individual
+    rows for the same query text.
+
+    The cache is the permanent archive: events evicted from the rolling 24-hour
+    live_feed.json window remain accessible here for the Sources tab's week/month
+    views.  Entries older than 30 days are pruned to bound file size.
+    """
+    now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+
+    # Aggregate events → flat items keyed by (query_lower, source)
+    agg: dict[tuple, dict] = {}
+    for ev in (events or []):
+        q   = (ev.get("query") or "").strip()
+        src = ev.get("source") or "search"
+        key = (q.lower()[:100], src)
+        cnt = int(ev.get("count") or 1)
+        if key in agg:
+            if cnt > agg[key]["count"]:
+                agg[key]["count"] = cnt
+        else:
+            agg[key] = {
+                "query":     q,
+                "topic":     q,
+                "count":     cnt,
+                "source":    src,
+                "category":  ev.get("category") or "",
+                "subreddit": ev.get("subreddit"),
+                "channel":   ev.get("channel"),
+                "trend":     ev.get("trend", "stable"),
+            }
+    flat_items = list(agg.values())
+
+    cache: dict = {"runs": []}
+    if SOURCES_CACHE_FILE.exists():
+        try:
+            with open(SOURCES_CACHE_FILE) as f:
+                cache = json.load(f)
+        except Exception:
+            pass
+
+    cache.setdefault("runs", []).append({"ts": now_iso, "items": flat_items})
+
+    # Prune entries older than 30 days
+    cutoff = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cache["runs"] = [r for r in cache["runs"] if r.get("ts", "") >= cutoff]
+
+    with open(SOURCES_CACHE_FILE, "w") as f:
+        json.dump(cache, f, separators=(",", ":"))
+    print(
+        f"[OK] Wrote sources_cache.json — "
+        f"{len(cache['runs'])} stored runs, {len(flat_items)} items this run."
+    )
+
+
 def main():
     print(f"[{datetime.datetime.now():%H:%M:%S}] Fetching VerbAI data...")
 
@@ -2666,18 +2951,18 @@ def main():
         print("[INFO] VERBAI_TOKEN not set — using Claude CLI only")
 
     # ── Fetch data sets ───────────────────────────────────────────────────────
+    # fetch_category_counts removed: category engagement counts are now derived
+    # directly from the comprehensive all_events list in build_political_data_from_events.
     if mcp_ctx:
         # Direct MCP: parallel — Snowflake cold-starts can take 60-90s each,
-        # running sequentially stacks them (6 × 2 min = 12+ min wall time).
-        print("[INFO] Running 6 direct MCP queries in parallel...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
-            f_cats        = pool.submit(fetch_category_counts,     since_iso, mcp_ctx)
+        # running sequentially stacks them (5 × 2 min = 10+ min wall time).
+        print("[INFO] Running 5 direct MCP queries in parallel...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
             f_queries     = pool.submit(fetch_search_queries,      since_iso, mcp_ctx)
             f_youtube     = pool.submit(fetch_youtube_videos,      since_iso, mcp_ctx)
             f_news        = pool.submit(fetch_news_articles,       since_iso, mcp_ctx)
             f_tiktok_wtch = pool.submit(fetch_tiktok_watch_videos, since_iso, mcp_ctx)
             f_live        = pool.submit(fetch_live_events,         since_iso, mcp_ctx)
-            categories_raw   = f_cats.result()
             queries_raw      = f_queries.result()
             youtube_raw      = f_youtube.result()
             news_raw         = f_news.result()
@@ -2685,23 +2970,18 @@ def main():
             live_events_raw  = f_live.result()
     else:
         # Claude fallback: subprocesses in parallel
-        print("[INFO] Running 6 Claude queries in parallel (timeout=600s each)...")
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
-            f_cats        = pool.submit(fetch_category_counts,     since_iso, None)
+        print("[INFO] Running 5 Claude queries in parallel (timeout=600s each)...")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as pool:
             f_queries     = pool.submit(fetch_search_queries,      since_iso, None)
             f_youtube     = pool.submit(fetch_youtube_videos,      since_iso, None)
             f_news        = pool.submit(fetch_news_articles,       since_iso, None)
             f_tiktok_wtch = pool.submit(fetch_tiktok_watch_videos, since_iso, None)
             f_live        = pool.submit(fetch_live_events,         since_iso, None)
-            categories_raw   = f_cats.result()
             queries_raw      = f_queries.result()
             youtube_raw      = f_youtube.result()
             news_raw         = f_news.result()
             tiktok_watch_raw = f_tiktok_wtch.result()
             live_events_raw  = f_live.result()
-
-    # Merge TikTok watch video titles into queries (same shape: query/count/source/category)
-    queries_raw = list(queries_raw or []) + list(tiktok_watch_raw or [])
 
     # ── First-run-of-day: fetch new youth polling data ────────────────────────
     # Runs only during the 12:15 am ET cron (ET hour == 0, minute < 30) so we
@@ -2720,8 +3000,29 @@ def main():
     else:
         print(f"[INFO] Polling check skipped (ET time {_now_et.strftime('%H:%M')} — not first run).")
 
-    # ── Write outputs ─────────────────────────────────────────────────────────
-    any_data = bool(categories_raw or queries_raw or youtube_raw or news_raw)
+    # ── Build master event list (single source of truth for the 24h window) ────
+    #
+    # Step 1: Enrich individual search/reddit events from fetch_live_events with
+    #         the aggregate counts returned by fetch_search_queries.  Queries that
+    #         appear in queries_raw get their population-level count; novel or very
+    #         recent searches not yet in the aggregate query keep count=1 — they
+    #         still surface in the feed and the dashboard, just with lower weight.
+    enriched_live = _enrich_events_with_aggregate_counts(
+        live_events_raw or [], queries_raw or []
+    )
+    print(f"[INFO] Enriched {len(enriched_live)} live events with aggregate counts.")
+
+    # Step 2: Convert YouTube / TikTok-watch / News aggregate items to live events
+    #         so every source is represented in the same event stream.
+    media_events = _raw_media_to_live_events(youtube_raw, tiktok_watch_raw, news_raw, since_iso)
+    print(f"[INFO] Converted {len(media_events)} media items to live events "
+          f"(yt={len(youtube_raw or [])}, tt={len(tiktok_watch_raw or [])}, "
+          f"news={len(news_raw or [])}).")
+
+    # Step 3: Merge into one comprehensive event list
+    all_events = enriched_live + media_events
+
+    any_data = bool(all_events)
 
     if not any_data:
         # Transient VerbAI outage — keep existing file, advance timestamp only.
@@ -2736,45 +3037,14 @@ def main():
                 json.dump(existing, f, indent=2, ensure_ascii=False)
             update_history(existing)
     else:
-        # Always build a fresh snapshot from the full 24-hour window.
-        # The sliding window in _current_window_start() ensures old data drops
-        # off naturally; no accumulation is needed.
-        data = merge_into_structure(categories_raw, queries_raw, youtube_raw, news_raw, today_start=since_iso)
-
-        with open(OUTPUT_FILE, "w") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-        print(f"[OK] Wrote {OUTPUT_FILE.name} — "
-              f"{data['summary']['total_engagements']} engagements across "
-              f"{data['summary']['categories_tracked']} categories.")
-
-        # ── Sources cache: persist this run's items for week/month windows ────
-        write_sources_cache(data)
-
-        # ── Live events: seed synthetically if VerbAI returned nothing ────────
-        if not live_events_raw and LIVE_FEED_FILE.exists():
-            try:
-                with open(LIVE_FEED_FILE) as f:
-                    existing_events = json.load(f).get("events", [])
-            except Exception:
-                existing_events = []
-            if not existing_events:
-                live_events_raw = seed_events_from_categories(data)
-                print(f"[INFO] Seeded {len(live_events_raw)} synthetic live events.")
-
-        # ── Always inject YouTube/TikTok aggregate items as live events ────────
-        # These come from the already-built category data (with proper categories)
-        # so they appear in expanded topic views alongside search/Reddit events.
-        yt_tt_events = _items_to_live_events(data, since_iso)
-        live_events_raw = list(live_events_raw or []) + yt_tt_events
-        print(f"[INFO] Injected {len(yt_tt_events)} YouTube/TikTok events into live feed.")
-        # Reset the live feed at ET day rollover; within the same calendar day,
-        # accumulate so per-item engagement rows don't disappear between runs.
+        # ── Determine whether to reset live_feed (ET day rollover) ────────────
+        # Within the same ET calendar day: accumulate so events from earlier in
+        # the day are not lost between cron runs.  On rollover: start fresh.
         _lf_reset = True
         if LIVE_FEED_FILE.exists():
             try:
                 with open(LIVE_FEED_FILE) as _lf_f:
                     _lf_gen = json.load(_lf_f).get("generated_at", "")
-                # generated_at is UTC "YYYY-MM-DDTHH:MM:SSZ"; convert to ET date.
                 _lf_utc  = datetime.datetime.strptime(_lf_gen[:19], "%Y-%m-%dT%H:%M:%S")
                 _et_off  = datetime.timedelta(hours=(4 if 4 <= datetime.datetime.now(datetime.timezone.utc).month <= 10 else 5))
                 _now_et  = (datetime.datetime.now(datetime.timezone.utc) - _et_off).date()
@@ -2782,22 +3052,42 @@ def main():
                 _lf_reset = (_lf_et != _now_et)
             except Exception:
                 pass
-        _append_live_events(live_events_raw or [], reset=_lf_reset)
 
-        # ── Sentiment history: persists forever across window slides ──────────
+        # ── 1. Write live_feed.json — the master 24h dataset ─────────────────
+        # Contains every political engagement this window: individual search/reddit
+        # events (count-enriched) + YouTube/TikTok/News items as event records.
+        # Rolling eviction keeps only the last 24 hours; events that age out are
+        # permanently preserved in sources_cache below.
+        _append_live_events(all_events, reset=_lf_reset)
+
+        # ── 2. Write sources_cache — permanent archive, never evicts ─────────
+        # Every run appends this run's events so the Sources tab week/month views
+        # always have the full history even after live_feed.json rolls forward.
+        write_sources_cache_from_events(all_events)
+
+        # ── 3. Derive political_data.json from the master event list ──────────
+        # Dashboard, dial, word cloud, and category cards all read from here.
+        # Building from all_events ensures they reflect the same complete picture
+        # as the live feed — no independent popularity-filtered path.
+        data = build_political_data_from_events(all_events, since_iso)
+        with open(OUTPUT_FILE, "w") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+        print(f"[OK] Wrote {OUTPUT_FILE.name} — "
+              f"{data['summary']['total_engagements']} engagements across "
+              f"{data['summary']['categories_tracked']} categories.")
+
+        # ── 4. Sentiment history ───────────────────────────────────────────────
         update_history(data)
 
     # ── Write MCP status (every run, data or not) ─────────────────────────────
-    tiktok_watch_count = sum(1 for q in (queries_raw or []) if q.get("source") == "tiktok_watch")
     write_mcp_status(
         data_returned=any_data,
         counts={
-            "categories":   len(categories_raw),
-            "queries":      len(queries_raw),
-            "youtube":      len(youtube_raw),
-            "news":         len(news_raw),
-            "tiktok_watch": tiktok_watch_count,
-            "live_events":  len(live_events_raw or []),
+            "queries":      len(queries_raw      or []),
+            "youtube":      len(youtube_raw       or []),
+            "news":         len(news_raw          or []),
+            "tiktok_watch": len(tiktok_watch_raw  or []),
+            "live_events":  len(live_events_raw   or []),
         },
     )
 

@@ -930,12 +930,27 @@
     // Build the flat item list for the selected window
     let allItems;
     let noteText = '';
-    if (sourcesWindow === 'day' || !sourcesCache || !sourcesCache.runs || sourcesCache.runs.length === 0) {
-      // Today: use live currentData (same source as word cloud / dial / topics)
-      allItems = currentData.categories.flatMap(cat =>
+    if (sourcesWindow === 'day') {
+      // Today: use the most recent cron run from sources_cache so the Sources tab
+      // reflects ALL political activity captured this run (comprehensive live_feed
+      // data), ranked by popularity.  Falls back to currentData if cache not yet
+      // populated (e.g. the very first cron run of a fresh deploy).
+      if (sourcesCache && sourcesCache.runs && sourcesCache.runs.length > 0) {
+        const latestRun = sourcesCache.runs[sourcesCache.runs.length - 1];
+        allItems  = (latestRun.items || []).map(item => ({ ...item, _cat: item.category || '' }));
+        noteText  = 'Showing all political activity from the most recent data pull, ranked by popularity.';
+      } else {
+        allItems  = currentData.categories.flatMap(cat =>
+          (cat.items || []).map(item => ({ ...item, _cat: cat.label }))
+        );
+        noteText  = "Showing today's data — sources cache not yet populated.";
+      }
+    } else if (!sourcesCache || !sourcesCache.runs || sourcesCache.runs.length === 0) {
+      // Week / Month requested but no cache yet
+      allItems  = currentData.categories.flatMap(cat =>
         (cat.items || []).map(item => ({ ...item, _cat: cat.label }))
       );
-      noteText = 'Showing today\'s data — same as the Live Dashboard above.';
+      noteText  = 'No cached data yet for this window — check back after a few cron runs.';
     } else {
       // Week / Month: aggregate from cached cron runs within the window
       const nowMs  = Date.now();
