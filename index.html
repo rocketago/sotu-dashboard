@@ -739,9 +739,8 @@
   }
 
   function scoreColor(score) {
-    if (score < 38) return '#F9495F';
-    if (score < 55) return '#F9A349';
-    if (score < 68) return '#E8CC4A';
+    if (score <= 39) return '#F9495F';
+    if (score <= 59) return '#E8CC4A';
     return '#04B35D';
   }
 
