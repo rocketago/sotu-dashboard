@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
 backfill_history.py — populate history.json with real VerbAI sentiment scores
-for each day from Feb 15, 2026 through yesterday (today's data comes from the
-live fetch_data.py run).
+for each day from Jan 20, 2026 (Trump's second inauguration) through yesterday.
+Today's data comes from the live fetch_data.py run and is preserved.
 
-For each day it queries VerbAI for that day's top political searches, YouTube
-videos and Reddit posts, then applies the same AFINN scoring used by the
-dashboard to produce a real sentiment score.  Two data points are written per
-day (morning ~9 AM ET and evening ~9 PM ET) so the chart has meaningful shape.
+For each day it queries VerbAI for that day's top U.S. political content across
+search, YouTube, and Reddit, then applies the same AFINN framing-aware scoring
+used by the dashboard to produce a sentiment score. One point per day is written
+at 17:00 UTC (~noon ET) to give the history chart consistent spacing.
 
 Usage:
     python3 backfill_history.py
@@ -175,31 +175,33 @@ def afinn_score_from_items(items: list[dict]) -> int | None:
     return round(total_s / total_w)
 
 
-# ── SOTU-focused SQL helpers (mirrors fetch_data.py) ─────────────────────────
+# ── U.S. political SQL helpers (mirrors fetch_data.py) ───────────────────────
 _SQL_INCLUDE_BLOCK = (
     "(col ILIKE '%trump%' OR col ILIKE '%white house%' OR col ILIKE '%maga%' "
-    "OR col ILIKE '%executive order%' "
+    "OR col ILIKE '%executive order%' OR col ILIKE '%presidential%' "
     "OR col ILIKE '%congress%' OR col ILIKE '%senate%' OR col ILIKE '%democrat%' "
-    "OR col ILIKE '%republican%' OR col ILIKE '%legislation%' "
+    "OR col ILIKE '%republican%' OR col ILIKE '%legislation%' OR col ILIKE '%midterm%' "
+    "OR col ILIKE '%election%' OR col ILIKE '%voting rights%' "
     "OR col ILIKE '%doge%' OR col ILIKE '%elon musk%' "
     "OR col ILIKE '%federal worker%' OR col ILIKE '%federal employee%' "
     "OR col ILIKE '%federal budget%' OR col ILIKE '%spending cut%' "
     "OR col ILIKE '%tariff%' OR col ILIKE '%trade war%' "
-    "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' "
+    "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' OR col ILIKE '%minimum wage%' "
+    "OR col ILIKE '%housing%' OR col ILIKE '%rent%' OR col ILIKE '%student debt%' "
+    "OR col ILIKE '%college%' OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' "
     "OR col ILIKE '%immigration%' OR col ILIKE '%border%' OR col ILIKE '%deportation%' "
     "OR col ILIKE '%ice raid%' OR col ILIKE '%daca%' OR col ILIKE '%migrant%' "
     "OR col ILIKE '%ukraine%' OR col ILIKE '%russia%' OR col ILIKE '%nato%' "
     "OR col ILIKE '%china%' OR col ILIKE '%iran%' OR col ILIKE '%israel%' "
     "OR col ILIKE '%gaza%' OR col ILIKE '%north korea%' OR col ILIKE '%taiwan%' "
     "OR col ILIKE '%healthcare%' OR col ILIKE '%medicare%' OR col ILIKE '%medicaid%' "
-    "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%gun control%' "
+    "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%reproductive%' "
+    "OR col ILIKE '%mental health%' OR col ILIKE '%gun control%' OR col ILIKE '%gun violence%' "
     "OR col ILIKE '%supreme court%' OR col ILIKE '%social security%' "
-    "OR col ILIKE '%student loan%' OR col ILIKE '%climate%' OR col ILIKE '%energy%' "
-    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' OR col ILIKE '%budget%' "
-    "OR col ILIKE '%state of the union%' OR col ILIKE '%sotu%' "
-    "OR col ILIKE '%address to congress%' "
+    "OR col ILIKE '%lgbtq%' OR col ILIKE '%civil rights%' OR col ILIKE '%racial justice%' "
+    "OR col ILIKE '%climate change%' OR col ILIKE '%clean energy%' "
     "OR col ILIKE '%biden%' OR col ILIKE '%kamala%' OR col ILIKE '%rubio%' "
-    "OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
+    "OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%' OR col ILIKE '%aoc%' OR col ILIKE '%bernie%') "
 )
 _SQL_EXCLUDE_BLOCK = (
     "AND col NOT ILIKE '%prince andrew%' "
@@ -304,13 +306,15 @@ def fetch_day_items(start_iso: str, end_iso: str, label: str) -> list[dict]:
     start_t  = start_iso[11:16]
     end_t    = end_iso[11:16]
     prompt = (
-        f"Use the VerbAI Snowflake tool to find the top 30 political items consumed "
+        f"Use the VerbAI Snowflake tool to find the top 30 U.S. political items consumed "
         f"by US adults aged 18-29 on {date_str} between {start_t} and {end_t} UTC. "
         f"Query SEARCH_EVENTS_FLAT_DYM, YOUTUBE_EVENTS_FLAT_DYM, and REDDIT_EVENTS_FLAT_DYM, "
         f"joining each with AGENT_SYNC on USER_ID for age filtering. "
-        f"Focus ONLY on topics relevant to US politics and the 2026 State of the Union: "
-        f"Trump, DOGE, tariffs, immigration/deportation, federal budget cuts, "
-        f"Ukraine/Russia/NATO, Iran, China, healthcare, social security, climate/energy. "
+        f"Focus ONLY on broad U.S. political topics: Trump administration, Congress, elections, "
+        f"DOGE, tariffs, immigration, federal workers, Ukraine/Russia/NATO, Iran, China, "
+        f"healthcare, abortion/reproductive rights, student debt, housing, minimum wage, "
+        f"gun violence, climate policy, LGBTQ rights, racial justice, social security, "
+        f"voting rights, civil rights, mental health policy, and the 2026 midterm elections. "
         f"Exclude British royals, South Korean politics, celebrity gossip. "
         f"Return a raw JSON array (no markdown) where each item has: "
         f"query (title/search term), topic (one-line description), count (integer), "
@@ -337,29 +341,40 @@ def day_range_utc(date: datetime.date, start_hour: int, end_hour: int):
 
 
 def main():
-    # Recompute sentiment for all days from Feb 15 through yesterday using the
-    # new framing-aware scoring. Preserve only today's live data points.
+    # Recompute sentiment for all days from Jan 20, 2026 (Trump's second inauguration)
+    # through yesterday using the framing-aware scoring. Preserve only today's live data.
     today      = datetime.date.today()
-    start_date = datetime.date(2026, 2, 15)
+    start_date = datetime.date(2026, 1, 20)   # Second inauguration day
     today_prefix = today.strftime("%Y-%m-%d")
 
-    # Load existing history to preserve today's live data points
+    # Load existing history — preserve ALL existing scored data and only query
+    # dates that have no entry yet. This avoids re-querying days already covered.
     existing_points: list[dict] = []
     if HISTORY_FILE.exists():
         with open(HISTORY_FILE) as f:
             existing_points = json.load(f).get("points", [])
-    # Keep only points from today (real live data) — we'll rebuild everything else
-    real_points = [p for p in existing_points if p["ts"].startswith(today_prefix)]
-    print(f"Preserving {len(real_points)} existing real data points (today: {today_prefix}).")
+
+    # Build a set of dates already covered so we can skip them in the loop
+    covered_dates: set[str] = {p["ts"][:10] for p in existing_points}
+    print(f"Preserving {len(existing_points)} existing history points "
+          f"({len(covered_dates)} distinct dates already covered).")
 
     new_points: list[dict] = []
     fmt = "%Y-%m-%dT%H:%M:%SZ"
     tz  = datetime.timezone.utc
 
-    # One query per day covering the full 24-hour window.
+    # One query per uncovered day covering the full 24-hour UTC window.
     # History point is placed at 17:00 UTC (~noon ET) for each day.
     date = start_date
     while date < today:
+        date_str_key = date.strftime("%Y-%m-%d")
+        label        = date.strftime("%b %d")
+
+        if date_str_key in covered_dates:
+            print(f"  [SKIP] {label} already scored — skipping.")
+            date += datetime.timedelta(days=1)
+            continue
+
         start_dt = datetime.datetime(date.year, date.month, date.day, 0, 0, 0, tzinfo=tz)
         end_dt   = start_dt + datetime.timedelta(days=1)
         ts_dt    = datetime.datetime(date.year, date.month, date.day, 17, 0, 0, tzinfo=tz)
@@ -367,7 +382,6 @@ def main():
         start_iso = start_dt.strftime(fmt)
         end_iso   = end_dt.strftime(fmt)
         ts        = ts_dt.strftime(fmt)
-        label     = date.strftime("%b %d")
 
         items = fetch_day_items(start_iso, end_iso, label)
         score = afinn_score_from_items(items)
@@ -379,8 +393,8 @@ def main():
 
         date += datetime.timedelta(days=1)
 
-    # Merge: new backfill points + preserved real points, sorted by timestamp
-    all_points = sorted(new_points + real_points, key=lambda p: p["ts"])
+    # Merge: new backfill points + all existing points, sorted by timestamp
+    all_points = sorted(new_points + existing_points, key=lambda p: p["ts"])
 
     print(f"\nTotal points: {len(all_points)} ({len(new_points)} new + {len(real_points)} preserved)")
 
