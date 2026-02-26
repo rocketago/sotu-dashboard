@@ -37,25 +37,6 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Cache npm downloads
-        uses: actions/cache@v4
-        with:
-          path: ~/.npm
-          key: npm-claude-cli-${{ runner.os }}
-
-      - name: Install Claude CLI (Claude fallback path)
-        continue-on-error: true   # primary path is direct HTTP; CLI is best-effort
-        run: npm install -g @anthropic-ai/claude-code
-
-      - name: Configure VerbAI MCP (Claude fallback path)
-        continue-on-error: true   # primary path is direct HTTP; CLI config is best-effort
-        env:
-          VERBAI_TOKEN: ${{ secrets.VERBAI_TOKEN }}
-        run: |
-          claude mcp add --transport http verb-ai-mcp \
-            https://zknnynm-exc60781.snowflakecomputing.com/api/v2/databases/KAFKA_DATA/schemas/DOORDASH_EVENTS/mcp-servers/VERB_AI_MCP_SERVER \
-            --header "Authorization: Bearer $VERBAI_TOKEN"
-
       - name: Run fetch_data.py
         env:
           VERBAI_TOKEN: ${{ secrets.VERBAI_TOKEN }}
