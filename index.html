@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SOTU Rapid Response — Gen Z Political Tracker (Live)</title>
+  <title>U.S. Political Pulse — Young Voter Tracker (Live)</title>
   <style>
     :root {
       --bg:        #F0F4F8;
@@ -1022,7 +1022,7 @@
   <a href="https://votersoftomorrow.org" target="_blank" rel="noopener" class="vot-logo-link">
     <img src="./vot-logo-dark.png" alt="Voters of Tomorrow" class="vot-logo" />
   </a>
-  <h1>State of the Union — Rapid Response Tracker</h1>
+  <h1>U.S. Political Pulse — Young Voter Tracker</h1>
   <button class="live-toggle-btn" id="live-toggle-btn" onclick="toggleLiveUpdates()" title="Enable or disable the every-15-minute auto-update cron">
     ⏸ Live Updates: OFF
   </button>
@@ -1082,7 +1082,7 @@
   <!-- ── SENTIMENT TAB ── -->
   <div id="tab-sentiment" class="tab-pane">
     <div class="section-header">
-      <h2>SOTU Sentiment Analysis</h2>
+      <h2>Political Sentiment Analysis</h2>
       <div class="demo-tag">Ages 18–29</div>
     </div>
 
@@ -1111,7 +1111,7 @@
 
       <!-- Word Cloud -->
       <div class="wordcloud-wrap">
-        <h3>SOTU Reference Words — VerbAI Users</h3>
+        <h3>Trending Political Terms — Ages 18–29</h3>
         <div id="word-cloud">
           <!-- populated by JS -->
         </div>
@@ -1128,17 +1128,16 @@
     </div>
 
     <div class="history-wrap">
-      <h3>Trump &amp; Republican Sentiment Over Time</h3>
+      <h3>Political Sentiment — 18–29 Year Olds Over Time</h3>
       <p class="history-desc">
-        Score 0–100: 100 = overwhelmingly positive framing toward Trump and Republicans, 0 = overwhelmingly negative.
-        Scored from content where 18–29 year olds engage with Trump/Republican topics.
-        The dashed orange line marks the State of the Union address (Feb 24 at 9 pm ET).
-        The x-axis expands as more data accumulates.
+        Score 0–100: 100 = overwhelmingly positive framing, 0 = overwhelmingly negative.
+        Scored from search, YouTube, Reddit, and TikTok content consumed by 18–29 year olds.
+        Key political events are marked on the chart. Chart runs through the 2026 midterm elections.
       </p>
       <div id="history-chart"><!-- populated by JS --></div>
       <div class="history-legend">
         <span><span class="legend-line" style="background:#0DA2E6"></span> Sentiment score</span>
-        <span><span class="legend-dash" style="color:#F9A349"></span> SOTU address</span>
+        <span><span class="legend-dash" style="color:#F9A349"></span> Key events</span>
         <span><span class="legend-dash" style="color:#0DA2E6;opacity:0.5"></span> Now</span>
       </div>
     </div>
@@ -2569,24 +2568,26 @@
   }
 
   /* ── HISTORY CHART ── */
+  // Key U.S. political events to mark on the sentiment timeline.
+  // Each entry: { ts: Date (UTC), label: string, sub: string, color: hex }
+  const POLITICAL_EVENTS = [
+    { ts: new Date('2026-02-25T02:00:00Z'), label: 'SOTU',      sub: 'Feb 24, 9 pm ET', color: '#F9A349' },
+    { ts: new Date('2026-06-02T04:00:00Z'), label: 'Primaries', sub: 'Jun 1 – CA, NJ…',  color: '#9B59B6' },
+    { ts: new Date('2026-11-04T05:00:00Z'), label: 'Midterms',  sub: 'Nov 3, 2026',       color: '#E74C3C' },
+  ];
+
   function renderHistoryChart() {
     const container = document.getElementById('history-chart');
     if (!container) return;
 
-    // SOTU: Feb 24 2026 9pm ET = Feb 25 2026 02:00 UTC
-    const SOTU_TS  = new Date('2026-02-25T02:00:00Z');
-    const now      = new Date();
-    const points   = (historyData && Array.isArray(historyData.points)) ? historyData.points : [];
+    const now    = new Date();
+    const points = (historyData && Array.isArray(historyData.points)) ? historyData.points : [];
 
-    // X-axis spans from start-of-day of first point (or today) to
-    // at least 4 days after SOTU so the marker is never at the edge.
-    const firstPt  = points.length > 0 ? new Date(points[0].ts) : now;
+    // X-axis: from first data point through 2 weeks after the midterm elections —
+    // giving Voters of Tomorrow the full 2026 election-cycle view in one chart.
+    const firstPt  = points.length > 0 ? new Date(points[0].ts) : new Date('2026-01-20T00:00:00Z');
     const startDay = new Date(Date.UTC(firstPt.getUTCFullYear(), firstPt.getUTCMonth(), firstPt.getUTCDate()));
-    const minEnd   = new Date(SOTU_TS.getTime() + 4 * 86400 * 1000);
-    const endDay   = new Date(Math.max(
-      new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 2)).getTime(),
-      minEnd.getTime()
-    ));
+    const endDay   = new Date('2026-11-17T05:00:00Z');  // 2 weeks after midterms
 
     const totalMs = endDay - startDay;
 
@@ -2623,25 +2624,31 @@
       svg += `<text x="${(PAD.left - 8).toFixed(1)}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#4a6a8a" font-size="11" font-family="Inter,sans-serif">${sc}</text>`;
     });
 
-    // X-axis: one tick per day
-    let d = new Date(startDay);
+    // X-axis: one tick per month — 9-month arc fits cleanly at this scale
+    let d = new Date(Date.UTC(startDay.getUTCFullYear(), startDay.getUTCMonth(), 1));
     while (d <= endDay) {
       const x  = xS(d);
       const xf = x.toFixed(1);
       svg += `<line x1="${xf}" y1="${(PAD.top + cH).toFixed(1)}" x2="${xf}" y2="${(PAD.top + cH + 5).toFixed(1)}" stroke="#4a6a8a" stroke-width="1"/>`;
-      const lbl = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-      svg += `<text x="${xf}" y="${(PAD.top + cH + 18).toFixed(1)}" text-anchor="middle" fill="#4a6a8a" font-size="10" font-family="Inter,sans-serif">${lbl}</text>`;
-      d = new Date(d.getTime() + 86400 * 1000);
+      const lbl = d.toLocaleDateString('en-US', { month: 'short', timeZone: 'UTC' });
+      svg += `<text x="${xf}" y="${(PAD.top + cH + 16).toFixed(1)}" text-anchor="middle" fill="#4a6a8a" font-size="10" font-family="Inter,sans-serif">${lbl}</text>`;
+      // Show year under January tick
+      if (d.getUTCMonth() === 0) {
+        svg += `<text x="${xf}" y="${(PAD.top + cH + 28).toFixed(1)}" text-anchor="middle" fill="#4a6a8a" font-size="9" font-family="Inter,sans-serif">${d.getUTCFullYear()}</text>`;
+      }
+      d = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1));
     }
 
-    // SOTU marker
-    const sotuX = xS(SOTU_TS);
-    if (sotuX >= PAD.left && sotuX <= PAD.left + cW) {
-      svg += `<line x1="${sotuX.toFixed(1)}" y1="${PAD.top}" x2="${sotuX.toFixed(1)}" y2="${(PAD.top + cH).toFixed(1)}" stroke="#F9A349" stroke-width="2" stroke-dasharray="7,4" opacity="0.9"/>`;
-      svg += `<rect x="${(sotuX - 26).toFixed(1)}" y="${(PAD.top - 26).toFixed(1)}" width="52" height="18" rx="4" fill="#F9A349" opacity="0.15"/>`;
-      svg += `<text x="${sotuX.toFixed(1)}" y="${(PAD.top - 13).toFixed(1)}" text-anchor="middle" fill="#F9A349" font-size="11" font-weight="700" font-family="Inter,sans-serif">SOTU</text>`;
-      svg += `<text x="${sotuX.toFixed(1)}" y="${(PAD.top + cH + 34).toFixed(1)}" text-anchor="middle" fill="#F9A349" font-size="9" font-family="Inter,sans-serif">Feb 24, 9 pm ET</text>`;
-    }
+    // Political event markers — render each event whose timestamp falls within the visible range
+    POLITICAL_EVENTS.forEach(ev => {
+      const ex = xS(ev.ts);
+      if (ex < PAD.left || ex > PAD.left + cW) return;
+      const labelW = ev.label.length * 6.5 + 10;
+      svg += `<line x1="${ex.toFixed(1)}" y1="${PAD.top}" x2="${ex.toFixed(1)}" y2="${(PAD.top + cH).toFixed(1)}" stroke="${ev.color}" stroke-width="2" stroke-dasharray="7,4" opacity="0.9"/>`;
+      svg += `<rect x="${(ex - labelW / 2).toFixed(1)}" y="${(PAD.top - 26).toFixed(1)}" width="${labelW.toFixed(0)}" height="18" rx="4" fill="${ev.color}" opacity="0.15"/>`;
+      svg += `<text x="${ex.toFixed(1)}" y="${(PAD.top - 13).toFixed(1)}" text-anchor="middle" fill="${ev.color}" font-size="11" font-weight="700" font-family="Inter,sans-serif">${ev.label}</text>`;
+      svg += `<text x="${ex.toFixed(1)}" y="${(PAD.top + cH + 34).toFixed(1)}" text-anchor="middle" fill="${ev.color}" font-size="9" font-family="Inter,sans-serif">${ev.sub}</text>`;
+    });
 
     // "Now" cursor
     const nowX = xS(now);

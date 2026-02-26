@@ -39,11 +39,11 @@ VERBAI_MCP_URL = (
     "/mcp-servers/VERB_AI_MCP_SERVER"
 )
 
-# Fixed 24-hour sliding window anchor.  The dashboard accumulates data from this
-# point forward; each cron run fetches only new events since the last run and merges
-# them in.  The window start slides: max(WINDOW_ANCHOR, now_ET − 24h), so at any
-# moment exactly the last 24 hours of data are shown.
-WINDOW_ANCHOR = "2026-02-24T00:00:00"   # 12:00 am ET Feb 24 (NTZ, Eastern Time)
+# Rolling 24-hour window anchor.  Each cron run starts the window at the later of
+# this value and (now_ET − 24h), so the dashboard always shows the last 24 hours.
+# This value is intentionally set to a date well in the past so the window always
+# slides with the clock rather than being pinned to any specific event.
+WINDOW_ANCHOR = "2026-01-20T00:00:00"   # Inauguration day — window rolls from here
 
 # ── Category metadata (icons, ids) ──────────────────────────────────────────
 CATEGORY_META = {
@@ -61,7 +61,7 @@ CATEGORY_META = {
 }
 
 # ── Shared SQL keyword blocks for all VerbAI prompts ─────────────────────────
-# These focus queries on US political topics relevant to the SOTU.
+# These focus queries on broad U.S. political topics consumed by young voters.
 # Kept in one place so fetch_* functions stay in sync with _is_political_item.
 
 # Topics that should be EXCLUDED even if they match an include keyword
@@ -77,45 +77,61 @@ _SQL_EXCLUDE_BLOCK = (
 )
 
 # ILIKE include conditions for search / YouTube / Reddit title columns.
+# Covers the breadth of U.S. political topics relevant to voters aged 18-29.
 # Placeholder "col" is replaced with the real column alias in each prompt.
 _SQL_INCLUDE_BLOCK = (
+    # Presidency / executive branch
     "(col ILIKE '%trump%' OR col ILIKE '%white house%' OR col ILIKE '%maga%' "
-    "OR col ILIKE '%executive order%' "
+    "OR col ILIKE '%executive order%' OR col ILIKE '%presidential%' "
+    # Congress / legislation
     "OR col ILIKE '%congress%' OR col ILIKE '%senate%' OR col ILIKE '%democrat%' "
-    "OR col ILIKE '%republican%' OR col ILIKE '%legislation%' "
+    "OR col ILIKE '%republican%' OR col ILIKE '%legislation%' OR col ILIKE '%midterm%' "
+    "OR col ILIKE '%election%' OR col ILIKE '%voting rights%' OR col ILIKE '%gerrymandering%' "
+    # DOGE / federal workforce
     "OR col ILIKE '%doge%' OR col ILIKE '%elon musk%' "
     "OR col ILIKE '%federal worker%' OR col ILIKE '%federal employee%' "
     "OR col ILIKE '%federal budget%' OR col ILIKE '%spending cut%' "
+    # Economy — youth-relevant
     "OR col ILIKE '%tariff%' OR col ILIKE '%trade war%' "
-    "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' "
+    "OR col ILIKE '%inflation%' OR col ILIKE '%unemployment%' OR col ILIKE '%minimum wage%' "
+    "OR col ILIKE '%housing%' OR col ILIKE '%rent%' OR col ILIKE '%housing affordability%' "
+    "OR col ILIKE '%student debt%' OR col ILIKE '%college%' OR col ILIKE '%tuition%' "
+    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' "
+    # Immigration
     "OR col ILIKE '%immigration%' OR col ILIKE '%deportation%' "
     "OR col ILIKE '%ice raid%' OR col ILIKE '%daca%' OR col ILIKE '%migrant%' "
+    # Foreign policy
     "OR col ILIKE '%ukraine%' OR col ILIKE '%russia%' OR col ILIKE '%nato%' "
     "OR col ILIKE '%china%' OR col ILIKE '%iran%' OR col ILIKE '%israel%' "
     "OR col ILIKE '%gaza%' OR col ILIKE '%north korea%' OR col ILIKE '%taiwan%' "
+    # Healthcare
     "OR col ILIKE '%healthcare%' OR col ILIKE '%medicare%' OR col ILIKE '%medicaid%' "
-    "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%gun control%' "
+    "OR col ILIKE '%obamacare%' OR col ILIKE '%abortion%' OR col ILIKE '%reproductive%' "
+    "OR col ILIKE '%mental health%' "
+    # Civil rights / social issues
+    "OR col ILIKE '%gun control%' OR col ILIKE '%gun violence%' OR col ILIKE '%school shooting%' "
     "OR col ILIKE '%supreme court%' OR col ILIKE '%social security%' "
-    "OR col ILIKE '%student debt%' "
-    "OR col ILIKE '%climate change%' OR col ILIKE '%climate policy%' "
-    "OR col ILIKE '%deficit%' OR col ILIKE '%debt ceiling%' "
-    "OR col ILIKE '%state of the union%' OR col ILIKE '%sotu%' "
-    "OR col ILIKE '%address to congress%' "
+    "OR col ILIKE '%lgbtq%' OR col ILIKE '%trans%' OR col ILIKE '%civil rights%' "
+    "OR col ILIKE '%racial justice%' OR col ILIKE '%police reform%' OR col ILIKE '%police brutality%' "
+    # Environment / climate
+    "OR col ILIKE '%climate change%' OR col ILIKE '%climate policy%' OR col ILIKE '%clean energy%' "
+    # Political figures (current admin + prominent opposition)
     "OR col ILIKE '%biden%' OR col ILIKE '%kamala%' OR col ILIKE '%rubio%' "
-    "OR col ILIKE '%noem%' OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%') "
+    "OR col ILIKE '%noem%' OR col ILIKE '%hegseth%' OR col ILIKE '%gabbard%' "
+    "OR col ILIKE '%aoc%' OR col ILIKE '%bernie%' OR col ILIKE '%ocasio%') "
 )
 
 
 def _sql_include(col: str) -> str:
-    """SOTU include conditions as a parenthesised OR block (no leading AND)."""
+    """U.S. politics include conditions as a parenthesised OR block (no leading AND)."""
     return _SQL_INCLUDE_BLOCK.replace("col", col)
 
 def _sql_exclude(col: str) -> str:
-    """SOTU exclude conditions as AND NOT ILIKE clauses (leading AND)."""
+    """Exclude conditions as AND NOT ILIKE clauses (leading AND)."""
     return _SQL_EXCLUDE_BLOCK.replace("col", col)
 
 def _sql_kw(col: str) -> str:
-    """Full SOTU WHERE fragment: include block followed by exclude clauses."""
+    """Full U.S. politics WHERE fragment: include block followed by exclude clauses."""
     return _sql_include(col) + _sql_exclude(col)
 
 
