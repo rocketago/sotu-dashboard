@@ -570,6 +570,22 @@ footer {
   margin-top: 40px;
 }
 
+footer select,
+footer button#force-refresh-btn {
+  font-size: 12px;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+footer select:focus,
+footer button#force-refresh-btn:focus { outline: none; }
+footer button#force-refresh-btn:hover:not(:disabled) { color: var(--text); }
+footer button#force-refresh-btn:disabled { opacity: 0.5; cursor: default; }
+
 /* ── LOADING / ERROR ── */
 #status-bar {
   position: fixed;

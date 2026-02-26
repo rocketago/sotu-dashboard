@@ -1557,7 +1557,7 @@ def merge_into_structure(
             "window":        "rolling_24h",
             "window_label":  "Last 24h · Updated live",
             "today_start":   today_start or _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":    total_eng,
@@ -2442,7 +2442,7 @@ def _fresh_day_structure() -> dict:
             "window":                   "rolling_24h",
             "window_label":             "Last 24h · Updated live",
             "today_start":              _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":    0,
@@ -2837,7 +2837,7 @@ def build_political_data_from_events(
             "window":                   "rolling_24h",
             "window_label":             "Last 24h · Updated live",
             "today_start":              since_iso or _current_window_start(),
-            "refresh_interval_minutes": 15,
+            "refresh_interval_minutes": 60,
         },
         "summary": {
             "total_engagements":          total_eng,

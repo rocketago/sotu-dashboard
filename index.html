@@ -151,6 +151,15 @@
   Data source: VerbAI MCP &nbsp;|&nbsp; Demographic: Ages 18–29 &nbsp;|&nbsp;
   Sources: Google Search, News Articles, Reddit &nbsp;|&nbsp;
   <span id="auto-update-footer">Auto-update paused</span>
+  &nbsp;|&nbsp;
+  Update frequency:
+  <select id="refresh-interval-select" title="How often the dashboard checks for new data">
+    <option value="15">15 min</option>
+    <option value="30">30 min</option>
+    <option value="60">1 hour</option>
+  </select>
+  &nbsp;|&nbsp;
+  <button id="force-refresh-btn" title="Trigger an immediate data refresh on the server">↻ Refresh now</button>
 </footer>
 
 <div id="status-bar"></div>
@@ -166,7 +175,11 @@
   const LIVE_FEED_URL     = './live_feed.json';
   const SOURCES_CACHE_URL = './sources_cache.json';
   const POLLING_URL       = './polling_data.json';
-  const REFRESH_MS        = 15 * 60 * 1000;
+  function _savedIntervalMs() {
+    const v = parseInt(localStorage.getItem('refresh_interval_minutes') || '60', 10);
+    return ([15, 30, 60].includes(v) ? v : 60) * 60 * 1000;
+  }
+  let REFRESH_MS = _savedIntervalMs();
 
   let allExpanded    = true;
   let currentData    = null;
@@ -1432,8 +1445,9 @@
    * (e.g., loaded 14 min after last run) because the overdue check is boundary-based,
    * not age-based.
    * ────────────────────────────────────────────────────────────────────────────── */
-  const CRON_INTERVAL_MS    = 15 * 60 * 1000;
+  let CRON_INTERVAL_MS      = _savedIntervalMs();
   let _cronCountdownTimer   = null;
+  let _autoRefreshTimer     = null;
   let _lastKnownGeneratedAt = null;   // iso string — last seen data.meta.generated_at
   let _overdueInterval      = null;   // fast-poll handle while cron is running late
 
@@ -1776,10 +1790,84 @@
     if (currentData) renderCategories(currentData.categories, this.value);
   });
 
+  function startAutoRefresh() {
+    if (_autoRefreshTimer) clearInterval(_autoRefreshTimer);
+    _autoRefreshTimer = setInterval(loadData, REFRESH_MS);
+  }
+
+  /* ── REFRESH INTERVAL PICKER ── */
+  (function initRefreshInterval() {
+    const sel = document.getElementById('refresh-interval-select');
+    if (!sel) return;
+    // Restore saved preference (default 60 min).
+    sel.value = String(parseInt(localStorage.getItem('refresh_interval_minutes') || '60', 10));
+    sel.addEventListener('change', function () {
+      const mins = parseInt(this.value, 10);
+      localStorage.setItem('refresh_interval_minutes', mins);
+      CRON_INTERVAL_MS = mins * 60 * 1000;
+      REFRESH_MS       = mins * 60 * 1000;
+      startCountdown();      // restart timer with new interval + overdue threshold
+      startAutoRefresh();    // restart polling at new rate
+    });
+  })();
+
+  /* ── FORCE REFRESH BUTTON ── */
+  (function initForceRefresh() {
+    const btn = document.getElementById('force-refresh-btn');
+    if (!btn) return;
+
+    btn.addEventListener('click', async function () {
+      let token = localStorage.getItem('gh_pat');
+      if (!token) {
+        token = prompt(
+          'Enter a GitHub Personal Access Token with the "workflow" scope.\n' +
+          'Stored locally in your browser only — never sent anywhere except GitHub.'
+        );
+        if (!token) return;
+        token = token.trim();
+        localStorage.setItem('gh_pat', token);
+      }
+
+      btn.disabled = true;
+      btn.textContent = '↻ Triggering…';
+
+      try {
+        const res = await fetch(
+          'https://api.github.com/repos/rocketago/sotu-dashboard/actions/workflows/auto-update.yml/dispatches',
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/vnd.github+json',
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ ref: 'main' }),
+          }
+        );
+        if (res.status === 204) {
+          btn.textContent = '✓ Refresh triggered';
+          setTimeout(() => { btn.disabled = false; btn.textContent = '↻ Refresh now'; }, 4000);
+        } else if (res.status === 401 || res.status === 403) {
+          localStorage.removeItem('gh_pat');
+          btn.disabled = false;
+          btn.textContent = '✗ Auth failed — click to re-enter token';
+        } else {
+          btn.disabled = false;
+          btn.textContent = `✗ Error ${res.status}`;
+          setTimeout(() => { btn.textContent = '↻ Refresh now'; }, 3000);
+        }
+      } catch (_) {
+        btn.disabled = false;
+        btn.textContent = '✗ Network error';
+        setTimeout(() => { btn.textContent = '↻ Refresh now'; }, 3000);
+      }
+    });
+  })();
+
   /* ── INIT + AUTO-REFRESH ── */
   startCountdown();
   loadData();
-  setInterval(loadData, REFRESH_MS);
+  startAutoRefresh();
 </script>
 
 
