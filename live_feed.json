@@ -1,7 +1,18 @@
 {
-  "generated_at": "2026-02-26T06:11:25Z",
-  "day_start": "2026-02-25T01:11:25",
+  "generated_at": "2026-02-26T07:18:30Z",
+  "day_start": "2026-02-25T02:18:30",
   "events": [
+    {
+      "time": "2026-02-26T07:18:30Z",
+      "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 17,
+      "age": 22,
+      "gender": "Female",
+      "state": "RI"
+    },
     {
       "time": "2026-02-26T06:11:25Z",
       "query": "No. 2 House Democrat to skip Trump's State of the Union address",
@@ -45,6 +56,17 @@
       "age": 22,
       "gender": "Male",
       "state": "MI"
+    },
+    {
+      "time": "2026-02-26T03:09:18Z",
+      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Economic Policy",
+      "count": 25,
+      "age": 18,
+      "gender": "Female",
+      "state": "DE"
     },
     {
       "time": "2026-02-26T02:01:39Z",
@@ -91,6 +113,17 @@
       "state": "IA"
     },
     {
+      "time": "2026-02-25T23:00:06Z",
+      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+      "source": "youtube",
+      "channel": "13WMAZ",
+      "category": "Presidential Politics",
+      "count": 1,
+      "age": 29,
+      "gender": "Male",
+      "state": "KS"
+    },
+    {
       "time": "2026-02-25T21:51:54Z",
       "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
       "source": "youtube",
@@ -133,6 +166,17 @@
       "age": 23,
       "gender": "Male",
       "state": "NY"
+    },
+    {
+      "time": "2026-02-25T18:50:55Z",
+      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+      "source": "youtube",
+      "channel": "FOX 9 Minneapolis-St. Paul",
+      "category": "Presidential Politics",
+      "count": 5,
+      "age": 25,
+      "gender": "Male",
+      "state": "UT"
     },
     {
       "time": "2026-02-25T17:42:08Z",
@@ -179,6 +223,17 @@
       "state": "GA"
     },
     {
+      "time": "2026-02-25T14:41:43Z",
+      "query": "10 highlights from Trump's 2026 State of the Union",
+      "source": "youtube",
+      "channel": "CBS News",
+      "category": "Presidential Politics",
+      "count": 8,
+      "age": 28,
+      "gender": "Male",
+      "state": "AL"
+    },
+    {
       "time": "2026-02-25T13:32:23Z",
       "query": "10 highlights from Trump's 2026 State of the Union",
       "source": "youtube",
@@ -221,6 +276,17 @@
       "age": 29,
       "gender": "Female",
       "state": "WV"
+    },
+    {
+      "time": "2026-02-25T10:32:32Z",
+      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+      "source": "youtube",
+      "channel": "Jimmy Kimmel Live",
+      "category": "Presidential Politics",
+      "count": 9,
+      "age": 28,
+      "gender": "Male",
+      "state": "MI"
     },
     {
       "time": "2026-02-25T09:22:37Z",
@@ -267,6 +333,17 @@
       "state": "NY"
     },
     {
+      "time": "2026-02-25T06:23:20Z",
+      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Presidential Politics",
+      "count": 10,
+      "age": 19,
+      "gender": "Female",
+      "state": "WY"
+    },
+    {
       "time": "2026-02-25T05:12:52Z",
       "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
       "source": "youtube",
@@ -309,6 +386,17 @@
       "age": 21,
       "gender": "Female",
       "state": "OR"
+    },
+    {
+      "time": "2026-02-25T02:14:09Z",
+      "query": "LIVE: President Trump delivers State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Presidential Politics",
+      "count": 22,
+      "age": 21,
+      "gender": "Female",
+      "state": "CA"
     },
     {
       "time": "2026-02-25T01:03:07Z",
