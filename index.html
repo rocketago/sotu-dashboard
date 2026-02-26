@@ -39,7 +39,7 @@
 
   <!-- Tab Navigation -->
   <nav class="tab-nav">
-    <button class="tab-btn active" id="tab-btn-topics"  onclick="switchTab('topics')">Topics</button>
+    <button class="tab-btn active" id="tab-btn-topics"  onclick="switchTab('topics')">Live Dashboard</button>
     <button class="tab-btn"        id="tab-btn-sources" onclick="switchTab('sources')">Sources</button>
     <button class="tab-btn"        id="tab-btn-history" onclick="switchTab('history')">History</button>
   </nav>
@@ -96,7 +96,7 @@
         autocomplete="off"
       />
       <button class="expand-btn" id="expand-all-btn" onclick="toggleAllCategories()">
-        Expand All
+        Collapse All
       </button>
     </div>
 
@@ -111,6 +111,12 @@
       <h2>Top Content by Platform</h2>
       <div class="demo-tag">Ages 18–29</div>
     </div>
+    <nav class="src-window-nav" aria-label="Time window">
+      <button class="src-window-btn active" id="src-win-day"   onclick="setSourcesWindow('day')">Today</button>
+      <button class="src-window-btn"        id="src-win-week"  onclick="setSourcesWindow('week')">This Week</button>
+      <button class="src-window-btn"        id="src-win-month" onclick="setSourcesWindow('month')">This Month</button>
+    </nav>
+    <p class="src-window-note" id="src-window-note"></p>
     <div class="sources-grid" id="sources-grid">
       <!-- populated by JS -->
     </div>
@@ -162,14 +168,17 @@
   const HISTORY_URL       = './history.json';
   const MCP_STATUS_URL    = './mcp_status.json';
   const LIVE_FEED_URL     = './live_feed.json';
+  const SOURCES_CACHE_URL = './sources_cache.json';
   const REFRESH_MS        = 15 * 60 * 1000;
 
-  let allExpanded    = false;
+  let allExpanded    = true;
   let currentData    = null;
   let historyData    = null;
   let mcpStatus      = null;
   let liveEvents        = [];
   let topicsByCategory  = {};   // catLabel → [{label, kws, events}]
+  let sourcesCache      = null; // {runs: [{ts, items[]}]}
+  let sourcesWindow     = 'day'; // 'day' | 'week' | 'month'
 
   /* ── TAB SWITCHING ── */
   function switchTab(name) {
@@ -177,7 +186,7 @@
       document.getElementById('tab-' + t).classList.toggle('active', t === name);
       document.getElementById('tab-btn-' + t).classList.toggle('active', t === name);
     });
-    if (name === 'sources' && currentData) renderSourcesPane(currentData);
+    if (name === 'sources' && currentData) renderSourcesPane();
     if (name === 'history') renderHistoryChart();
   }
 
@@ -898,10 +907,20 @@
     renderWordCloud(words);
   }
 
+  /* ── SOURCES WINDOW SELECTOR ── */
+  function setSourcesWindow(w) {
+    sourcesWindow = w;
+    ['day', 'week', 'month'].forEach(k => {
+      const btn = document.getElementById('src-win-' + k);
+      if (btn) btn.classList.toggle('active', k === w);
+    });
+    renderSourcesPane();
+  }
+
   /* ── RENDER SOURCES PANE ── */
-  function renderSourcesPane(data) {
+  function renderSourcesPane() {
     const grid = document.getElementById('sources-grid');
-    if (!grid) return;
+    if (!grid || !currentData) return;
 
     const PLATFORMS = [
       { key: 'search',  label: 'Search',  icon: '🔍', color: '#0DA2E6', urlFn: item => `https://www.google.com/search?q=${encodeURIComponent(item.query || item.topic || '')}` },
@@ -910,10 +929,43 @@
       { key: 'tiktok',  label: 'TikTok',  icon: '♪',  color: '#1a1a2e', urlFn: item => `https://www.tiktok.com/search?q=${encodeURIComponent(item.query || item.topic || '')}` },
     ];
 
-    // Collect all items per platform, sort by count, take top 5
-    const allItems = data.categories.flatMap(cat =>
-      (cat.items || []).map(item => ({ ...item, _cat: cat.label }))
-    );
+    // Build the flat item list for the selected window
+    let allItems;
+    let noteText = '';
+    if (sourcesWindow === 'day' || !sourcesCache || !sourcesCache.runs || sourcesCache.runs.length === 0) {
+      // Today: use live currentData (same source as word cloud / dial / topics)
+      allItems = currentData.categories.flatMap(cat =>
+        (cat.items || []).map(item => ({ ...item, _cat: cat.label }))
+      );
+      noteText = 'Showing today\'s data — same as the Live Dashboard above.';
+    } else {
+      // Week / Month: aggregate from cached cron runs within the window
+      const nowMs  = Date.now();
+      const dayMs  = 86400 * 1000;
+      const cutoff = nowMs - (sourcesWindow === 'week' ? 7 * dayMs : 30 * dayMs);
+      const runs   = sourcesCache.runs.filter(r => new Date(r.ts).getTime() >= cutoff);
+      noteText = runs.length
+        ? `Aggregated from ${runs.length} data snapshot${runs.length !== 1 ? 's' : ''} in the last ${sourcesWindow === 'week' ? '7 days' : '30 days'}.`
+        : `No cached data yet for this window — check back after a few cron runs.`;
+
+      // Merge items: sum counts for matching query+source keys
+      const merged = new Map(); // key → item
+      for (const run of runs) {
+        for (const item of (run.items || [])) {
+          const k = `${(item.source || 'search')}||${(item.query || item.topic || '').toLowerCase().trim().slice(0, 80)}`;
+          if (merged.has(k)) {
+            merged.get(k).count = (merged.get(k).count || 0) + (item.count || 0);
+          } else {
+            merged.set(k, { ...item, _cat: item.category || '' });
+          }
+        }
+      }
+      allItems = Array.from(merged.values());
+    }
+
+    // Update note text
+    const noteEl = document.getElementById('src-window-note');
+    if (noteEl) noteEl.textContent = noteText;
 
     grid.innerHTML = PLATFORMS.map(plat => {
       const items = allItems
@@ -925,7 +977,7 @@
         ? items.map((item, i) => {
             const title    = (item.query || item.topic || '').slice(0, 80) || '—';
             const url      = plat.urlFn(item);
-            const meta     = item.subreddit ? `r/${item.subreddit}` : item.channel ? item.channel : item._cat;
+            const meta     = item.subreddit ? `r/${item.subreddit}` : item.channel ? item.channel : (item._cat || item.category || '');
             const countLbl = item.count > 1 ? `${Number(item.count).toLocaleString()}×` : '';
             return `
             <li class="source-content-item">
@@ -1901,17 +1953,19 @@
   async function loadData() {
     try {
       const ts = Date.now();
-      const [dataRes, histRes, mcpStatusRes, liveFeedRes] = await Promise.all([
-        fetch(DATA_URL        + '?_=' + ts),
-        fetch(HISTORY_URL     + '?_=' + ts).catch(() => null),
-        fetch(MCP_STATUS_URL  + '?_=' + ts).catch(() => null),
-        fetch(LIVE_FEED_URL   + '?_=' + ts).catch(() => null),
+      const [dataRes, histRes, mcpStatusRes, liveFeedRes, srcCacheRes] = await Promise.all([
+        fetch(DATA_URL          + '?_=' + ts),
+        fetch(HISTORY_URL       + '?_=' + ts).catch(() => null),
+        fetch(MCP_STATUS_URL    + '?_=' + ts).catch(() => null),
+        fetch(LIVE_FEED_URL     + '?_=' + ts).catch(() => null),
+        fetch(SOURCES_CACHE_URL + '?_=' + ts).catch(() => null),
       ]);
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
       currentData = data;
-      historyData = histRes       ? await histRes.json().catch(()       => null) : null;
-      mcpStatus   = mcpStatusRes  ? await mcpStatusRes.json().catch(()  => null) : null;
+      historyData  = histRes      ? await histRes.json().catch(()      => null) : null;
+      mcpStatus    = mcpStatusRes ? await mcpStatusRes.json().catch(() => null) : null;
+      sourcesCache = srcCacheRes  ? await srcCacheRes.json().catch(()  => null) : null;
       const liveFeedData = liveFeedRes ? await liveFeedRes.json().catch(() => null) : null;
       liveEvents       = (liveFeedData && liveFeedData.events) ? liveFeedData.events : [];
       topicsByCategory = buildTopicsByCategory(liveEvents);
@@ -1928,7 +1982,7 @@
       // Re-render sources pane if active
       const sourcesPane = document.getElementById('tab-sources');
       if (sourcesPane && sourcesPane.classList.contains('active')) {
-        renderSourcesPane(data);
+        renderSourcesPane();
       }
 
       // Re-render history chart if active
