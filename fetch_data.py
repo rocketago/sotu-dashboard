@@ -3030,12 +3030,13 @@ def main():
         if OUTPUT_FILE.exists():
             with open(OUTPUT_FILE) as f:
                 existing = json.load(f)
-            existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-            existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
-            existing["meta"]["today_start"] = since_iso
-            with open(OUTPUT_FILE, "w") as f:
-                json.dump(existing, f, indent=2, ensure_ascii=False)
-            update_history(existing)
+            if existing.get("meta"):
+                existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
+                existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
+                existing["meta"]["today_start"] = since_iso
+                with open(OUTPUT_FILE, "w") as f:
+                    json.dump(existing, f, indent=2, ensure_ascii=False)
+                update_history(existing)
     else:
         # ── Determine whether to reset live_feed (ET day rollover) ────────────
         # Within the same ET calendar day: accumulate so events from earlier in
