@@ -1418,20 +1418,77 @@
 
 
 
-  /* ── CRON COUNTDOWN (display only — cron fires server-side via GitHub Actions) ── */
-  let _cronCountdownTimer = null;
+  /* ── CRON COUNTDOWN ────────────────────────────────────────────────────────────────
+   * Anchored to the actual last-update timestamp (data.meta.generated_at + 15 min)
+   * rather than the nearest UTC 15-min boundary.  This means the timer reflects
+   * reality even when GitHub Actions fires a few minutes late.
+   *
+   * Self-monitoring: once the countdown expires the code switches to a lightweight
+   * 30-second poll that watches generated_at.  The moment new data lands it fires a
+   * full loadData() refresh and resets the timer.  No manual intervention needed.
+   * ────────────────────────────────────────────────────────────────────────────── */
+  let _cronCountdownTimer   = null;
+  let _lastKnownGeneratedAt = null;   // iso string — last seen data.meta.generated_at
+  let _nextUpdateMs         = 0;      // epoch-ms when next fetch is expected
+  let _overdueInterval      = null;   // fast-poll handle while cron is running late
+
+  /** Called by loadData() each time we get a new generated_at. */
+  function notifyNewData(generatedAt) {
+    if (!generatedAt || generatedAt === _lastKnownGeneratedAt) return;
+    _lastKnownGeneratedAt = generatedAt;
+    _nextUpdateMs = new Date(generatedAt).getTime() + 15 * 60 * 1000;
+    if (_overdueInterval) { clearInterval(_overdueInterval); _overdueInterval = null; }
+    const el = document.getElementById('cron-countdown');
+    if (el) el.style.color = '';
+  }
+
+  /** Lightweight 30-second poll that fires only while the cron is running late. */
+  function startOverduePolling() {
+    if (_overdueInterval) return;
+    _overdueInterval = setInterval(async () => {
+      try {
+        const res = await fetch(DATA_URL + '?_=' + Date.now());
+        if (!res.ok) return;
+        const d = await res.json();
+        const genAt = d?.meta?.generated_at;
+        if (genAt && genAt !== _lastKnownGeneratedAt) {
+          clearInterval(_overdueInterval);
+          _overdueInterval = null;
+          loadData();   // new data confirmed — full refresh
+        }
+      } catch (_) { /* ignore transient network blips */ }
+    }, 30_000);
+  }
 
   function startCountdown() {
     if (_cronCountdownTimer) clearInterval(_cronCountdownTimer);
     function tick() {
       const el = document.getElementById('cron-countdown');
       if (!el) return;
-      const now       = Date.now();
-      const INTERVAL  = 15 * 60 * 1000;
-      const remaining = Math.max(0, Math.ceil((now + 1) / INTERVAL) * INTERVAL - now);
-      const mins = Math.floor(remaining / 60000);
-      const secs = Math.floor((remaining % 60000) / 1000);
-      el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+      const now = Date.now();
+
+      // Before first data load: fall back to clock-boundary alignment.
+      if (!_nextUpdateMs) {
+        const INTERVAL  = 15 * 60 * 1000;
+        const remaining = Math.ceil((now + 1) / INTERVAL) * INTERVAL - now;
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+        el.style.color = '';
+        return;
+      }
+
+      const remaining = _nextUpdateMs - now;
+      if (remaining <= 0) {
+        el.textContent = 'updating…';
+        el.style.color = '#F9A349';   // amber — cron is running a bit late
+        startOverduePolling();
+      } else {
+        el.style.color = '';
+        const mins = Math.floor(remaining / 60000);
+        const secs = Math.floor((remaining % 60000) / 1000);
+        el.textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+      }
     }
     tick();
     _cronCountdownTimer = setInterval(tick, 1000);
@@ -1665,6 +1722,7 @@
       if (!dataRes.ok) throw new Error('HTTP ' + dataRes.status);
       const data = await dataRes.json();
       currentData = data;
+      notifyNewData(data?.meta?.generated_at);   // anchor timer to actual update time
       historyData  = histRes      ? await histRes.json().catch(()      => null) : null;
       mcpStatus    = mcpStatusRes ? await mcpStatusRes.json().catch(() => null) : null;
       sourcesCache = srcCacheRes  ? await srcCacheRes.json().catch(()  => null) : null;
