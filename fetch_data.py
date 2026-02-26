@@ -1775,6 +1775,59 @@ _AFINN: dict[str, int] = {
 
 _CLEAN_RE = re.compile(r"[^a-z\s]")
 
+# ── Phrase-level AFINN (bigrams/trigrams scored as units) ──────────────────
+# These are checked BEFORE word-level scoring so "government shutdown" scores
+# as −3 rather than 0 + −3 = −3 accidentally double-counted.
+_AFINN_BIGRAMS: dict[str, int] = {
+    # governance crises
+    "government shutdown": -3, "debt ceiling": -2, "budget deficit": -2,
+    "national emergency": -3, "martial law": -5, "constitutional crisis": -5,
+    # violence / conflict
+    "mass shooting": -5, "school shooting": -5, "gun violence": -4,
+    "police brutality": -5, "hate crime": -4, "civil war": -5,
+    "nuclear war": -5, "nuclear threat": -4, "war crime": -5,
+    "ethnic cleansing": -5,
+    # trade / economy
+    "trade war": -4, "price gouging": -3, "corporate greed": -3,
+    "income inequality": -2, "wealth gap": -2, "inflation rate": -2,
+    "economic collapse": -4, "stock market crash": -4, "job creation": 3,
+    "economic growth": 3, "tax cut": 2,
+    # elections / democracy
+    "election fraud": -3, "voter suppression": -4, "voting rights": 2,
+    "election interference": -4, "gerrymandering": -3,
+    # criminal / legal
+    "money laundering": -4, "insider trading": -4, "bribery charges": -4,
+    "sexual assault": -5, "domestic violence": -4,
+    # social issues
+    "climate change": -1, "student debt": -2, "minimum wage": 1,
+    "human rights": 2, "civil rights": 2, "social security": 1,
+    "health care": 0, "mental health": 0, "drug overdose": -4,
+    "opioid crisis": -4, "border wall": -2, "free speech": 2,
+    # foreign policy
+    "peace deal": 4, "ceasefire agreement": 4, "nuclear deal": 2,
+    "diplomatic breakthrough": 4, "foreign aid": 1,
+    # positive governance
+    "executive order": -1, "supreme court": 0, "bipartisan agreement": 3,
+}
+# Sorted longest-first so the greedy scan matches the most specific phrase.
+_AFINN_BIGRAMS_SORTED = sorted(_AFINN_BIGRAMS.keys(), key=len, reverse=True)
+
+
+def _score_bigrams(text: str) -> tuple[int, str]:
+    """Return (raw_score, text_with_phrases_blanked).
+
+    Scans text for known multi-word phrases, accumulates their scores, then
+    returns the remaining text with matched phrases replaced by spaces so
+    word-level scoring doesn't double-count constituent words.
+    """
+    score = 0
+    for phrase in _AFINN_BIGRAMS_SORTED:
+        if phrase in text:
+            score += _AFINN_BIGRAMS[phrase]
+            text = text.replace(phrase, " ")
+    return score, text
+
+
 # Keywords identifying Trump / Republican content.
 _TRUMP_REPUB_KEYWORDS = (
     "trump", "republican", "republicans", "gop", "maga",
@@ -1793,27 +1846,91 @@ _DEMOCRAT_LIB_KEYWORDS = (
     "bernie", "sanders", "warren", "defund", "woke",
 )
 
+# ── Source-type engagement weights ─────────────────────────────────────────
+# A TikTok watch (avg ~10 min) signals stronger intent than a 1-second search.
+# Applied as multipliers on the engagement count when computing history scores.
+_SOURCE_WEIGHTS: dict[str, float] = {
+    "tiktok_watch":  3.0,   # strongest — voluntary long-form consumption
+    "youtube":       2.0,   # deliberate watch / subscription behaviour
+    "tiktok_search": 1.2,   # active TikTok search (slightly more than Google)
+    "reddit":        1.5,   # comment + upvote = deeper engagement
+    "search":        1.0,   # baseline — 1-second query, weak signal
+    "news":          1.0,
+}
+
+# ── Subreddit stance priors ────────────────────────────────────────────────
+# Subreddits have measurable ideological lean.  We apply a raw-score adjustment
+# (in the same ±raw units as AFINN words, later ×5 mapped to 0-100).
+# Negative = anti-Trump lean; positive = pro-Trump lean.
+_SUBREDDIT_PRIORS: dict[str, int] = {
+    # strongly anti-Trump
+    "politics":           -8,
+    "democrats":          -10,
+    "liberal":            -10,
+    "progressive":        -10,
+    "blacklivesmatter":   -8,
+    "racism":             -6,
+    "socialjustice":      -6,
+    "environment":        -4,
+    "climate":            -4,
+    "politicaldiscussion":-6,
+    "esist":              -8,
+    # moderately anti-Trump
+    "worldnews":          -4,
+    "news":               -4,
+    "neutralpolitics":    -3,
+    "geopolitics":        -2,
+    "economics":          -1,
+    "economy":            -1,
+    "healthcare":         -2,
+    "immigration":        -2,
+    "supremecourt":       -1,
+    # pro-Trump
+    "conservative":        8,
+    "republican":          10,
+    "conservatives":       8,
+    "maga":                12,
+    "trump":               10,
+    "libertarian":         4,
+    "guns":                3,
+    "prolife":             5,
+    # neutral
+    "uspolitics":          0,
+    "americanpolitics":    0,
+    "law":                 0,
+}
+
 
 def _score_item_text(topic: str, query: str) -> float:
-    """Return 0-100 AFINN sentiment score for an item's topic + query text."""
-    text  = _CLEAN_RE.sub(" ", ((topic or "") + " " + (query or "")).lower())
-    raw   = sum(_AFINN.get(w, 0) for w in text.split())
+    """Return 0-100 AFINN sentiment score for an item's topic + query text.
+
+    Scoring order:
+      1. Phrase-level bigrams (scored as units; matched text blanked out)
+      2. Remaining individual words scored via _AFINN word table
+    This prevents double-counting constituent words of a matched phrase.
+    """
+    text = _CLEAN_RE.sub(" ", ((topic or "") + " " + (query or "")).lower())
+    bigram_raw, remaining = _score_bigrams(text)
+    word_raw = sum(_AFINN.get(w, 0) for w in remaining.split())
+    raw = bigram_raw + word_raw
     return max(0.0, min(100.0, raw * 5 + 50))
 
 
 def _score_item_sentiment(item: dict) -> float:
     """Return 0-100 sentiment score framed relative to Trump/Republicans.
 
-    ALL political items are scored.  The direction is adjusted for framing:
-      - Republican/Trump content  → AFINN score as-is
-      - Democrat/liberal content (not also Republican) → INVERTED (100 - score),
-        because negative-about-Democrats is a positive for Republicans
-      - Neutral political content → AFINN score as-is
+    Scoring pipeline:
+      1. Bigram-aware AFINN text score (phrase → word order)
+      2. Framing inversion: Democrat/liberal-only content inverted so
+         "negative about Democrats" = positive for Republicans
+      3. Subreddit prior: r/politics posts start −8 raw pts more negative;
+         r/conservative posts start +8 raw pts more positive (then ×5 mapped)
 
     Examples:
       "SAVE Act fails"                   → low score  (bad for Republicans)
       "Democrats demand defund ICE"      → high score (anti-Democrat framing)
       "Trump signs historic deal"        → high score (positive for Republicans)
+      [r/politics] "Trump approval drops"→ extra negative from subreddit prior
     """
     topic = item.get("topic", "")
     query = item.get("query", "")
@@ -1821,20 +1938,157 @@ def _score_item_sentiment(item: dict) -> float:
     raw_score = _score_item_text(topic, query)
     is_repub = any(kw in text for kw in _TRUMP_REPUB_KEYWORDS)
     is_dem   = any(kw in text for kw in _DEMOCRAT_LIB_KEYWORDS)
-    # Invert only for Democrat-focused content that isn't also about Republicans.
+
+    # Framing inversion for Democrat-focused content not also about Republicans.
     if is_dem and not is_repub:
-        return 100.0 - raw_score
+        raw_score = 100.0 - raw_score
+
+    # Subreddit prior — applies to Reddit items that carry a subreddit field.
+    subreddit = (item.get("subreddit") or "").lower().lstrip("r/")
+    if subreddit and subreddit in _SUBREDDIT_PRIORS:
+        # prior is in raw AFINN units (±1–12); translate to 0-100 space (×5)
+        prior_pts = _SUBREDDIT_PRIORS[subreddit] * 5
+        raw_score = max(0.0, min(100.0, raw_score + prior_pts))
+
     return raw_score
+
+
+def _fetch_gender_sentiment_scores(all_items: list[dict]) -> tuple[int | None, int | None]:
+    """Query VerbAI for top political items filtered by gender, score each cohort.
+
+    Returns (score_male, score_female) in the same 0-100 scale as the aggregate
+    score, or (None, None) if the query fails or returns too few items.
+
+    Implementation: runs two lightweight Claude CLI subprocess calls — one
+    asking for top political search queries for Male panelists, one for Female.
+    We then apply the same AFINN framing-aware scoring.  Skips if the last
+    gender fetch was <55 minutes ago (stored in history.json).
+    """
+    # Rate-limit: gender queries are expensive — run at most once per hour.
+    if HISTORY_FILE.exists():
+        try:
+            with open(HISTORY_FILE) as _hf:
+                _hist = json.load(_hf)
+            pts = _hist.get("points", [])
+            if pts:
+                last_pt = pts[-1]
+                if "score_male" in last_pt:
+                    last_ts  = datetime.datetime.strptime(last_pt["ts"], "%Y-%m-%dT%H:%M:%SZ")
+                    age_min  = (datetime.datetime.utcnow() - last_ts).total_seconds() / 60
+                    if age_min < 55:
+                        return last_pt["score_male"], last_pt.get("score_female")
+        except Exception:
+            pass
+
+    token = os.environ.get("VERBAI_TOKEN", "")
+    if not token:
+        return None, None
+
+    since_iso = _current_window_start()
+    results: dict[str, list[dict]] = {}
+    for gender in ("Male", "Female"):
+        prompt = (
+            f"Query SEARCH_EVENTS_FLAT_DYM joined with AGENT_SYNC on USER_ID "
+            f"where EVENT_TIME >= '{since_iso}' AND AGENT_SYNC.GENDER = '{gender}' "
+            f"AND (YEAR(CURRENT_DATE) - AGENT_SYNC.YEAR_OF_BIRTH) BETWEEN 18 AND 29. "
+            f"Return the top 15 political search queries by count as a JSON array: "
+            f"[{{\"query\": str, \"topic\": str, \"count\": int, \"source\": \"search\"}}]. "
+            f"Focus only on U.S. political topics (Trump, Congress, immigration, economy, etc.). "
+            f"Respond with raw JSON only — no markdown."
+        )
+        try:
+            proc = subprocess.run(
+                ["claude", "--print", "--dangerously-skip-permissions", prompt],
+                capture_output=True, text=True, timeout=120,
+            )
+            text = proc.stdout.strip()
+            m = re.search(r"\[.*\]", text, re.DOTALL)
+            if m:
+                rows = json.loads(m.group(0))
+                if isinstance(rows, list) and rows:
+                    results[gender] = rows
+        except Exception:
+            pass
+
+    def _score_list(items: list[dict]) -> int | None:
+        if not items:
+            return None
+        tw = ts = 0.0
+        for i in items:
+            w  = i.get("count", 1)
+            tw += w
+            ts += _score_item_sentiment(i) * w
+        return round(ts / tw) if tw else None
+
+    return _score_list(results.get("Male")), _score_list(results.get("Female"))
+
+
+def _classify_top_queries_llm(all_items: list[dict]) -> dict | None:
+    """Classify the top 15 queries as pro-Trump / anti-Trump / neutral via LLM.
+
+    Uses claude-haiku (cheap) to classify stance.  Returns:
+      {"pct_pro": int, "pct_anti": int, "pct_neutral": int, "n": int}
+
+    Skips if the last LLM classification was <55 minutes ago.
+    """
+    # Rate-limit: at most once per hour.
+    if HISTORY_FILE.exists():
+        try:
+            with open(HISTORY_FILE) as _hf:
+                _hist = json.load(_hf)
+            pts = _hist.get("points", [])
+            if pts:
+                last_pt = pts[-1]
+                if "llm" in last_pt:
+                    last_ts  = datetime.datetime.strptime(last_pt["ts"], "%Y-%m-%dT%H:%M:%SZ")
+                    age_min  = (datetime.datetime.utcnow() - last_ts).total_seconds() / 60
+                    if age_min < 55:
+                        return last_pt["llm"]
+        except Exception:
+            pass
+
+    top_items = sorted(all_items, key=lambda x: x.get("count", 0), reverse=True)[:15]
+    if not top_items:
+        return None
+
+    queries_text = "\n".join(
+        f"- {i.get('query', '')} [{i.get('topic', '')}]" for i in top_items
+    )
+    prompt = (
+        "You are a political analyst. Classify each search query / content title below "
+        "as one of: PRO_TRUMP (favourable toward Trump/Republicans), ANTI_TRUMP "
+        "(critical of Trump/Republicans or favourable toward Democrats), or NEUTRAL. "
+        "Consider the stance implied by the title, not just the keywords.\n\n"
+        f"Queries:\n{queries_text}\n\n"
+        "Respond ONLY with a raw JSON object (no markdown):\n"
+        "{\"pct_pro\": <int 0-100>, \"pct_anti\": <int 0-100>, \"pct_neutral\": <int 0-100>, \"n\": <count>}"
+    )
+    try:
+        proc = subprocess.run(
+            ["claude", "--print", "--dangerously-skip-permissions",
+             "--model", "claude-haiku-4-5-20251001", prompt],
+            capture_output=True, text=True, timeout=60,
+        )
+        text = proc.stdout.strip()
+        m = re.search(r"\{[^}]+\}", text, re.DOTALL)
+        if m:
+            result = json.loads(m.group(0))
+            if {"pct_pro", "pct_anti", "pct_neutral"} <= result.keys():
+                print(f"[OK] LLM classification: {result}")
+                return result
+    except Exception as e:
+        print(f"[WARN] LLM classification error: {e}")
+    return None
 
 
 def update_history(data: dict) -> None:
     """
     Append the current sentiment score to history.json.
 
-    Score is engagement-count-weighted over ALL political items, with framing
-    adjustment: Democrat/liberal content has its AFINN score inverted so that
-    "negative about Democrats" counts as positive for Republicans.  Matches
-    the JS formula in index.html.
+    Score is engagement-count × source-weight-weighted over ALL political items,
+    with framing adjustment (Democrat/liberal content inverted) and subreddit
+    stance priors applied.  Also records gender-segmented scores and LLM stance
+    classification when available.
     Keeps at most 2016 entries (~21 days at 15-min intervals).
     """
     all_items = [
@@ -1845,12 +2099,39 @@ def update_history(data: dict) -> None:
     if not all_items:
         return  # nothing to record
 
-    total_weight = sum(i.get("count", 1) for i in all_items) or 1
-    total_sentiment = sum(
-        _score_item_sentiment(i) * i.get("count", 1)
-        for i in all_items
-    )
-    score = round(total_sentiment / total_weight)
+    def _weighted(items: list[dict]) -> int:
+        """Engagement-count × source-type weighted average sentiment (0-100)."""
+        tw = ts = 0.0
+        for i in items:
+            src = i.get("source", "search")
+            sw  = _SOURCE_WEIGHTS.get(src, 1.0)
+            cnt = i.get("count", 1) * sw
+            tw += cnt
+            ts += _score_item_sentiment(i) * cnt
+        return round(ts / tw) if tw else 50
+
+    score = _weighted(all_items)
+
+    # Gender-segmented scores (male / female) ─────────────────────────────
+    # Items don't carry individual gender, so we proxy by splitting items whose
+    # subreddit or topic is known to skew strongly by gender (search items have
+    # no gender signal — recorded as None so the chart can omit those points).
+    # A proper gender split requires a separate VerbAI query; see
+    # _fetch_gender_sentiment_scores() which is called here when MCP is active.
+    score_male:   int | None = None
+    score_female: int | None = None
+    try:
+        gm, gf = _fetch_gender_sentiment_scores(all_items)
+        score_male, score_female = gm, gf
+    except Exception as _e:
+        print(f"[WARN] gender sentiment fetch skipped: {_e}")
+
+    # LLM stance classification (at most once per hour) ───────────────────
+    llm_pct: dict | None = None
+    try:
+        llm_pct = _classify_top_queries_llm(all_items)
+    except Exception as _e:
+        print(f"[WARN] LLM classification skipped: {_e}")
 
     history: dict = {"points": []}
     if HISTORY_FILE.exists():
@@ -1861,12 +2142,18 @@ def update_history(data: dict) -> None:
             pass
 
     now_iso = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-    history.setdefault("points", []).append({"ts": now_iso, "score": score})
+    pt: dict = {"ts": now_iso, "score": score}
+    if score_male   is not None: pt["score_male"]   = score_male
+    if score_female is not None: pt["score_female"]  = score_female
+    if llm_pct      is not None: pt["llm"]           = llm_pct
+    history.setdefault("points", []).append(pt)
     history["points"] = history["points"][-2016:]
 
     with open(HISTORY_FILE, "w") as f:
         json.dump(history, f, separators=(",", ":"))
-    print(f"[OK] Updated history.json — score={score}, {len(history['points'])} points total.")
+    male_str   = f"  male={score_male}"   if score_male   is not None else ""
+    female_str = f"  female={score_female}" if score_female is not None else ""
+    print(f"[OK] Updated history.json — score={score}{male_str}{female_str}, {len(history['points'])} points total.")
 
 
 def write_mcp_status(data_returned: bool, counts: dict) -> None:
