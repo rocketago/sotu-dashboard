@@ -1,7 +1,18 @@
 {
-  "generated_at": "2026-02-26T15:07:03Z",
-  "day_start": "2026-02-25T10:07:03",
+  "generated_at": "2026-02-26T15:22:16Z",
+  "day_start": "2026-02-25T10:22:16",
   "events": [
+    {
+      "time": "2026-02-26T15:22:16Z",
+      "query": "No. 2 House Democrat to skip Trump's State of the Union address",
+      "source": "youtube",
+      "channel": "ABC News",
+      "category": "Legislative Politics",
+      "count": 17,
+      "age": 20,
+      "gender": "Male",
+      "state": "WI"
+    },
     {
       "time": "2026-02-26T15:07:03Z",
       "query": "No. 2 House Democrat to skip Trump's State of the Union address",
@@ -34,6 +45,17 @@
       "age": 28,
       "gender": "Female",
       "state": "NH"
+    },
+    {
+      "time": "2026-02-26T11:12:42Z",
+      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
+      "source": "youtube",
+      "channel": "The Daily Show",
+      "category": "Economic Policy",
+      "count": 25,
+      "age": 27,
+      "gender": "Male",
+      "state": "WA"
     },
     {
       "time": "2026-02-26T10:57:40Z",
@@ -89,6 +111,17 @@
       "age": 22,
       "gender": "Female",
       "state": "RI"
+    },
+    {
+      "time": "2026-02-26T07:03:09Z",
+      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
+      "source": "youtube",
+      "channel": "13WMAZ",
+      "category": "Presidential Politics",
+      "count": 1,
+      "age": 22,
+      "gender": "Male",
+      "state": "KY"
     },
     {
       "time": "2026-02-26T06:48:18Z",
@@ -179,6 +212,17 @@
       "state": "DE"
     },
     {
+      "time": "2026-02-26T02:53:36Z",
+      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
+      "source": "youtube",
+      "channel": "FOX 9 Minneapolis-St. Paul",
+      "category": "Presidential Politics",
+      "count": 5,
+      "age": 25,
+      "gender": "Male",
+      "state": "GA"
+    },
+    {
       "time": "2026-02-26T02:38:55Z",
       "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
       "source": "youtube",
@@ -265,6 +309,17 @@
       "age": 29,
       "gender": "Male",
       "state": "KS"
+    },
+    {
+      "time": "2026-02-25T22:44:03Z",
+      "query": "10 highlights from Trump's 2026 State of the Union",
+      "source": "youtube",
+      "channel": "CBS News",
+      "category": "Presidential Politics",
+      "count": 8,
+      "age": 20,
+      "gender": "Male",
+      "state": "VT"
     },
     {
       "time": "2026-02-25T22:29:33Z",
@@ -355,6 +410,17 @@
       "state": "UT"
     },
     {
+      "time": "2026-02-25T18:34:30Z",
+      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
+      "source": "youtube",
+      "channel": "Jimmy Kimmel Live",
+      "category": "Presidential Politics",
+      "count": 9,
+      "age": 19,
+      "gender": "Male",
+      "state": "WA"
+    },
+    {
       "time": "2026-02-25T18:20:10Z",
       "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
       "source": "youtube",
@@ -430,523 +496,6 @@
       "age": 27,
       "gender": "Male",
       "state": "GA"
-    },
-    {
-      "time": "2026-02-25T14:41:43Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 28,
-      "gender": "Male",
-      "state": "AL"
-    },
-    {
-      "time": "2026-02-25T14:10:48Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 28,
-      "gender": "Female",
-      "state": "TN"
-    },
-    {
-      "time": "2026-02-25T13:47:34Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 18,
-      "gender": "Male",
-      "state": "FL"
-    },
-    {
-      "time": "2026-02-25T13:32:23Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 25,
-      "gender": "Male",
-      "state": "NM"
-    },
-    {
-      "time": "2026-02-25T12:50:42Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 28,
-      "gender": "Female",
-      "state": "WA"
-    },
-    {
-      "time": "2026-02-25T12:43:59Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 22,
-      "gender": "Male",
-      "state": "DE"
-    },
-    {
-      "time": "2026-02-25T12:34:50Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 28,
-      "gender": "Male",
-      "state": "KY"
-    },
-    {
-      "time": "2026-02-25T12:28:57Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 29,
-      "gender": "Female",
-      "state": "WV"
-    },
-    {
-      "time": "2026-02-25T10:32:32Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 28,
-      "gender": "Male",
-      "state": "MI"
-    },
-    {
-      "time": "2026-02-25T10:01:26Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 23,
-      "gender": "Male",
-      "state": "MA"
-    },
-    {
-      "time": "2026-02-25T09:38:18Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 25,
-      "gender": "Female",
-      "state": "LA"
-    },
-    {
-      "time": "2026-02-25T09:22:37Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 22,
-      "gender": "Female",
-      "state": "VA"
-    },
-    {
-      "time": "2026-02-25T08:41:15Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 28,
-      "gender": "Female",
-      "state": "NV"
-    },
-    {
-      "time": "2026-02-25T08:34:26Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 20,
-      "gender": "Male",
-      "state": "MI"
-    },
-    {
-      "time": "2026-02-25T08:25:33Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 24,
-      "gender": "Non-binary",
-      "state": "HI"
-    },
-    {
-      "time": "2026-02-25T08:19:39Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 27,
-      "gender": "Female",
-      "state": "NY"
-    },
-    {
-      "time": "2026-02-25T06:23:20Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 19,
-      "gender": "Female",
-      "state": "WY"
-    },
-    {
-      "time": "2026-02-25T05:29:02Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 26,
-      "gender": "Male",
-      "state": "NE"
-    },
-    {
-      "time": "2026-02-25T05:12:52Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 23,
-      "gender": "Male",
-      "state": "ND"
-    },
-    {
-      "time": "2026-02-25T04:31:49Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 18,
-      "gender": "Female",
-      "state": "AR"
-    },
-    {
-      "time": "2026-02-25T04:24:53Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 21,
-      "gender": "Female",
-      "state": "MD"
-    },
-    {
-      "time": "2026-02-25T04:16:16Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 19,
-      "gender": "Male",
-      "state": "HI"
-    },
-    {
-      "time": "2026-02-25T04:10:21Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 21,
-      "gender": "Female",
-      "state": "OR"
-    },
-    {
-      "time": "2026-02-25T02:14:09Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 21,
-      "gender": "Female",
-      "state": "CA"
-    },
-    {
-      "time": "2026-02-25T01:03:07Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 23,
-      "gender": "Male",
-      "state": "GA"
-    },
-    {
-      "time": "2026-02-25T00:15:21Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 26,
-      "gender": "Male",
-      "state": "WI"
-    },
-    {
-      "time": "2026-02-25T00:07:00Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 23,
-      "gender": "Male",
-      "state": "SC"
-    },
-    {
-      "time": "2026-02-25T00:01:03Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 24,
-      "gender": "Non-binary",
-      "state": "FL"
-    },
-    {
-      "time": "2026-02-21T05:47:22Z",
-      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Economic Policy",
-      "count": 25,
-      "age": 26,
-      "gender": "Female",
-      "state": "OR"
-    },
-    {
-      "time": "2026-02-21T05:12:23Z",
-      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Economic Policy",
-      "count": 25,
-      "age": 27,
-      "gender": "Female",
-      "state": "WV"
-    },
-    {
-      "time": "2026-02-21T00:40:36Z",
-      "query": "Trump's Tariffs Voided, Kash Patel Crashes US Hockey Celebration, Iran War Looms | The Daily Show",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Economic Policy",
-      "count": 25,
-      "age": 22,
-      "gender": "Female",
-      "state": "WY"
-    },
-    {
-      "time": "2026-02-15T20:49:28Z",
-      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
-      "source": "youtube",
-      "channel": "13WMAZ",
-      "category": "Presidential Politics",
-      "count": 1,
-      "age": 28,
-      "gender": "Female",
-      "state": "WY"
-    },
-    {
-      "time": "2026-02-15T20:20:19Z",
-      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
-      "source": "youtube",
-      "channel": "13WMAZ",
-      "category": "Presidential Politics",
-      "count": 1,
-      "age": 29,
-      "gender": "Male",
-      "state": "MI"
-    },
-    {
-      "time": "2026-02-15T16:33:50Z",
-      "query": "Trump prepares to deliver potentially record long State of the Union address Tuesday night",
-      "source": "youtube",
-      "channel": "13WMAZ",
-      "category": "Presidential Politics",
-      "count": 1,
-      "age": 25,
-      "gender": "Male",
-      "state": "IN"
-    },
-    {
-      "time": "2026-02-10T11:51:34Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 25,
-      "gender": "Non-binary",
-      "state": "KY"
-    },
-    {
-      "time": "2026-02-10T11:28:15Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 25,
-      "gender": "Male",
-      "state": "NE"
-    },
-    {
-      "time": "2026-02-10T08:27:04Z",
-      "query": "Trump greets U.S. Men's Olympic Hockey team to White House",
-      "source": "youtube",
-      "channel": "FOX 9 Minneapolis-St. Paul",
-      "category": "Presidential Politics",
-      "count": 5,
-      "age": 28,
-      "gender": "Male",
-      "state": "ND"
-    },
-    {
-      "time": "2026-02-05T02:53:41Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 20,
-      "gender": "Female",
-      "state": "MD"
-    },
-    {
-      "time": "2026-02-05T02:36:11Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 18,
-      "gender": "Male",
-      "state": "WI"
-    },
-    {
-      "time": "2026-02-05T00:20:18Z",
-      "query": "10 highlights from Trump's 2026 State of the Union",
-      "source": "youtube",
-      "channel": "CBS News",
-      "category": "Presidential Politics",
-      "count": 8,
-      "age": 27,
-      "gender": "Female",
-      "state": "NE"
-    },
-    {
-      "time": "2026-01-30T17:55:47Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 19,
-      "gender": "Female",
-      "state": "VA"
-    },
-    {
-      "time": "2026-01-30T17:44:07Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 25,
-      "gender": "Female",
-      "state": "RI"
-    },
-    {
-      "time": "2026-01-30T16:13:32Z",
-      "query": "Jimmy Kimmel Reacts to Donald Trump's State of the Union Address 2026",
-      "source": "youtube",
-      "channel": "Jimmy Kimmel Live",
-      "category": "Presidential Politics",
-      "count": 9,
-      "age": 21,
-      "gender": "Male",
-      "state": "MN"
-    },
-    {
-      "time": "2026-01-25T08:57:53Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 29,
-      "gender": "Female",
-      "state": "IA"
-    },
-    {
-      "time": "2026-01-25T08:52:03Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 23,
-      "gender": "Male",
-      "state": "KY"
-    },
-    {
-      "time": "2026-01-25T08:06:46Z",
-      "query": "It's time to play: Are these images Trump's skin or the surface of Mars? #dailyshow",
-      "source": "youtube",
-      "channel": "The Daily Show",
-      "category": "Presidential Politics",
-      "count": 10,
-      "age": 23,
-      "gender": "Male",
-      "state": "AR"
-    },
-    {
-      "time": "2026-01-20T00:00:00Z",
-      "query": "LIVE: President Trump delivers State of the Union address",
-      "source": "youtube",
-      "channel": "ABC News",
-      "category": "Presidential Politics",
-      "count": 22,
-      "age": 24,
-      "gender": "Male",
-      "state": "PA"
     }
   ]
 }
