@@ -1212,32 +1212,23 @@
     const maxEngage = Math.max(...categories.map(c => c.engagement_count), 1);
     const query = filterText.toLowerCase();
 
+    // live_feed.json is the single source of truth for category items.
+    // topicsByCategory is built from liveEvents in loadData() and always
+    // has normalised canonical category names matching cat.label.
     let html = '';
     categories.forEach((cat) => {
-      // Live-event topic clusters for this category (built from live_feed.json)
       const catTopics = topicsByCategory[cat.label] || [];
-      const hasTopics = catTopics.length > 0;
+      if (catTopics.length === 0) return;   // skip categories with no live data
 
-      // Filter topics or items by search query
       const matchTopics = catTopics.filter(t =>
         !query || t.label.toLowerCase().includes(query));
-      const matchItems  = cat.items.filter(item =>
-        !query ||
-        (item.topic || '').toLowerCase().includes(query) ||
-        (item.query || '').toLowerCase().includes(query));
-      const anyMatch = hasTopics ? matchTopics.length > 0 : matchItems.length > 0;
+      if (query && matchTopics.length === 0) return;
 
-      if (!hasTopics && cat.items.length === 0) return;
-      if (query && !anyMatch) return;
-
-      const displayTopics = hasTopics ? (query ? matchTopics : catTopics) : null;
-      const displayItems  = !hasTopics ? (query ? matchItems : cat.items) : null;
-      const topicCount    = hasTopics ? catTopics.length : cat.items.length;
+      const displayTopics = query ? matchTopics : catTopics;
       const pct    = Math.round((cat.engagement_count / maxEngage) * 100);
-      const isOpen = allExpanded || (query && anyMatch);
+      const isOpen = allExpanded || (query && matchTopics.length > 0);
 
-      // Build topic-cluster rows (live data available)
-      const topicRows = displayTopics ? displayTopics.map((topic, i) => {
+      const topicRows = displayTopics.map((topic, i) => {
         const sc = {search: 0, reddit: 0, youtube: 0, tiktok: 0};
         topic.events.forEach(e => {
           const s = e.source || 'search';
@@ -1262,27 +1253,7 @@
             <span class="item-chevron">▶</span>
           </div>
           <div class="item-detail"></div>`;
-      }).join('') : '';
-
-      // Build legacy item rows (fallback: no live data yet)
-      const itemRows = displayItems ? displayItems.map((item, i) => `
-        <div class="item-row expandable"
-             data-item="${escHtml(JSON.stringify(item))}"
-             data-cat="${escHtml(cat.label)}"
-             onclick="toggleItemDetail(this)">
-          <div class="item-rank">${i + 1}</div>
-          <div class="item-topic">
-            ${escHtml(item.topic)}
-            <span class="item-query">"${escHtml(item.query)}"</span>
-          </div>
-          ${item.subreddit ? `<span class="subreddit-tag">r/${escHtml(item.subreddit)}</span>` : ''}
-          ${item.channel  ? `<span class="subreddit-tag">📺 ${escHtml(item.channel)}</span>` : ''}
-          ${sourceBadge(item.source)}
-          <div class="score-badge">${item.source === 'reddit' ? '▲ ' + Number(item.count).toLocaleString() : item.count + 'x'}</div>
-          ${trendIcon(item.trend)}
-          <span class="item-chevron">▶</span>
-        </div>
-        <div class="item-detail"></div>`).join('') : '';
+      }).join('');
 
       html += `
         <div class="cat-card${isOpen ? ' open' : ''}" id="cat-${cat.id}" data-id="${cat.id}">
@@ -1292,7 +1263,7 @@
               <div class="cat-name">${cat.label}</div>
               <div class="cat-meta">
                 <span>👥 ${cat.unique_users} users</span>
-                <span>📊 ${topicCount} topics</span>
+                <span>📊 ${catTopics.length} topics</span>
               </div>
             </div>
             <div class="engagement-bar-wrap">
@@ -1304,7 +1275,7 @@
             <div class="chevron">▼</div>
           </div>
           <div class="cat-items">
-            ${topicRows || itemRows}
+            ${topicRows}
           </div>
         </div>`;
     });

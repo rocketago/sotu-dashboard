@@ -245,13 +245,13 @@ def et_midnight_utc() -> str:
 
 
 def _current_window_start() -> str:
-    """Return the start of the current 24-hour sliding window (NTZ, ET-anchored).
+    """Return the start of the current 72-hour sliding window (NTZ, ET-anchored).
 
-    Result = max(WINDOW_ANCHOR, now_ET − 24 h).
+    Result = max(WINDOW_ANCHOR, now_ET − 72 h).
 
-    During the first 24 hours after WINDOW_ANCHOR, the anchor itself is returned
-    so the window covers everything from Feb 24 midnight ET onward.  After that
-    the window slides forward so the dashboard always shows the most recent 24 h.
+    A 72-hour lookback (instead of 24 h) ensures the dashboard always catches
+    VerbAI data even when the upstream pipeline is 48+ hours behind wall-clock
+    time (as observed in Feb 2026 when data stalled for multiple days).
 
     Uses the same NTZ / Eastern Time convention as et_midnight_utc() so it can
     be used directly in Snowflake WHERE clauses.
@@ -259,8 +259,8 @@ def _current_window_start() -> str:
     now_utc  = datetime.datetime.now(datetime.timezone.utc)
     et_hours = 4 if 4 <= now_utc.month <= 10 else 5
     now_et   = (now_utc - datetime.timedelta(hours=et_hours)).replace(tzinfo=None)
-    ago_24h  = (now_et - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%S")
-    return max(WINDOW_ANCHOR, ago_24h)
+    ago_72h  = (now_et - datetime.timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%S")
+    return max(WINDOW_ANCHOR, ago_72h)
 
 
 # ── Direct MCP HTTP path ─────────────────────────────────────────────────────
@@ -2495,6 +2495,12 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
         key = (e.get("time", ""), (e.get("query") or "")[:60])
         if key not in seen:
             seen.add(key)
+            # Normalize category so live_feed.json always uses canonical names
+            # that match the cat.label values in the dashboard rendering code.
+            raw_cat = e.get("category") or "General Politics"
+            norm_cat = _normalize_category(raw_cat)
+            if norm_cat != raw_cat:
+                e = {**e, "category": norm_cat}
             merged.append(e)
 
     merged.sort(key=lambda e: e.get("time", ""), reverse=True)
@@ -2704,7 +2710,7 @@ def _raw_media_to_live_events(
             "source":   item["source"],
             "channel":  item.get("channel") or None,
             "subreddit": item.get("subreddit") or None,
-            "category": item.get("category") or "General Politics",
+            "category": _normalize_category(item.get("category") or "General Politics"),
             "count":    int(item.get("count") or 1),
             "trend":    item.get("trend", "stable"),
             # Synthetic demographics — same distributions as seed_events_from_categories
@@ -3025,18 +3031,11 @@ def main():
     any_data = bool(all_events)
 
     if not any_data:
-        # Transient VerbAI outage — keep existing file, advance timestamp only.
+        # VerbAI outage / pipeline lag — keep existing file completely unchanged.
+        # Do NOT advance generated_at: that would show a "today" timestamp in the
+        # top bar while the actual item data is stale, misleading users about data
+        # freshness.  The file stays as-is until a run actually returns events.
         print("[WARN] VerbAI returned no data — keeping existing JSON unchanged.")
-        if OUTPUT_FILE.exists():
-            with open(OUTPUT_FILE) as f:
-                existing = json.load(f)
-            if existing.get("meta"):
-                existing["meta"]["generated_at"] = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ")
-                existing["meta"].setdefault("last_mcp_pull", existing["meta"]["generated_at"])
-                existing["meta"]["today_start"] = since_iso
-                with open(OUTPUT_FILE, "w") as f:
-                    json.dump(existing, f, indent=2, ensure_ascii=False)
-                update_history(existing)
     else:
         # ── Determine whether to reset live_feed (ET day rollover) ────────────
         # Within the same ET calendar day: accumulate so events from earlier in
