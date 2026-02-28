@@ -2505,11 +2505,14 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
 
     merged.sort(key=lambda e: e.get("time", ""), reverse=True)
 
-    # Evict events outside the rolling 24-hour window.
+    # Evict events outside the rolling 72-hour window.
+    # 72h matches _current_window_start() / the VerbAI query window so that
+    # events returned when the upstream pipeline is 48h behind (as observed in
+    # Feb 2026) are not immediately evicted before the dashboard can display them.
     # Event "time" values are UTC ISO strings ("Z" suffix); compare directly.
-    cutoff_str = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
+    cutoff_str = (datetime.datetime.utcnow() - datetime.timedelta(hours=72)).strftime("%Y-%m-%dT%H:%M:%SZ")
     merged = [e for e in merged if e.get("time", "") >= cutoff_str]
-    # Raised from 300 → 2000: live_feed.json is now the master 24-hour dataset
+    # Raised from 300 → 2000: live_feed.json is now the master 72-hour dataset
     # covering all sources (search, reddit, youtube, tiktok, news).
     merged = merged[:2000]
 
