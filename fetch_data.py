@@ -2495,6 +2495,12 @@ def _append_live_events(new_events: list[dict], reset: bool = False) -> None:
         key = (e.get("time", ""), (e.get("query") or "")[:60])
         if key not in seen:
             seen.add(key)
+            # Normalize category so live_feed.json always uses canonical names
+            # that match the cat.label values in the dashboard rendering code.
+            raw_cat = e.get("category") or "General Politics"
+            norm_cat = _normalize_category(raw_cat)
+            if norm_cat != raw_cat:
+                e = {**e, "category": norm_cat}
             merged.append(e)
 
     merged.sort(key=lambda e: e.get("time", ""), reverse=True)
@@ -2704,7 +2710,7 @@ def _raw_media_to_live_events(
             "source":   item["source"],
             "channel":  item.get("channel") or None,
             "subreddit": item.get("subreddit") or None,
-            "category": item.get("category") or "General Politics",
+            "category": _normalize_category(item.get("category") or "General Politics"),
             "count":    int(item.get("count") or 1),
             "trend":    item.get("trend", "stable"),
             # Synthetic demographics — same distributions as seed_events_from_categories
