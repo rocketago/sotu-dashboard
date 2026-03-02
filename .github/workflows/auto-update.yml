@@ -1,8 +1,6 @@
 name: Auto-update political data
 
 on:
-  schedule:
-    - cron: '0 * * * *'   # every hour, on the hour (UTC)
   workflow_dispatch:
 
 # One run at a time; new triggers queue rather than cancel so a manual
